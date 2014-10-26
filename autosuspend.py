@@ -1,3 +1,4 @@
+#! /usr/bin/env python3
 import os, sys, configparser, logging,  psutil,  subprocess,  time,  threading,  logging.handlers
 from http.server import BaseHTTPRequestHandler,HTTPServer
 from daemon import daemon
