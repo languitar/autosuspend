@@ -40,10 +40,14 @@ WEBSERVER:
         you can disable the password by leaving it empty.
         The suspending by webserver is not checking for the other conditions to apply. it will suspend instantly
 
+Acknowledgements
+================
+daemon.py by http://workaround.cz/daemon-in-python-3/
+        
 Example configuration file
 ===========
 The following options should be put in /etc/autosuspend.conf
-
+```
 [autosuspend]
 interval=600
 debug=true
@@ -60,3 +64,4 @@ loadthreshold=1.5
 processes=rsync,clamav
 suspend_cmd = /bin/echo
 logfile = /var/log/autosuspend.log
+```
