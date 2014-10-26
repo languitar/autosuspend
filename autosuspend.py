@@ -90,7 +90,7 @@ def ssh():
         
 #Check SAMBA Connections
 def smb():
-    smbcommand = "ssh central sudo smbstatus -b"
+    smbcommand = "smbstatus -b"
     smboutput = subprocess.getoutput(smbcommand+"| sed '/^$/d'")
     logger.debug("smboutput:\n"+smboutput)
     smboutput_split = smboutput.splitlines()
@@ -113,7 +113,7 @@ def smb():
     
 #Check NFS connections
 def nfs():
-    nfscommand = "ssh central showmount --no-headers -a"
+    nfscommand = "showmount --no-headers -a"
     nfsoutput = subprocess.getoutput(nfscommand+"| sed '/^$/d'")
     logger.debug("showmount:\n"+nfsoutput)
     nfsoutput_split = nfsoutput.splitlines()
