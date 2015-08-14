@@ -217,6 +217,43 @@ class Processes(Check):
         return False
 
 
+class ActiveConnection(Check):
+
+    @classmethod
+    def create(cls, config, section):
+        try:
+            ports = config.get(section, 'ports')
+            ports = ports.split(',')
+            ports = [p.strip() for p in ports]
+            ports = set([int(p) for p in ports])
+            return cls(ports)
+        except configparser.NoOptionError:
+            raise ConfigurationError('Missing option ports')
+        except ValueError:
+            raise ConfigurationError('Ports must be integers')
+
+    def __init__(self, ports):
+        Check.__init__(self)
+        self._ports = ports
+
+    def check(self):
+        try:
+            out = subprocess.check_output(['ss', '-n'],
+                                          universal_newlines=True)
+            lines = out.split('\n')
+            lines = lines[1:]
+            lines = [l for l in lines if l.startswith('tcp')]
+            lines = [l for l in lines if 'ESTAB' in l]
+            open_ports = [l.split()[4].split(':')[-1] for l in lines]
+            open_ports = set([int(p) for p in open_ports])
+            self.logger.debug('Matching open ports: %s',
+                              self._ports.intersection(open_ports))
+            return not open_ports.isdisjoint(self._ports)
+        except subprocess.CalledProcessError:
+            self.logger.error('Unable to call ss utility', exc_info=True)
+            raise SevereCheckError()
+
+
 class Load(Check):
 
     @classmethod
@@ -272,6 +309,8 @@ def loop(interval, idle_time, sleep_fn):
             except TemporaryCheckError:
                 logger.warning('Check %s failed. Ignoring...', check,
                                exc_info=True)
+
+        logger.debug('Iterating checks finished')
 
         if matched:
             logger.info('Check iteration finished. '
