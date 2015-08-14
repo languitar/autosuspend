@@ -17,6 +17,6 @@ setup(
         'autosuspend.py'
     ],
     data_files=[
-        ('etc', ['autosuspend.conf'])
+        ('etc', ['autosuspend.conf', 'autosuspend-logging.conf'])
     ]
 )

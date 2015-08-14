@@ -5,6 +5,7 @@ import argparse
 import configparser
 import functools
 import logging
+import logging.config
 import os
 import psutil
 import re
@@ -325,7 +326,7 @@ def set_up_checks(config):
 
 
 def parse_config(config_file):
-    _logger.debug('Reading config file %s')
+    _logger.debug('Reading config file %s', config_file)
     config = configparser.ConfigParser()
     config.read_file(config_file)
     _logger.debug('Parsed config file: %s', config)
@@ -350,6 +351,17 @@ def parser_arguments():
         required=default_config is None,
         metavar='FILE',
         help='The config file to use')
+    parser.add_argument(
+        '-l', '--logging',
+        type=argparse.FileType('r'),
+        nargs='?',
+        default=False,
+        const=True,
+        metavar='FILE',
+        help='Configures the python logging system. If used '
+             'without an argument, all logging is enabled to '
+             'the console. If used with an argument, the '
+             'configuration is read from the specified file.')
 
     args = parser.parse_args()
 
@@ -358,9 +370,43 @@ def parser_arguments():
     return args
 
 
+def configure_logging(file_or_flag):
+    """
+    Configure the python :mod:`logging` system.
+
+    If the provided argument is a `file` instance, try to use the
+    pointed to file as a configuration for the logging system. Otherwise,
+    if the given argument evaluates to :class:True:, use a default
+    configuration with many logging messages. If everything fails, just log
+    starting from the warning level.
+
+    Args:
+        file_or_flag (file or bool):
+            either a configuration file pointed by a :ref:`file object
+            <python:bltin-file-objects>` instance or something that evaluates
+            to :class:`bool`.
+    """
+    if isinstance(file_or_flag, bool):
+        if file_or_flag:
+            logging.basicConfig(level=logging.DEBUG)
+        else:
+            # at least configure warnings
+            logging.basicConfig(level=logging.WARNING)
+    else:
+        try:
+            logging.config.fileConfig(file_or_flag)
+        except Exception as error:
+            # at least configure warnings
+            logging.basicConfig(level=logging.WARNING)
+            _logger.warning('Unable to configure logging from file %s. '
+                            'Falling back to warning level.',
+                            file_or_flag,
+                            exc_info=True)
+
+
 def main():
-    logging.basicConfig(level=logging.DEBUG)
     args = parser_arguments()
+    configure_logging(args.logging)
     config = parse_config(args.config_file)
     set_up_checks(config)
     loop(config.getfloat('general', 'interval', fallback=60),
