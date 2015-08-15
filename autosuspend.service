@@ -1,0 +1,9 @@
+[Unit]
+Description=Automatically suspend system if idle
+
+[Service]
+ExecStart=/usr/bin/autosuspend.py -l /etc/autosuspend-logging.conf
+After=network.target
+
+[Install]
+WantedBy=multi-user.target

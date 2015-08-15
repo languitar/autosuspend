@@ -17,6 +17,7 @@ setup(
         'autosuspend.py'
     ],
     data_files=[
-        ('etc', ['autosuspend.conf', 'autosuspend-logging.conf'])
+        ('etc', ['autosuspend.conf', 'autosuspend-logging.conf']),
+        ('/usr/lib/systemd/system', ['autosuspend.service'])
     ]
 )
