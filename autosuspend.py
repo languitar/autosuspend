@@ -79,9 +79,9 @@ class Check(object):
         Performs a check and reports whether suspending shall NOT take place.
 
         Returns:
-            bool:
-                ``True`` in case the check matches and the computer must NOT be
-                suspended.
+            str:
+                A string describing which condition currently prevents sleep,
+                else ``None``.
 
         Raises:
             TemporaryCheckError:
@@ -114,8 +114,8 @@ class Ping(Check):
             pingcmd = "ping -q -c 1 " + host + " &> /dev/null"
             if os.system(pingcmd) == 0:
                 self.logger.debug("host " + host + " appears to be up")
-                return True
-        return False
+                return 'Host {} is up'.format(host)
+        return None
 
 
 class Users(Check):
@@ -128,18 +128,22 @@ class Users(Check):
             return cls(user_regex)
         except re.error as error:
             raise ConfigurationError(
-                'SSH users regular expression is invalid: {}'.format(error))
+                'Users regular expression is invalid: {}'.format(error))
 
     def __init__(self, user_regex):
         Check.__init__(self)
         self._user_regex = user_regex
 
     def check(self):
-        for user, _, _, _ in psutil.users():
+        for user, terminal, host, started in psutil.users():
             if self._user_regex.fullmatch(user) is not None:
                 self.logger.debug('User %s matches regex.', user)
-                return True
-        return False
+                return 'User {user} is logged in on terminal {terminal} ' \
+                    'from {host} since {started}'.format(user=user,
+                                                         terminal=terminal,
+                                                         host=host,
+                                                         started=started)
+        return None
 
 
 class Smb(Check):
@@ -149,6 +153,7 @@ class Smb(Check):
         return cls()
 
     def check(self):
+        # TODO fix this
         smbcommand = "smbstatus -b"
         smboutput = subprocess.getoutput(smbcommand + "| sed '/^$/d'")
         self.logger.debug("smboutput:\n"+smboutput)
@@ -164,13 +169,12 @@ class Smb(Check):
             self.logger.info(
                 'Execution of smbstatus failed or '
                 'generated unexpected output.')
-            sys.exit(2)
-            return False
+            raise SevereCheckError()
         elif smboutput_startline < len(smboutput_split):
             self.logger.debug(smboutput_startline)
             self.logger.debug("smb connection detected")
         self.logger.debug(smboutput_startline)
-        return False
+        return None
 
 
 class Nfs(Check):
@@ -180,13 +184,14 @@ class Nfs(Check):
         return cls()
 
     def check(self):
+        # TODO fix this
         nfscommand = "showmount --no-headers -a"
         nfsoutput = subprocess.getoutput(nfscommand + "| sed '/^$/d'")
         self.logger.debug("showmount:\n"+nfsoutput)
         nfsoutput_split = nfsoutput.splitlines()
         if len(nfsoutput_split) > 0:
-            return True
-        return False
+            return 'NFS connection open'
+        return None
 
 
 class Processes(Check):
@@ -210,8 +215,7 @@ class Processes(Check):
                 pinfo = proc.name()
                 for name in self._processes:
                     if pinfo == name:
-                        self.logger.debug(pinfo + " " + name)
-                        return True
+                        return 'Process {} is running'.format(name)
             except psutil.NoSuchProcess:
                 pass
         return False
@@ -248,7 +252,9 @@ class ActiveConnection(Check):
             open_ports = set([int(p) for p in open_ports])
             self.logger.debug('Matching open ports: %s',
                               self._ports.intersection(open_ports))
-            return not open_ports.isdisjoint(self._ports)
+            intersection = open_ports.intersection(self._ports)
+            if intersection:
+                return 'Ports {} are connected'.format(intersection)
         except subprocess.CalledProcessError:
             self.logger.error('Unable to call ss utility', exc_info=True)
             raise SevereCheckError()
@@ -271,15 +277,18 @@ class Load(Check):
     def check(self):
         loadcurrent = os.getloadavg()[1]
         self.logger.debug("Load: %s", loadcurrent)
-        return loadcurrent > self._threshold
+        if loadcurrent > self._threshold:
+            return 'Load {} > threshold {}'.format(loadcurrent,
+                                                   self._threshold)
+        else:
+            return None
 
 
-# Execute suspend
 def execute_suspend(command):
     _logger.info('Suspending using command: %s', command)
     try:
-        os.system(command)
-    except:
+        subprocess.check_call(command, shell=True)
+    except subprocess.CalledProcessError:
         _logger.warning('Unable to execute suspend command: %s', command,
                         exc_info=True)
 
@@ -289,7 +298,7 @@ _checks = []
 # pylint: enable=invalid-name
 
 
-def loop(interval, idle_time, sleep_fn):
+def loop(interval, idle_time, sleep_fn, all_checks=False):
     logger = logging.getLogger('loop')
 
     idle_since = None
@@ -298,19 +307,22 @@ def loop(interval, idle_time, sleep_fn):
 
         matched = False
         for check in _checks:
-            logger.debug('Executing check %s', check)
+            logger.debug('Executing check %s', check.__class__.__name__)
             try:
-                matched = check.check()
-                if matched:
-                    logger.info('Check %s matched. '
-                                'Skipping further checks and suspend',
-                                check)
-                    break
+                result = check.check()
+                if result is not None:
+                    logger.info('Check %s matched. Reason: %s',
+                                check.__class__.__name__,
+                                result)
+                    matched = True
+                    if not all_checks:
+                        logger.debug('Skipping further checks')
+                        break
             except TemporaryCheckError:
                 logger.warning('Check %s failed. Ignoring...', check,
                                exc_info=True)
 
-        logger.debug('Iterating checks finished')
+        logger.debug('All checks have been executed')
 
         if matched:
             logger.info('Check iteration finished. '
@@ -391,6 +403,14 @@ def parser_arguments():
         metavar='FILE',
         help='The config file to use')
     parser.add_argument(
+        '-a', '--allchecks',
+        dest='all_checks',
+        default=False,
+        action='store_true',
+        help='Execute all checks even if one has already prevented '
+             'the system from going to sleep. Useful to debug individual '
+             'checks.')
+    parser.add_argument(
         '-l', '--logging',
         type=argparse.FileType('r'),
         nargs='?',
@@ -451,7 +471,8 @@ def main():
     loop(config.getfloat('general', 'interval', fallback=60),
          config.getfloat('general', 'idle_time', fallback=300),
          functools.partial(execute_suspend,
-                           config.get('general', 'suspend_cmd')))
+                           config.get('general', 'suspend_cmd')),
+         all_checks=args.all_checks)
 
 
 if __name__ == "__main__":
