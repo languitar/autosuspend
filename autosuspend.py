@@ -124,20 +124,29 @@ class Users(Check):
     def create(cls, config, section):
         try:
             user_regex = re.compile(
-                config.get(section, 'users', fallback='.*'))
-            return cls(user_regex)
+                config.get(section, 'name', fallback='.*'))
+            terminal_regex = re.compile(
+                config.get(section, 'terminal', fallback='.*'))
+            host_regex = re.compile(
+                config.get(section, 'host', fallback='.*'))
+            return cls(user_regex, terminal_regex, host_regex)
         except re.error as error:
             raise ConfigurationError(
                 'Users regular expression is invalid: {}'.format(error))
 
-    def __init__(self, user_regex):
+    def __init__(self, user_regex, terminal_regex, host_regex):
         Check.__init__(self)
         self._user_regex = user_regex
+        self._terminal_regex = terminal_regex
+        self._host_regex = host_regex
 
     def check(self):
         for user, terminal, host, started in psutil.users():
-            if self._user_regex.fullmatch(user) is not None:
-                self.logger.debug('User %s matches regex.', user)
+            if self._user_regex.fullmatch(user) is not None and \
+                    self._terminal_regex.fullmatch(terminal) is not None and \
+                    self._host_regex.fullmatch(host) is not None:
+                self.logger.debug('User %s on terminal %s from host %s '
+                                  'matches criteria.', user, terminal, host)
                 return 'User {user} is logged in on terminal {terminal} ' \
                     'from {host} since {started}'.format(user=user,
                                                          terminal=terminal,
