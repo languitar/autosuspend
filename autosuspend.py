@@ -218,7 +218,7 @@ class Processes(Check):
                         return 'Process {} is running'.format(name)
             except psutil.NoSuchProcess:
                 pass
-        return False
+        return None
 
 
 class ActiveConnection(Check):
