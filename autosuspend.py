@@ -9,6 +9,7 @@ import logging.config
 import os
 import psutil
 import re
+import socket
 import subprocess
 import sys
 import time
@@ -116,6 +117,44 @@ class Ping(Check):
                 self.logger.debug("host " + host + " appears to be up")
                 return 'Host {} is up'.format(host)
         return None
+
+
+class Mpd(Check):
+
+    @classmethod
+    def create(cls, config, section):
+        try:
+            host = config.get(section, 'host', fallback='localhost')
+            port = config.getint(section, 'port', fallback=6600)
+            timeout = config.getint(section, 'timeout', fallback=6600)
+            return cls(host, port, timeout)
+        except configparser.NoOptionError as error:
+            raise ConfigurationError(
+                'Host port configuration wrong: {}'.format(error))
+
+    def __init__(self, host, port, timeout):
+        Check.__init__(self)
+        self._host = host
+        self._port = port
+        self._timeout = timeout
+
+    def check(self):
+        from mpd import MPDClient
+        try:
+            client = MPDClient()
+            client.timeout = self._timeout
+            client.connect(self._host, self._port)
+            state = client.status()
+            client.close()
+            client.disconnect()
+            if state['state'] == 'play':
+                return 'MPD currently playing'
+            else:
+                return None
+        except (ConnectionError,
+                ConnectionRefusedError,
+                socket.gaierror) as error:
+            raise TemporaryCheckError(error)
 
 
 class Users(Check):
