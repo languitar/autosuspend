@@ -55,12 +55,14 @@ class Check(object):
 
     @classmethod
     @abc.abstractmethod
-    def create(cls, config, section):
+    def create(cls, name, config, section):
         """
         Factory method to create an appropriate instance of the check for the
         provided options.
 
         Args:
+            name (str):
+                user-defined name for the check
             config (configparser.ConfigParser):
                 parser object containing the configuration options to use
             section (str):
@@ -73,9 +75,13 @@ class Check(object):
         """
         pass
 
-    def __init__(self):
+    def __init__(self, name=None):
+        if name:
+            self.name = name
+        else:
+            self.name = self.__class__.__name__
         self.logger = logging.getLogger(
-            'check.{}'.format(self.__class__.__name__))
+            'check.{}'.format(self.name))
 
     @abc.abstractmethod
     def check(self):
@@ -95,21 +101,25 @@ class Check(object):
         """
         pass
 
+    def __str__(self):
+        return '{name}[class={clazz}]'.format(name=self.name,
+                                              clazz=self.__class__.__name__)
+
 
 class Ping(Check):
 
     @classmethod
-    def create(cls, config, section):
+    def create(cls, name, config, section):
         try:
             hosts = config.get(section, 'hosts').split(',')
             hosts = [h.strip() for h in hosts]
-            return cls(hosts)
+            return cls(name, hosts)
         except configparser.NoOptionError as error:
             raise ConfigurationError(
                 'Unable to determine hosts to ping: {}'.format(error))
 
-    def __init__(self, hosts):
-        Check.__init__(self)
+    def __init__(self, name, hosts):
+        Check.__init__(self, name)
         self._hosts = hosts
 
     def check(self):
@@ -125,18 +135,18 @@ class Ping(Check):
 class Mpd(Check):
 
     @classmethod
-    def create(cls, config, section):
+    def create(cls, name, config, section):
         try:
             host = config.get(section, 'host', fallback='localhost')
             port = config.getint(section, 'port', fallback=6600)
             timeout = config.getint(section, 'timeout', fallback=6600)
-            return cls(host, port, timeout)
+            return cls(name, host, port, timeout)
         except configparser.NoOptionError as error:
             raise ConfigurationError(
                 'Host port configuration wrong: {}'.format(error))
 
-    def __init__(self, host, port, timeout):
-        Check.__init__(self)
+    def __init__(self, name, host, port, timeout):
+        Check.__init__(self, name)
         self._host = host
         self._port = port
         self._timeout = timeout
@@ -163,7 +173,7 @@ class Mpd(Check):
 class Users(Check):
 
     @classmethod
-    def create(cls, config, section):
+    def create(cls, name, config, section):
         try:
             user_regex = re.compile(
                 config.get(section, 'name', fallback='.*'))
@@ -171,13 +181,13 @@ class Users(Check):
                 config.get(section, 'terminal', fallback='.*'))
             host_regex = re.compile(
                 config.get(section, 'host', fallback='.*'))
-            return cls(user_regex, terminal_regex, host_regex)
+            return cls(name, user_regex, terminal_regex, host_regex)
         except re.error as error:
             raise ConfigurationError(
                 'Users regular expression is invalid: {}'.format(error))
 
-    def __init__(self, user_regex, terminal_regex, host_regex):
-        Check.__init__(self)
+    def __init__(self, name, user_regex, terminal_regex, host_regex):
+        Check.__init__(self, name)
         self._user_regex = user_regex
         self._terminal_regex = terminal_regex
         self._host_regex = host_regex
@@ -200,8 +210,8 @@ class Users(Check):
 class Smb(Check):
 
     @classmethod
-    def create(cls, config, section):
-        return cls()
+    def create(cls, name, config, section):
+        return cls(name)
 
     def check(self):
         # TODO fix this
@@ -231,8 +241,8 @@ class Smb(Check):
 class Nfs(Check):
 
     @classmethod
-    def create(cls, config, section):
-        return cls()
+    def create(cls, name, config, section):
+        return cls(name)
 
     def check(self):
         # TODO fix this
@@ -248,16 +258,16 @@ class Nfs(Check):
 class Processes(Check):
 
     @classmethod
-    def create(cls, config, section):
+    def create(cls, name, config, section):
         try:
             processes = config.get(section, 'processes').split(',')
             processes = [p.strip() for p in processes]
-            return cls(processes)
+            return cls(name, processes)
         except configparser.NoOptionError:
             raise ConfigurationError('No processes to check specified')
 
-    def __init__(self, processes):
-        Check.__init__(self)
+    def __init__(self, name, processes):
+        Check.__init__(self, name)
         self._processes = processes
 
     def check(self):
@@ -275,20 +285,20 @@ class Processes(Check):
 class ActiveConnection(Check):
 
     @classmethod
-    def create(cls, config, section):
+    def create(cls, name, config, section):
         try:
             ports = config.get(section, 'ports')
             ports = ports.split(',')
             ports = [p.strip() for p in ports]
             ports = set([int(p) for p in ports])
-            return cls(ports)
+            return cls(name, ports)
         except configparser.NoOptionError:
             raise ConfigurationError('Missing option ports')
         except ValueError:
             raise ConfigurationError('Ports must be integers')
 
-    def __init__(self, ports):
-        Check.__init__(self)
+    def __init__(self, name, ports):
+        Check.__init__(self, name)
         self._ports = ports
 
     def check(self):
@@ -314,15 +324,16 @@ class ActiveConnection(Check):
 class Load(Check):
 
     @classmethod
-    def create(cls, config, section):
+    def create(cls, name, config, section):
         try:
-            return cls(config.getfloat(section, 'threshold', fallback=2.5))
+            return cls(name,
+                       config.getfloat(section, 'threshold', fallback=2.5))
         except ValueError as error:
             raise ConfigurationError(
                 'Unable to parse threshold as float: {}'.format(error))
 
-    def __init__(self, threshold):
-        Check.__init__(self)
+    def __init__(self, name, threshold):
+        Check.__init__(self, name)
         self._threshold = threshold
 
     def check(self):
@@ -342,15 +353,15 @@ class XIdleTime(Check):
     '''
 
     @classmethod
-    def create(cls, config, section):
+    def create(cls, name, config, section):
         try:
-            return cls(config.getint(section, 'timeout', fallback=600))
+            return cls(name, config.getint(section, 'timeout', fallback=600))
         except ValueError as error:
             raise ConfigurationError(
                 'Unable to parse timeout as int: {}'.format(error))
 
-    def __init__(self, timeout):
-        Check.__init__(self)
+    def __init__(self, name, timeout):
+        Check.__init__(self, name)
         self._timeout = timeout
 
     def check(self):
@@ -425,12 +436,12 @@ def loop(interval, idle_time, sleep_fn, all_checks=False):
 
         matched = False
         for check in _checks:
-            logger.debug('Executing check %s', check.__class__.__name__)
+            logger.debug('Executing check %s', check.name)
             try:
                 result = check.check()
                 if result is not None:
                     logger.info('Check %s matched. Reason: %s',
-                                check.__class__.__name__,
+                                check.name,
                                 result)
                     matched = True
                     if not all_checks:
@@ -466,14 +477,19 @@ def set_up_checks(config):
 
     check_section = [s for s in config.sections() if s.startswith('check.')]
     for section in check_section:
-        class_name = section[len('check.'):]
+        name = section[len('check.'):]
+        # legacy method to determine the check name from the section header
+        class_name = name
+        # if there is an explicit class, use that one with higher priority
+        if 'class' in config[section]:
+            class_name = config[section]['class']
         enabled = config.getboolean(section, 'enabled', fallback=False)
 
         if not enabled:
-            _logger.debug('Skipping disabled check %s', class_name)
+            _logger.debug('Skipping disabled check %s', name)
             continue
 
-        _logger.info('Configuring check %s', class_name)
+        _logger.info('Configuring check %s with class %s', name, class_name)
         try:
             klass = globals()[class_name]
         except KeyError:
@@ -481,7 +497,7 @@ def set_up_checks(config):
                           class_name)
             sys.exit(2)
 
-        check = klass.create(config, section)
+        check = klass.create(name, config, section)
         if not isinstance(check, Check):
             _logger.exception('Check %s is not a correct Check instance',
                               check)
