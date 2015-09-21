@@ -3,11 +3,14 @@
 import abc
 import argparse
 import configparser
+import copy
 import functools
+import glob
 import logging
 import logging.config
 import os
 import psutil
+import pwd
 import re
 import socket
 import subprocess
@@ -330,6 +333,73 @@ class Load(Check):
                                                    self._threshold)
         else:
             return None
+
+
+class XIdleTime(Check):
+    '''
+    Checks users with a local X display have been idle for a sufficiently long
+    time.
+    '''
+
+    @classmethod
+    def create(cls, config, section):
+        try:
+            return cls(config.getint(section, 'timeout', fallback=600))
+        except ValueError as error:
+            raise ConfigurationError(
+                'Unable to parse timeout as int: {}'.format(error))
+
+    def __init__(self, timeout):
+        Check.__init__(self)
+        self._timeout = timeout
+
+    def check(self):
+        sockets = glob.glob('/tmp/.X11-unix/X*')
+        self.logger.debug('Found sockets: %s', sockets)
+        for sock in sockets:
+
+            # determine the number of the X display
+            try:
+                number = int(sock[len('/tmp/.X11-unix/X'):])
+            except ValueError as error:
+                self.logger.warning(
+                    'Cannot parse display number from socket %s. Skipping.',
+                    sock, exc_info=True)
+                continue
+
+            # determine the user of the display
+            try:
+                user = pwd.getpwuid(os.stat(sock).st_uid).pw_name
+            except (FileNotFoundError, KeyError) as error:
+                self.logger.warning(
+                    'Cannot get the owning user from socket %s. Skipping.',
+                    sock, exc_info=True)
+                continue
+
+            # prepare the environment for the xprintidle call
+            env = copy.deepcopy(os.environ)
+            env['DISPLAY'] = ':{}'.format(number)
+
+            try:
+                idle_time = subprocess.check_output(
+                    ['sudo', '-u', user, 'xprintidle'], env=env)
+                idle_time = float(idle_time.strip()) / 1000.0
+            except (subprocess.CalledProcessError, ValueError) as error:
+                self.logger.warning(
+                    'Unable to determine the idle time for display %s.',
+                    number, exc_info=True)
+                raise TemporaryCheckError(error)
+
+            self.logger.debug(
+                'Idle time for display %s of user %s is %s seconds.',
+                number, user, idle_time)
+
+            if idle_time < self._timeout:
+                return 'X session {} of user {} ' \
+                    'has idle time {} < threshold {}'.format(
+                        number, user, idle_time, self._timeout)
+
+        return None
 
 
 def execute_suspend(command):
