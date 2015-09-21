@@ -1,5 +1,5 @@
 [Unit]
-Description=Automatically suspend system if idle
+Description=A daemon to suspend your server in case of inactivity
 
 [Service]
 ExecStart=/usr/bin/autosuspend.py -l /etc/autosuspend-logging.conf

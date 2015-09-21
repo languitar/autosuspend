@@ -2,16 +2,21 @@ from setuptools import setup
 
 setup(
     name='autosuspend',
-    version='0.1',
-    description='Automatically suspends a Linux server in case of no activity',
+    version='0.2-dev',
+
+    description='A daemon to suspend your server in case of inactivity',
     author='Johannes Wienke',
     author_email='languitar@semipol.de',
+    license='GPL2',
 
     zip_safe=False,
 
     install_requires=[
         'psutil'
     ],
+    extras_require={
+        'Mpd': ['python-mpd2']
+    },
 
     scripts=[
         'autosuspend.py'
