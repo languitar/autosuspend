@@ -23,6 +23,6 @@ setup(
     ],
     data_files=[
         ('etc', ['autosuspend.conf', 'autosuspend-logging.conf']),
-        ('/usr/lib/systemd/system', ['autosuspend.service'])
+        ('lib/systemd/system', ['autosuspend.service'])
     ]
 )
