@@ -104,6 +104,9 @@ class Check(object):
 
 
 class Ping(Check):
+    """
+    Prevents system sleep in case one or several hosts are reachable via ping.
+    """
 
     @classmethod
     def create(cls, name, config):
@@ -120,10 +123,11 @@ class Ping(Check):
         self._hosts = hosts
 
     def check(self):
-        # TODO reimplement this
         for host in self._hosts:
-            pingcmd = "ping -q -c 1 " + host + " &> /dev/null"
-            if os.system(pingcmd) == 0:
+            cmd = ['ping', '-q', '-c', '1', host]
+            if subprocess.call(cmd,
+                               stdout=subprocess.DEVNULL,
+                               stderr=subprocess.DEVNULL) == 0:
                 self.logger.debug("host " + host + " appears to be up")
                 return 'Host {} is up'.format(host)
         return None

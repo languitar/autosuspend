@@ -102,6 +102,8 @@ Checks whether one or more hosts answer to ICMP requests.
 
 #### Options
 
+* `hosts`: Comma-separated list of host names or IPs.
+
 #### Requirements
 
 ### Mpd
