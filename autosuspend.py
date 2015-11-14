@@ -239,22 +239,6 @@ class Smb(Check):
         else:
             return None
 
-class Nfs(Check):
-
-    @classmethod
-    def create(cls, name, config):
-        return cls(name)
-
-    def check(self):
-        # TODO fix this
-        nfscommand = "showmount --no-headers -a"
-        nfsoutput = subprocess.getoutput(nfscommand + "| sed '/^$/d'")
-        self.logger.debug("showmount:\n"+nfsoutput)
-        nfsoutput_split = nfsoutput.splitlines()
-        if len(nfsoutput_split) > 0:
-            return 'NFS connection open'
-        return None
-
 
 class Processes(Check):
 

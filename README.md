@@ -143,16 +143,6 @@ Any active Samba connection will block suspend.
 
 * `smbstatus` executable needs to be present.
 
-### Nfs
-
-Checks whether a NFS3 share is currently being used.
-
-#### Options
-
-#### Requirements
-
-* `showmounts` executable needs to be present and runnable.
-
 ### Processes
 
 If currently running processes match an expression, the suspend will be blocked. You might use this to hinder the system from suspending when for example your rsync runs
