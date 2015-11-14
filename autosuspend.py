@@ -215,29 +215,29 @@ class Smb(Check):
         return cls(name)
 
     def check(self):
-        # TODO fix this
-        smbcommand = "smbstatus -b"
-        smboutput = subprocess.getoutput(smbcommand + "| sed '/^$/d'")
-        self.logger.debug("smboutput:\n"+smboutput)
-        smboutput_split = smboutput.splitlines()
-        smboutput_startline = -1
-        self.logger.debug(len(smboutput_split))
-        for line in range(len(smboutput_split)):
-            if smboutput_split[line].startswith("----"):
-                smboutput_startline = line+1
+        try:
+            status_output = subprocess.check_output(
+                ['smbstatus', '-b']).decode('utf-8')
+        except subprocess.CalledProcessError as error:
+            raise SevereCheckError(error)
 
-        if smboutput_startline == -1:
-            self.logger.debug(smboutput)
-            self.logger.info(
-                'Execution of smbstatus failed or '
-                'generated unexpected output.')
-            raise SevereCheckError()
-        elif smboutput_startline < len(smboutput_split):
-            self.logger.debug(smboutput_startline)
-            self.logger.debug("smb connection detected")
-        self.logger.debug(smboutput_startline)
-        return None
+        self.logger.debug('Received status output:\n%s',
+                          status_output)
 
+        connections = []
+        start_seen = False
+        for line in status_output.split('\n'):
+            if start_seen:
+                connections.append(line)
+            else:
+                if line.startswith('----'):
+                    start_seen = True
+
+        if connections:
+            return 'SMB clients are connected:\n{}'.format(
+                '\n'.join(connections))
+        else:
+            return None
 
 class Nfs(Check):
 
