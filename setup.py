@@ -2,7 +2,7 @@ from setuptools import setup
 
 setup(
     name='autosuspend',
-    version='0.2',
+    version='0.2.1',
 
     description='A daemon to suspend your server in case of inactivity',
     author='Johannes Wienke',

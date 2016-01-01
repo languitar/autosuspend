@@ -167,6 +167,7 @@ class Mpd(Check):
                 return None
         except (ConnectionError,
                 ConnectionRefusedError,
+                socket.timeout,
                 socket.gaierror) as error:
             raise TemporaryCheckError(error)
 
