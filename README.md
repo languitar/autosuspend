@@ -180,6 +180,8 @@ Checks whether all active local X displays have been idle for a sufficiently lon
 #### Options
 
 * `timeout`: required idle time in seconds
+* `ignore_if_process`: a regular expression to match against the process names executed by each X session owner. In case the use has a process running, which matches against this expression, the X idle time is ignore and the check continues as if there was no activity. This can be useful in case of processes which inevitably tamper with the X idle time despite showing no activity. You then need other means of checking for activity.
+* `ignore_users`: a regular expression with users to ignore during idle time checking. E.g. to exclude gdm.
 
 #### Requirements
 

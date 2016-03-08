@@ -341,19 +341,29 @@ class XIdleTime(Check):
     @classmethod
     def create(cls, name, config):
         try:
-            return cls(name, config.getint('timeout', fallback=600))
+            return cls(name, config.getint('timeout', fallback=600),
+                       re.compile(config.get('ignore_if_process',
+                                             fallback=r'a^')),
+                       re.compile(config.get('ignore_users',
+                                             fallback=r'^a')))
+        except re.error as error:
+            raise ConfigurationError(
+                'Regular expression is invalid: {}'.format(error))
         except ValueError as error:
             raise ConfigurationError(
                 'Unable to parse timeout as int: {}'.format(error))
 
-    def __init__(self, name, timeout):
+    def __init__(self, name, timeout, ignore_process_re, ignore_users_re):
         Check.__init__(self, name)
         self._timeout = timeout
+        self._ignore_process_re = ignore_process_re
+        self._ignore_users_re = ignore_users_re
 
     def check(self):
         sockets = glob.glob('/tmp/.X11-unix/X*')
         self.logger.debug('Found sockets: %s', sockets)
         for sock in sockets:
+            self.logger.info('Checking socket %s', sock)
 
             # determine the number of the X display
             try:
@@ -371,6 +381,38 @@ class XIdleTime(Check):
                 self.logger.warning(
                     'Cannot get the owning user from socket %s. Skipping.',
                     sock, exc_info=True)
+                continue
+
+            # check whether this users should be ignored completely
+            if self._ignore_users_re.match(user) is not None:
+                self.logger.debug("Skipping user '%s' due to request", user)
+                continue
+
+            # check whether any of the running processes of this user matches
+            # the ignore regular expression. In that case we skip ideltime
+            # checking because we assume the user has a process running, which
+            # inevitably tampers with the idle time.
+            user_processes = []
+            for process in psutil.process_iter():
+                try:
+                    if process.username() == user:
+                        user_processes.append(process.name())
+                except (psutil.NoSuchProcess,
+                        psutil.ZombieProcess,
+                        psutil.AccessDenied):
+                    # ignore processes which have disappeared etc.
+                    pass
+
+            skip = False
+            for process in user_processes:
+                if self._ignore_process_re.match(process) is not None:
+                    self.logger.debug(
+                        "Process %s with pid %s matches the ignore regex '%s'."
+                        " Skipping idle time check for this user.",
+                        process.name(), process.pid, self._ignore_process_re)
+                    skip = True
+                    break
+            if skip:
                 continue
 
             # prepare the environment for the xprintidle call
