@@ -175,7 +175,7 @@ Checks whether the system load 5 is below a certain value.
 
 ### XIdleTime
 
-Checks whether all active local X displays have been idle for a sufficiently long time.
+Checks whether all active local X displays have been idle for a sufficiently long time. This assumes a recent operating system where the X server is started with user permissions (i.e. not as root).
 
 #### Options
 
