@@ -90,8 +90,8 @@ optional arguments:
 The package ships with a [service definition file](http://www.freedesktop.org/software/systemd/man/systemd.service.html) for [systemd](https://wiki.freedesktop.org/www/Software/systemd/), so that you should be able to launch it via systemd using e.g.:
 
 ```
-systemd enable autosuspend.service
-systemd start autosuspend.service
+systemctl enable autosuspend.service
+systemctl start autosuspend.service
 ```
 
 ## Available Checks
@@ -187,7 +187,7 @@ Checks whether all active local X displays have been idle for a sufficiently lon
 
 ## Debugging
 
-In case you need to track configuration issues to understand why a system goes to suspend or does not, the extensive logging output might be used. The command line flag `-l` allows to specify a [Python logging config file](https://docs.python.org/3/library/logging.config.html) to specify what to log. The provided systemd service file already uses `/etc/autosuspend-logging.cong` per default. Each iteration logs exactly which condition detected activity or not. So you should be able to find out what is going on.
+In case you need to track configuration issues to understand why a system goes to suspend or does not, the extensive logging output might be used. The command line flag `-l` allows to specify a [Python logging config file](https://docs.python.org/3/library/logging.config.html) to specify what to log. The provided systemd service file already uses `/etc/autosuspend-logging.conf` per default. Each iteration logs exactly which condition detected activity or not. So you should be able to find out what is going on.
 
 In case one of the conditions you monitor prevents sleeping the system in case of an external connection (logged-in users, open TCP port), then the logging configuration might be changed to use the [broadcast-logging](https://github.com/languitar/broadcast-logging) package. This way, the server will broadcast new log messages and external clients on the same network can listen to these messages without creating an explicit connection. Please refer to the documentation of the broadcast-logging package on how to enable and use it.
 
