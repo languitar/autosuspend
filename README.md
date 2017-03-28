@@ -114,6 +114,7 @@ Checks whether an instance of [MPD](http://www.musicpd.org/) is currently playin
 
 * `host`: Host containing the MPD daemon, default: `localhost`
 * `port`: Port to connect to the MPD daemon, default: `6600`
+* `timeout`: Request timeout in seconds, default: `5`
 
 #### Requirements
 
