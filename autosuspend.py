@@ -10,13 +10,14 @@ import json
 import logging
 import logging.config
 import os
-import psutil
 import pwd
 import re
 import socket
 import subprocess
 import sys
 import time
+
+import psutil
 
 
 # pylint: disable=invalid-name
