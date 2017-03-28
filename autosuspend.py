@@ -6,6 +6,7 @@ import configparser
 import copy
 import functools
 import glob
+import json
 import logging
 import logging.config
 import os
@@ -169,6 +170,42 @@ class Mpd(Check):
                 ConnectionRefusedError,
                 socket.timeout,
                 socket.gaierror) as error:
+            raise TemporaryCheckError(error)
+
+
+class Kodi(Check):
+
+    @classmethod
+    def create(cls, name, config):
+        try:
+            url = config.get('url', fallback='http://localhost:8080/jsonrpc')
+            timeout = config.getint('timeout', fallback=5)
+            return cls(name, url, timeout)
+        except ValueError as error:
+            raise ConfigurationError(
+                'Url or timeout configuration wrong: {}'.format(error))
+
+    def __init__(self, name, url, timeout):
+        Check.__init__(self, name)
+        self._url = url
+        self._timeout = timeout
+
+    def check(self):
+        import requests
+        import requests.exceptions
+
+        try:
+            reply = requests.get(self._url +
+                                 '?request={"jsonrpc": "2.0", '
+                                 '"id": 1, '
+                                 '"method": "Player.GetActivePlayers"}').json()
+            if 'result' not in reply:
+                raise TemporaryCheckError('No result array in reply')
+            if reply['result']:
+                return "Kodi currently playing"
+            else:
+                return None
+        except requests.exceptions.RequestException as error:
             raise TemporaryCheckError(error)
 
 

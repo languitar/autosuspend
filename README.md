@@ -119,6 +119,19 @@ Checks whether an instance of [MPD](http://www.musicpd.org/) is currently playin
 
 * [python-mpd2](https://pypi.python.org/pypi/python-mpd2)
 
+### Kodi
+
+Checks whether an instance of [Kodi](https://kodi.tv/) is currently playing.
+
+#### Options
+
+* `url`: Base URL of the JSON RPC API of the Kodi instance, default: `http://localhost:8080/jsonrpc`
+* `timeout`: Request timeout in seconds, default: `5`
+
+#### Requirements
+
+* [requests](https://pypi.python.org/pypi/requests)
+
 ### Users
 
 Checks whether a user currently logged in at the system matches several criteria. All provided criteria must match to indicate activity on the host.
