@@ -492,6 +492,8 @@ def execute_suspend(command):
 _checks = []
 # pylint: enable=invalid-name
 
+JUST_WOKE_UP_FILE = '/tmp/autosuspend-just-woke-up'
+
 
 def loop(interval, idle_time, sleep_fn, all_checks=False):
     logger = logging.getLogger('loop')
@@ -519,8 +521,13 @@ def loop(interval, idle_time, sleep_fn, all_checks=False):
 
         logger.debug('All checks have been executed')
 
-        if matched:
-            logger.info('Check iteration finished. '
+        if os.path.isfile(JUST_WOKE_UP_FILE):
+            logger.info('Just woke up from suspension. Resetting')
+            os.remove(JUST_WOKE_UP_FILE)
+            idle_since = None
+            time.sleep(interval)
+        elif matched:
+            logger.info('Check iteration finished. System is active. '
                         'Sleeping until next iteration')
             idle_since = None
             time.sleep(interval)

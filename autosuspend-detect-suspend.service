@@ -1,0 +1,10 @@
+[Unit]
+Description=Notifies autosuspend about suspension
+Before=sleep.target
+
+[Service]
+Type=simple
+ExecStart=/usr/bin/touch /tmp/autosuspend-just-woke-up
+
+[Install]
+WantedBy=sleep.target
