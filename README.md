@@ -87,11 +87,17 @@ optional arguments:
                         the specified file. (default: False)
 ```
 
-The package ships with a [service definition file](http://www.freedesktop.org/software/systemd/man/systemd.service.html) for [systemd](https://wiki.freedesktop.org/www/Software/systemd/), so that you should be able to launch it via systemd using e.g.:
+The package ships with [service definition files](http://www.freedesktop.org/software/systemd/man/systemd.service.html) for [systemd](https://wiki.freedesktop.org/www/Software/systemd/), so that you should be able to launch start autosuspend via systemd using e.g.:
 
 ```
 systemctl enable autosuspend.service
 systemctl start autosuspend.service
+```
+
+Additionally, if you want to prevent accidental re-suspension of the system just after waking up, you should also enable `autosuspend-detect-suspend.service`:
+
+```
+systemctl enable autosuspend-detect-suspend.service
 ```
 
 ## Available Checks
