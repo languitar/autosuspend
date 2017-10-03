@@ -233,7 +233,7 @@ class Users(Check):
         self._host_regex = host_regex
 
     def check(self):
-        for user, terminal, host, started in psutil.users():
+        for user, terminal, host, started, pid in psutil.users():
             if self._user_regex.fullmatch(user) is not None and \
                     self._terminal_regex.fullmatch(terminal) is not None and \
                     self._host_regex.fullmatch(host) is not None:
