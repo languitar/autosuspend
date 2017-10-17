@@ -272,7 +272,7 @@ class Smb(Check):
                 if line.startswith('----'):
                     start_seen = True
 
-        if connections:
+        if len(connections) > 1:
             return 'SMB clients are connected:\n{}'.format(
                 '\n'.join(connections))
         else:
