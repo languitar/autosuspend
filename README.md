@@ -1,5 +1,7 @@
 # autosuspend
 
+[![Build Status](https://travis-ci.org/languitar/autosuspend.svg?branch=master)](https://travis-ci.org/languitar/autosuspend)
+
 `autosuspend` is a python daemon that suspends a system if certain conditions are met, or not met. This enables a server to sleep in case of inactivity without depending on the X infrastructure usually used by normal desktop environments.
 
 `autosuspend` started as a fork of [Merlin Schumacher's version](https://github.com/merlinschumacher/autosuspend) but has since then been overhauled completely.
