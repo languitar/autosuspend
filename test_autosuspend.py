@@ -61,3 +61,33 @@ class TestUsers(object):
 
         assert autosuspend.Users('users', re.compile('narf'), re.compile('.*'),
                                  re.compile('.*')).check() is None
+
+
+class TestProcesses(object):
+
+    class StubProcess(object):
+
+        def __init__(self, name):
+            self._name = name
+
+        def name(self):
+            return self._name
+
+    def test_matching_process(self, monkeypatch):
+
+        def data():
+            return [self.StubProcess('blubb'), self.StubProcess('nonmatching')]
+        monkeypatch.setattr(psutil, 'process_iter', data)
+
+        assert autosuspend.Processes(
+            'foo', ['dummy', 'blubb', 'other']).check() is not None
+
+    def test_non_matching_process(self, monkeypatch):
+
+        def data():
+            return [self.StubProcess('asdfasdf'),
+                    self.StubProcess('nonmatching')]
+        monkeypatch.setattr(psutil, 'process_iter', data)
+
+        assert autosuspend.Processes(
+            'foo', ['dummy', 'blubb', 'other']).check() is None
