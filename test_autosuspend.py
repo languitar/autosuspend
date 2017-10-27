@@ -1,5 +1,8 @@
 import os.path
+import re
 import subprocess
+
+import psutil
 
 import autosuspend
 
@@ -24,3 +27,37 @@ class TestSmb(object):
 
         assert autosuspend.Smb('foo').check() is not None
         assert len(autosuspend.Smb('foo').check().splitlines()) == 3
+
+
+class TestUsers(object):
+
+    def test_no_users(self, monkeypatch):
+
+        def data():
+            return []
+        monkeypatch.setattr(psutil, 'users', data)
+
+        assert autosuspend.Users('users', re.compile('.*'), re.compile('.*'),
+                                 re.compile('.*')).check() is None
+
+    def test_smoke(self):
+        autosuspend.Users('users', re.compile('.*'), re.compile('.*'),
+                          re.compile('.*')).check()
+
+    def test_matching_users(self, monkeypatch):
+
+        def data():
+            return [psutil._common.suser('foo', 'pts1', 'host', 12345, 12345)]
+        monkeypatch.setattr(psutil, 'users', data)
+
+        assert autosuspend.Users('users', re.compile('.*'), re.compile('.*'),
+                                 re.compile('.*')).check() is not None
+
+    def test_non_matching_user(self, monkeypatch):
+
+        def data():
+            return [psutil._common.suser('foo', 'pts1', 'host', 12345, 12345)]
+        monkeypatch.setattr(psutil, 'users', data)
+
+        assert autosuspend.Users('users', re.compile('narf'), re.compile('.*'),
+                                 re.compile('.*')).check() is None

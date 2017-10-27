@@ -233,17 +233,18 @@ class Users(Check):
         self._host_regex = host_regex
 
     def check(self):
-        for user, terminal, host, started in psutil.users():
-            if self._user_regex.fullmatch(user) is not None and \
-                    self._terminal_regex.fullmatch(terminal) is not None and \
-                    self._host_regex.fullmatch(host) is not None:
+        for entry in psutil.users():
+            if self._user_regex.fullmatch(entry.name) is not None and \
+                    self._terminal_regex.fullmatch(
+                        entry.terminal) is not None and \
+                    self._host_regex.fullmatch(entry.host) is not None:
                 self.logger.debug('User %s on terminal %s from host %s '
-                                  'matches criteria.', user, terminal, host)
+                                  'matches criteria.', entry.name,
+                                  entry.terminal, entry.host)
                 return 'User {user} is logged in on terminal {terminal} ' \
-                    'from {host} since {started}'.format(user=user,
-                                                         terminal=terminal,
-                                                         host=host,
-                                                         started=started)
+                    'from {host} since {started}'.format(
+                        user=entry.name, terminal=entry.terminal,
+                        host=entry.host, started=entry.started)
         return None
 
 
