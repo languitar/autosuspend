@@ -233,3 +233,36 @@ class TestMPD(object):
         mock_instance.status.assert_called_once_with()
         mock_instance.close.assert_called_once_with()
         mock_instance.disconnect.assert_called_once_with()
+
+
+class TestKodi(object):
+
+    def test_playing(self, mocker):
+        mock_reply = mocker.MagicMock()
+        mock_reply.json.return_value = {
+            "id": 1, "jsonrpc": "2.0",
+            "result": [{"playerid": 0, "type": "audio"}]}
+        mocker.patch('requests.get', return_value=mock_reply)
+
+        assert autosuspend.Kodi('foo', 'url', 10).check() is not None
+
+        mock_reply.json.assert_called_once_with()
+
+    def test_not_playing(self, mocker):
+        mock_reply = mocker.MagicMock()
+        mock_reply.json.return_value = {
+            "id": 1, "jsonrpc": "2.0", "result": []}
+        mocker.patch('requests.get', return_value=mock_reply)
+
+        assert autosuspend.Kodi('foo', 'url', 10).check() is None
+
+        mock_reply.json.assert_called_once_with()
+
+    def test_assertion_no_result(self, mocker):
+        mock_reply = mocker.MagicMock()
+        mock_reply.json.return_value = {"id": 1, "jsonrpc": "2.0"}
+        mocker.patch('requests.get', return_value=mock_reply)
+
+        with pytest.raises(autosuspend.TemporaryCheckError):
+            autosuspend.Kodi('foo', 'url', 10).check()
+
