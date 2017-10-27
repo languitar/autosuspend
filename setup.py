@@ -12,7 +12,7 @@ setup(
     zip_safe=False,
 
     setup_requires=[
-        'pytest-runner'
+        'pytest-runner',
     ],
     install_requires=[
         'psutil'
@@ -21,7 +21,8 @@ setup(
         'Mpd': ['python-mpd2']
     },
     tests_require=[
-        'pytest'
+        'pytest',
+        'pytest-cov',
     ],
 
     scripts=[
