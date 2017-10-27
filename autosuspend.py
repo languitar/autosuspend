@@ -327,23 +327,16 @@ class ActiveConnection(Check):
         self._ports = ports
 
     def check(self):
-        try:
-            out = subprocess.check_output(['ss', '-n'],
-                                          universal_newlines=True)
-            lines = out.split('\n')
-            lines = lines[1:]
-            lines = [l for l in lines if l.startswith('tcp')]
-            lines = [l for l in lines if 'ESTAB' in l]
-            open_ports = [l.split()[4].split(':')[-1] for l in lines]
-            open_ports = set([int(p) for p in open_ports])
-            self.logger.debug('Matching open ports: %s',
-                              self._ports.intersection(open_ports))
-            intersection = open_ports.intersection(self._ports)
-            if intersection:
-                return 'Ports {} are connected'.format(intersection)
-        except subprocess.CalledProcessError:
-            self.logger.error('Unable to call ss utility', exc_info=True)
-            raise SevereCheckError()
+        own_addresses = [(item.family, item.address)
+                         for sublist in psutil.net_if_addrs().values()
+                         for item in sublist]
+        connected = [c.laddr.port
+                     for c in psutil.net_connections()
+                     if ((c.family, c.laddr.ip) in own_addresses
+                         and c.status == 'ESTABLISHED'
+                         and c.laddr.port in self._ports)]
+        if connected:
+            return 'Ports {} are connected'.format(connected)
 
 
 class Load(Check):
