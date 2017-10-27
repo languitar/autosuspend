@@ -265,7 +265,7 @@ class Smb(Check):
 
         connections = []
         start_seen = False
-        for line in status_output.split('\n'):
+        for line in status_output.splitlines():
             if start_seen:
                 connections.append(line)
             else:
