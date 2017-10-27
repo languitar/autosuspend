@@ -154,15 +154,19 @@ class Mpd(Check):
         self._port = port
         self._timeout = timeout
 
-    def check(self):
+    def _get_state(self):
         from mpd import MPDClient
+        client = MPDClient()
+        client.timeout = self._timeout
+        client.connect(self._host, self._port)
+        state = client.status()
+        client.close()
+        client.disconnect()
+        return state
+
+    def check(self):
         try:
-            client = MPDClient()
-            client.timeout = self._timeout
-            client.connect(self._host, self._port)
-            state = client.status()
-            client.close()
-            client.disconnect()
+            state = self._get_state()
             if state['state'] == 'play':
                 return 'MPD currently playing'
             else:

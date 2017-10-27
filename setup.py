@@ -15,7 +15,7 @@ setup(
         'pytest-runner',
     ],
     install_requires=[
-        'psutil'
+        'psutil',
     ],
     extras_require={
         'Mpd': ['python-mpd2']
@@ -23,6 +23,7 @@ setup(
     tests_require=[
         'pytest',
         'pytest-cov',
+        'pytest-mock',
     ],
 
     scripts=[

@@ -2,6 +2,7 @@ import os.path
 import re
 import socket
 import subprocess
+import unittest.mock
 
 import psutil
 
@@ -164,3 +165,71 @@ class TestActiveConnection(object):
 
         assert autosuspend.ActiveConnection(
             'foo', [10, self.MY_PORT, 30]).check() is None
+
+
+class TestLoad(object):
+
+    def test_below(self, monkeypatch):
+
+        threshold = 1.34
+
+        def data():
+            return [0, threshold - 0.2, 0]
+        monkeypatch.setattr(os, 'getloadavg', data)
+
+        assert autosuspend.Load('foo', threshold).check() is None
+
+    def test_above(self, monkeypatch):
+
+        threshold = 1.34
+
+        def data():
+            return [0, threshold + 0.2, 0]
+        monkeypatch.setattr(os, 'getloadavg', data)
+
+        assert autosuspend.Load('foo', threshold).check() is not None
+
+
+class TestMPD(object):
+
+    def test_playing(self, monkeypatch):
+
+        check = autosuspend.Mpd('test', None, None, None)
+
+        def get_state():
+            return {'state': 'play'}
+        monkeypatch.setattr(check, '_get_state', get_state)
+
+        assert check.check() is not None
+
+    def test_not_playing(self, monkeypatch):
+
+        check = autosuspend.Mpd('test', None, None, None)
+
+        def get_state():
+            return {'state': 'pause'}
+        monkeypatch.setattr(check, '_get_state', get_state)
+
+        assert check.check() is None
+
+    def test_correct_mpd_interaction(self, mocker):
+        import mpd
+
+        mock_instance = mocker.MagicMock(spec=mpd.MPDClient)
+        mock_instance.status.return_value = {'state': 'play'}
+        timeout_property = mocker.PropertyMock()
+        type(mock_instance).timeout = timeout_property
+        mock = mocker.patch('mpd.MPDClient')
+        mock.return_value = mock_instance
+
+        host = 'foo'
+        port = 42
+        timeout = 17
+
+        assert autosuspend.Mpd('name', host, port, timeout).check() is not None
+
+        timeout_property.assert_called_once_with(timeout)
+        mock_instance.connect.assert_called_once_with(host, port)
+        mock_instance.status.assert_called_once()
+        mock_instance.close.assert_called_once()
+        mock_instance.disconnect.assert_called_once()
