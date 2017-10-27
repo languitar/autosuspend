@@ -230,6 +230,6 @@ class TestMPD(object):
 
         timeout_property.assert_called_once_with(timeout)
         mock_instance.connect.assert_called_once_with(host, port)
-        mock_instance.status.assert_called_once()
-        mock_instance.close.assert_called_once()
-        mock_instance.disconnect.assert_called_once()
+        mock_instance.status.assert_called_once_with()
+        mock_instance.close.assert_called_once_with()
+        mock_instance.disconnect.assert_called_once_with()
