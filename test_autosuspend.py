@@ -27,6 +27,9 @@ class TestCheck(object):
         name = 'test'
         assert self.DummyCheck(name).name == name
 
+    def test_name_default(self):
+        assert self.DummyCheck().name is not None
+
     def test_str(self):
         assert isinstance(str(self.DummyCheck('test')), str)
 
