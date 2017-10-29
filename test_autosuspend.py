@@ -572,6 +572,61 @@ class TestExternalCommand(object):
         mock.assert_called_once_with('foo bar', shell=True)
 
 
+class TestXPath(object):
+
+    def test_matching(self, mocker):
+        mock_reply = mocker.MagicMock()
+        text_property = mocker.PropertyMock()
+        type(mock_reply).text = text_property
+        text_property.return_value = "<a></a>"
+        mock_method = mocker.patch('requests.get', return_value=mock_reply)
+
+        url = 'nourl'
+        assert autosuspend.XPath('foo', '/a', url).check() is not None
+
+        mock_method.assert_called_once_with(url)
+        text_property.assert_called_once_with()
+
+    def test_not_matching(self, mocker):
+        mock_reply = mocker.MagicMock()
+        text_property = mocker.PropertyMock()
+        type(mock_reply).text = text_property
+        text_property.return_value = "<a></a>"
+        mocker.patch('requests.get', return_value=mock_reply)
+
+        assert autosuspend.XPath('foo', '/b', 'nourl').check() is None
+
+    def test_broken_xml(self, mocker):
+        with pytest.raises(autosuspend.TemporaryCheckError):
+            mock_reply = mocker.MagicMock()
+            text_property = mocker.PropertyMock()
+            type(mock_reply).text = text_property
+            text_property.return_value = "//broken"
+            mocker.patch('requests.get', return_value=mock_reply)
+
+            autosuspend.XPath('foo', '/b', 'nourl').check()
+
+    def test_xpath_prevalidation(self):
+        with pytest.raises(autosuspend.ConfigurationError,
+                           match=r'^Invalid xpath.*'):
+            parser = configparser.ConfigParser()
+            parser.read_string('''[section]
+                               xpath=|34/ad
+                               url=nourl''')
+            autosuspend.XPath.create('name', parser['section'])
+
+    @pytest.mark.parametrize('entry,', ['xpath', 'url'])
+    def test_missing_config_entry(self, entry):
+        with pytest.raises(autosuspend.ConfigurationError,
+                           match=r"^No '" + entry + "'.*"):
+            parser = configparser.ConfigParser()
+            parser.read_string('''[section]
+                               xpath=/valid
+                               url=nourl''')
+            del parser['section'][entry]
+            autosuspend.XPath.create('name', parser['section'])
+
+
 def test_execute_suspend(mocker):
     mock = mocker.patch('subprocess.check_call')
     command = ['foo', 'bar']

@@ -20,6 +20,7 @@ setup(
     extras_require={
         'Mpd': ['python-mpd2'],
         'Kodi': ['requests'],
+        'XPath': ['lxml', 'requests'],
     },
     tests_require=[
         'pytest',

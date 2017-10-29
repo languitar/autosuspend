@@ -497,6 +497,44 @@ class ExternalCommand(Check):
             return None
 
 
+class XPath(Check):
+
+    @classmethod
+    def create(cls, name, config):
+        from lxml import etree
+        try:
+            xpath = config['xpath'].strip()
+            # validate the expression
+            try:
+                etree.fromstring('<a></a>').xpath(xpath)
+            except etree.XPathEvalError:
+                raise ConfigurationError('Invalid xpath expression: ' + xpath)
+            return cls(name, xpath, config['url'])
+        except KeyError as error:
+            raise ConfigurationError('No ' + str(error) +
+                                     ' entry defined for the XPath check')
+
+    def __init__(self, name, xpath, url):
+        Check.__init__(self, name)
+        self._xpath = xpath
+        self._url = url
+
+    def check(self):
+        import requests
+        import requests.exceptions
+        from lxml import etree
+
+        try:
+            reply = requests.get(self._url).text
+            root = etree.fromstring(reply)
+            if root.xpath(self._xpath):
+                return "XPath matches for url " + self._url
+        except requests.exceptions.RequestException as error:
+            raise TemporaryCheckError(error)
+        except etree.XMLSyntaxError as error:
+            raise TemporaryCheckError(error)
+
+
 def execute_suspend(command):
     _logger.info('Suspending using command: %s', command)
     try:

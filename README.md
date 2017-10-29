@@ -227,6 +227,27 @@ In case you need to track configuration issues to understand why a system goes t
 
 In case one of the conditions you monitor prevents sleeping the system in case of an external connection (logged-in users, open TCP port), then the logging configuration might be changed to use the [broadcast-logging](https://github.com/languitar/broadcast-logging) package. This way, the server will broadcast new log messages and external clients on the same network can listen to these messages without creating an explicit connection. Please refer to the documentation of the broadcast-logging package on how to enable and use it.
 
+### XPath
+
+A generic check which queries a configured URL and expected the reply to contain XML data.
+The returned XML document is checked against a configured [XPath](https://www.w3.org/TR/xpath/) expression and in case the expression matches, the system is assumed to be active.
+
+This can for instance be used with with the TV streaming server [tvheadend](https://tvheadend.org/), which provides its current status via an XML reply.
+For this purpose, use the followin XPath:
+```
+/currentload/subscriptions[number(.) > 0] | /currentload/recordings/recording
+```
+
+#### Options
+
+* `url` the URL to query for the XML reply
+* `xpath` the XPath query tro execute. In case it returns a result, the system is assumed to be active.
+
+#### Requirements
+
+* [requests](https://pypi.python.org/pypi/requests)
+* [lxml](http://lxml.de/)
+
 ## License
 
 This software is licensed using the [GPL2 license](https://www.gnu.org/licenses/old-licenses/gpl-2.0.en.html).

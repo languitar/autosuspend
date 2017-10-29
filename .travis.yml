@@ -4,7 +4,7 @@ python:
   - "3.6"
   - "nightly"
 install:
-  - pip install pytest pytest-runner pytest-cov pytest-mock python-mpd2 psutil requests codecov
+  - pip install pytest pytest-runner pytest-cov pytest-mock python-mpd2 psutil requests codecov lxml
 script:
   - pytest --cov=autosuspend
 after_success:
