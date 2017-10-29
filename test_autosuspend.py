@@ -321,3 +321,23 @@ class TestPing(object):
                            hosts=a,b,c''')
         ping = autosuspend.Ping.create('name', parser['section'])
         assert ping._hosts == ['a', 'b', 'c']
+
+
+def test_execute_suspend(mocker):
+    mock = mocker.patch('subprocess.check_call')
+    command = ['foo', 'bar']
+    autosuspend.execute_suspend(command)
+    mock.assert_called_once_with(command, shell=True)
+
+
+def test_execute_suspend_call_exception(mocker):
+    mock = mocker.patch('subprocess.check_call')
+    command = ['foo', 'bar']
+    mock.side_effect = subprocess.CalledProcessError(2, command)
+
+    spy = mocker.spy(autosuspend._logger, 'warning')
+
+    autosuspend.execute_suspend(command)
+
+    mock.assert_called_once_with(command, shell=True)
+    assert spy.call_count == 1
