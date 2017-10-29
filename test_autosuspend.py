@@ -12,6 +12,25 @@ import pytest
 import autosuspend
 
 
+class TestCheck(object):
+
+    class DummyCheck(autosuspend.Check):
+
+        @classmethod
+        def create(cls, name, config):
+            pass
+
+        def check(self):
+            pass
+
+    def test_name(self):
+        name = 'test'
+        assert self.DummyCheck(name).name == name
+
+    def test_str(self):
+        assert isinstance(str(self.DummyCheck('test')), str)
+
+
 class TestSmb(object):
 
     def test_no_connections(self, monkeypatch):
