@@ -5,7 +5,7 @@ python:
   - "3.6"
   - "nightly"
 install:
-  - pip install pytest pytest-runner pytest-cov pytest-mock python-mpd2 python-coveralls psutil
+  - pip install pytest pytest-runner pytest-cov pytest-mock python-mpd2 python-coveralls psutil requests
 script:
   - pytest --cov=autosuspend
 after_success:

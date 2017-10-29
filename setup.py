@@ -18,7 +18,8 @@ setup(
         'psutil',
     ],
     extras_require={
-        'Mpd': ['python-mpd2']
+        'Mpd': ['python-mpd2'],
+        'Kodi': ['requests'],
     },
     tests_require=[
         'pytest',
