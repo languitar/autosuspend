@@ -1,3 +1,4 @@
+import configparser
 import os.path
 import re
 import socket
@@ -266,3 +267,35 @@ class TestKodi(object):
         with pytest.raises(autosuspend.TemporaryCheckError):
             autosuspend.Kodi('foo', 'url', 10).check()
 
+
+class TestPing(object):
+
+    def test_smoke(self, mocker):
+        mock = mocker.patch('subprocess.call')
+        mock.return_value = 1
+
+        hosts = ['abc', '129.123.145.42']
+
+        assert autosuspend.Ping('name', hosts).check() is None
+
+        assert mock.call_count == len(hosts)
+        for (args, _), host in zip(mock.call_args_list, hosts):
+            assert args[0][-1] == host
+
+    def test_matching(self, mocker):
+        mock = mocker.patch('subprocess.call')
+        mock.return_value = 0
+        assert autosuspend.Ping('name', ['foo']).check() is not None
+
+    def test_create_missing_hosts(self):
+        parser = configparser.ConfigParser()
+        parser.read_string('''[section]''')
+        with pytest.raises(autosuspend.ConfigurationError):
+            autosuspend.Ping.create('name', parser['section'])
+
+    def test_create_host_splitting(self):
+        parser = configparser.ConfigParser()
+        parser.read_string('''[section]
+                           hosts=a,b,c''')
+        ping = autosuspend.Ping.create('name', parser['section'])
+        assert ping._hosts == ['a', 'b', 'c']
