@@ -55,6 +55,10 @@ class TestSmb(object):
         assert autosuspend.Smb('foo').check() is not None
         assert len(autosuspend.Smb('foo').check().splitlines()) == 3
 
+    def test_create(self):
+        assert isinstance(autosuspend.Smb.create('name', None),
+                          autosuspend.Smb)
+
 
 class TestUsers(object):
 
@@ -89,6 +93,29 @@ class TestUsers(object):
         assert autosuspend.Users('users', re.compile('narf'), re.compile('.*'),
                                  re.compile('.*')).check() is None
 
+    def test_create(self):
+        parser = configparser.ConfigParser()
+        parser.read_string('''[section]
+                           name = name.*name
+                           terminal = term.*term
+                           host = host.*host''')
+
+        check = autosuspend.Users.create('name', parser['section'])
+
+        assert check._user_regex == re.compile('name.*name')
+        assert check._terminal_regex == re.compile('term.*term')
+        assert check._host_regex == re.compile('host.*host')
+
+    def test_create_regex_error(self):
+        parser = configparser.ConfigParser()
+        parser.read_string('''[section]
+                           name = name.*name
+                           terminal = term.[[a-9]term
+                           host = host.*host''')
+
+        with pytest.raises(autosuspend.ConfigurationError):
+            autosuspend.Users.create('name', parser['section'])
+
 
 class TestProcesses(object):
 
@@ -118,6 +145,19 @@ class TestProcesses(object):
 
         assert autosuspend.Processes(
             'foo', ['dummy', 'blubb', 'other']).check() is None
+
+    def test_create(self):
+        parser = configparser.ConfigParser()
+        parser.read_string('''[section]
+                           processes = foo, bar, narf''')
+        assert autosuspend.Processes.create(
+            'name', parser['section'])._processes == ['foo', 'bar', 'narf']
+
+    def test_create_no_entry(self):
+        parser = configparser.ConfigParser()
+        parser.read_string('''[section]''')
+        with pytest.raises(autosuspend.ConfigurationError):
+            autosuspend.Processes.create('name', parser['section'])
 
 
 class TestActiveConnection(object):
@@ -189,6 +229,20 @@ class TestActiveConnection(object):
         assert autosuspend.ActiveConnection(
             'foo', [10, self.MY_PORT, 30]).check() is None
 
+    def test_create(self):
+        parser = configparser.ConfigParser()
+        parser.read_string('''[section]
+                           ports = 10,20,30''')
+        assert autosuspend.ActiveConnection.create(
+            'name', parser['section'])._ports == set([10, 20, 30])
+
+    def test_create_no_number(self):
+        parser = configparser.ConfigParser()
+        parser.read_string('''[section]
+                           ports = 10,20xx,30''')
+        with pytest.raises(autosuspend.ConfigurationError):
+            autosuspend.ActiveConnection.create('name', parser['section'])
+
 
 class TestLoad(object):
 
@@ -211,6 +265,21 @@ class TestLoad(object):
         monkeypatch.setattr(os, 'getloadavg', data)
 
         assert autosuspend.Load('foo', threshold).check() is not None
+
+    def test_create(self):
+        parser = configparser.ConfigParser()
+        parser.read_string('''[section]
+                           threshold = 3.2''')
+        assert autosuspend.Load.create(
+            'name', parser['section'])._threshold == 3.2
+
+    def test_create_no_number(self):
+        parser = configparser.ConfigParser()
+        parser.read_string('''[section]
+                           threshold = narf''')
+        with pytest.raises(autosuspend.ConfigurationError):
+            autosuspend.Load.create('name', parser['section'])
+
 
 
 class TestMPD(object):
@@ -257,6 +326,39 @@ class TestMPD(object):
         mock_instance.close.assert_called_once_with()
         mock_instance.disconnect.assert_called_once_with()
 
+    def test_create(self):
+        parser = configparser.ConfigParser()
+        parser.read_string('''[section]
+                           host = host
+                           port = 1234
+                           timeout = 12''')
+
+        check = autosuspend.Mpd.create('name', parser['section'])
+
+        assert check._host == 'host'
+        assert check._port == 1234
+        assert check._timeout == 12
+
+    def test_create_port_no_number(self):
+        parser = configparser.ConfigParser()
+        parser.read_string('''[section]
+                           host = host
+                           port = string
+                           timeout = 12''')
+
+        with pytest.raises(autosuspend.ConfigurationError):
+            autosuspend.Mpd.create('name', parser['section'])
+
+    def test_create_timeout_no_number(self):
+        parser = configparser.ConfigParser()
+        parser.read_string('''[section]
+                           host = host
+                           port = 10
+                           timeout = string''')
+
+        with pytest.raises(autosuspend.ConfigurationError):
+            autosuspend.Mpd.create('name', parser['section'])
+
 
 class TestKodi(object):
 
@@ -288,6 +390,26 @@ class TestKodi(object):
 
         with pytest.raises(autosuspend.TemporaryCheckError):
             autosuspend.Kodi('foo', 'url', 10).check()
+
+    def test_create(self):
+        parser = configparser.ConfigParser()
+        parser.read_string('''[section]
+                           url = anurl
+                           timeout = 12''')
+
+        check = autosuspend.Kodi.create('name', parser['section'])
+
+        assert check._url == 'anurl'
+        assert check._timeout == 12
+
+    def test_create_timeout_no_number(self):
+        parser = configparser.ConfigParser()
+        parser.read_string('''[section]
+                           url = anurl
+                           timeout = string''')
+
+        with pytest.raises(autosuspend.ConfigurationError):
+            autosuspend.Kodi.create('name', parser['section'])
 
 
 class TestPing(object):
