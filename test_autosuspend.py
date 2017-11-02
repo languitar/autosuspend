@@ -9,6 +9,8 @@ import psutil
 
 import pytest
 
+import requests.exceptions
+
 import autosuspend
 
 
@@ -54,6 +56,13 @@ class TestSmb(object):
 
         assert autosuspend.Smb('foo').check() is not None
         assert len(autosuspend.Smb('foo').check().splitlines()) == 3
+
+    def test_call_error(self, mocker):
+        mocker.patch('subprocess.check_output',
+                     side_effect=subprocess.CalledProcessError(2, 'cmd'))
+
+        with pytest.raises(autosuspend.SevereCheckError):
+            autosuspend.Smb('foo').check()
 
     def test_create(self):
         assert isinstance(autosuspend.Smb.create('name', None),
@@ -127,6 +136,11 @@ class TestProcesses(object):
         def name(self):
             return self._name
 
+    class RaisingProcess(object):
+
+        def name(self):
+            raise psutil.NoSuchProcess(42)
+
     def test_matching_process(self, monkeypatch):
 
         def data():
@@ -135,6 +149,14 @@ class TestProcesses(object):
 
         assert autosuspend.Processes(
             'foo', ['dummy', 'blubb', 'other']).check() is not None
+
+    def test_ignore_no_such_process(self, monkeypatch):
+
+        def data():
+            return [self.RaisingProcess()]
+        monkeypatch.setattr(psutil, 'process_iter', data)
+
+        autosuspend.Processes('foo', ['dummy']).check()
 
     def test_non_matching_process(self, monkeypatch):
 
@@ -158,6 +180,7 @@ class TestProcesses(object):
         parser.read_string('''[section]''')
         with pytest.raises(autosuspend.ConfigurationError):
             autosuspend.Processes.create('name', parser['section'])
+
 
 
 class TestActiveConnection(object):
@@ -236,6 +259,12 @@ class TestActiveConnection(object):
         assert autosuspend.ActiveConnection.create(
             'name', parser['section'])._ports == set([10, 20, 30])
 
+    def test_create_no_entry(self):
+        parser = configparser.ConfigParser()
+        parser.read_string('''[section]''')
+        with pytest.raises(autosuspend.ConfigurationError):
+            autosuspend.ActiveConnection.create('name', parser['section'])
+
     def test_create_no_number(self):
         parser = configparser.ConfigParser()
         parser.read_string('''[section]
@@ -282,7 +311,7 @@ class TestLoad(object):
 
 
 
-class TestMPD(object):
+class TestMpd(object):
 
     def test_playing(self, monkeypatch):
 
@@ -325,6 +354,18 @@ class TestMPD(object):
         mock_instance.status.assert_called_once_with()
         mock_instance.close.assert_called_once_with()
         mock_instance.disconnect.assert_called_once_with()
+
+    def test_handle_connection_errors(self):
+
+        check = autosuspend.Mpd('test', None, None, None)
+
+        def _get_state():
+            raise ConnectionError()
+
+        check._get_state = _get_state
+
+        with pytest.raises(autosuspend.TemporaryCheckError):
+            check.check()
 
     def test_create(self):
         parser = configparser.ConfigParser()
@@ -387,6 +428,13 @@ class TestKodi(object):
         mock_reply = mocker.MagicMock()
         mock_reply.json.return_value = {"id": 1, "jsonrpc": "2.0"}
         mocker.patch('requests.get', return_value=mock_reply)
+
+        with pytest.raises(autosuspend.TemporaryCheckError):
+            autosuspend.Kodi('foo', 'url', 10).check()
+
+    def test_request_error(self, mocker):
+        mocker.patch('requests.get',
+                     side_effect=requests.exceptions.RequestException())
 
         with pytest.raises(autosuspend.TemporaryCheckError):
             autosuspend.Kodi('foo', 'url', 10).check()
