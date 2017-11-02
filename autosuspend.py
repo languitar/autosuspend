@@ -589,7 +589,7 @@ def parse_config(config_file):
     return config
 
 
-def parser_arguments():
+def parse_arguments():
     parser = argparse.ArgumentParser(
         description='Automatically suspends a server '
                     'based on several criteria',
@@ -669,7 +669,7 @@ def configure_logging(file_or_flag):
 
 
 def main():
-    args = parser_arguments()
+    args = parse_arguments()
     configure_logging(args.logging)
     config = parse_config(args.config_file)
     set_up_checks(config)

@@ -5,3 +5,5 @@ exclude_lines =
     def main
     if __name__ == "__main__":
     @abc.abstractmethod
+    def parse_config
+    def parse_arguments
