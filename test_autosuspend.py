@@ -1,4 +1,5 @@
 import configparser
+import logging
 import os.path
 import re
 import socket
@@ -511,3 +512,40 @@ def test_execute_suspend_call_exception(mocker):
 
     mock.assert_called_once_with(command, shell=True)
     assert spy.call_count == 1
+
+
+def test_configure_logging_debug(mocker):
+    mock = mocker.patch('logging.basicConfig')
+
+    autosuspend.configure_logging(True)
+
+    mock.assert_called_once_with(level=logging.DEBUG)
+
+
+def test_configure_logging_standard(mocker):
+    mock = mocker.patch('logging.basicConfig')
+
+    autosuspend.configure_logging(False)
+
+    mock.assert_called_once_with(level=logging.WARNING)
+
+
+def test_configure_logging_file(mocker):
+    mock = mocker.patch('logging.config.fileConfig')
+
+    # anything that is not a boolean is treated like a file
+    autosuspend.configure_logging(42)
+
+    mock.assert_called_once_with(42)
+
+
+def test_configure_logging_file_fallback(mocker):
+    mock = mocker.patch('logging.config.fileConfig',
+                        side_effect=RuntimeError())
+    mock_basic = mocker.patch('logging.basicConfig')
+
+    # anything that is not a boolean is treated like a file
+    autosuspend.configure_logging(42)
+
+    mock.assert_called_once_with(42)
+    mock_basic.assert_called_once_with(level=logging.WARNING)
