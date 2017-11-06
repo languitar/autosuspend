@@ -537,6 +537,41 @@ class TestXIdleTime(object):
             autosuspend.XIdleTime.create('name', parser['section'])
 
 
+class TestExternalCommand(object):
+
+    def test_create(self):
+        parser = configparser.ConfigParser()
+        parser.read_string('''[section]
+                              command = narf bla  ''')
+        check = autosuspend.ExternalCommand.create('name', parser['section'])
+        assert check._command == 'narf bla'
+
+    def test_create_no_command(self):
+        parser = configparser.ConfigParser()
+        parser.read_string('''[section]''')
+        with pytest.raises(autosuspend.ConfigurationError):
+            autosuspend.ExternalCommand.create('name', parser['section'])
+
+    def test_check(self, mocker):
+        mock = mocker.patch('subprocess.check_call')
+        parser = configparser.ConfigParser()
+        parser.read_string('''[section]
+                              command = foo bar''')
+        assert autosuspend.ExternalCommand.create(
+            'name', parser['section']).check() is not None
+        mock.assert_called_once_with('foo bar', shell=True)
+
+    def test_check_no_match(self, mocker):
+        mock = mocker.patch('subprocess.check_call')
+        mock.side_effect = subprocess.CalledProcessError(2, 'foo bar')
+        parser = configparser.ConfigParser()
+        parser.read_string('''[section]
+                              command = foo bar''')
+        assert autosuspend.ExternalCommand.create(
+            'name', parser['section']).check() is None
+        mock.assert_called_once_with('foo bar', shell=True)
+
+
 def test_execute_suspend(mocker):
     mock = mocker.patch('subprocess.check_call')
     command = ['foo', 'bar']

@@ -207,6 +207,20 @@ Checks whether all active local X displays have been idle for a sufficiently lon
 
 #### Requirements
 
+### ExternalCommand
+
+Executes an arbitrary command.
+In case this command returns 0, the system is assumed to be active.
+
+The command is executed as is using shell execution.
+So beware of malicious commands in obtainedc configuration files.
+
+#### Options
+
+* `command`: The command to execute including all arguments
+
+#### Requirements
+
 ## Debugging
 
 In case you need to track configuration issues to understand why a system goes to suspend or does not, the extensive logging output might be used. The command line flag `-l` allows to specify a [Python logging config file](https://docs.python.org/3/library/logging.config.html) to specify what to log. The provided systemd service file already uses `/etc/autosuspend-logging.conf` per default. Each iteration logs exactly which condition detected activity or not. So you should be able to find out what is going on.

@@ -475,6 +475,27 @@ class XIdleTime(Check):
         return None
 
 
+class ExternalCommand(Check):
+
+    @classmethod
+    def create(cls, name, config):
+        try:
+            return cls(name, config['command'].strip())
+        except KeyError as error:
+            raise ConfigurationError('Missing command specification')
+
+    def __init__(self, name, command):
+        Check.__init__(self, name)
+        self._command = command
+
+    def check(self):
+        try:
+            subprocess.check_call(self._command, shell=True)
+            return 'Command {} succeeded'.format(self._command)
+        except subprocess.CalledProcessError as error:
+            return None
+
+
 def execute_suspend(command):
     _logger.info('Suspending using command: %s', command)
     try:
