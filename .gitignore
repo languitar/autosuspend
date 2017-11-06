@@ -1,6 +1,10 @@
 /.cache
 /.coverage
 *.egg-info
+/.eggs
+/build
+/dist
 /htmlcov
 /tags
 __pycache__
+/pytestdebug.log
