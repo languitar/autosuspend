@@ -643,3 +643,63 @@ def test_set_up_checks_not_a_check(mocker):
         autosuspend.set_up_checks(parser)
 
     mock_class.create.assert_called_once_with('Foo', parser['check.Foo'])
+
+
+class TestExecuteChecks(object):
+
+    def test_no_checks(self, mocker):
+        assert autosuspend.execute_checks(
+            [], False, mocker.MagicMock()) is False
+
+    def test_matches(self, mocker):
+        matching_check = mocker.MagicMock(spec=autosuspend.Check)
+        matching_check.name = 'foo'
+        matching_check.check.return_value = "matches"
+        assert autosuspend.execute_checks(
+            [matching_check], False, mocker.MagicMock()) is True
+        matching_check.check.assert_called_once_with()
+
+    def test_only_first_called(self, mocker):
+        matching_check = mocker.MagicMock(spec=autosuspend.Check)
+        matching_check.name = 'foo'
+        matching_check.check.return_value = "matches"
+        second_check = mocker.MagicMock()
+        second_check.name = 'bar'
+        second_check.check.return_value = "matches"
+
+        assert autosuspend.execute_checks(
+            [matching_check, second_check],
+            False,
+            mocker.MagicMock()) is True
+        matching_check.check.assert_called_once_with()
+        second_check.check.assert_not_called()
+
+    def test_all_called(self, mocker):
+        matching_check = mocker.MagicMock(spec=autosuspend.Check)
+        matching_check.name = 'foo'
+        matching_check.check.return_value = "matches"
+        second_check = mocker.MagicMock()
+        second_check.name = 'bar'
+        second_check.check.return_value = "matches"
+
+        assert autosuspend.execute_checks(
+            [matching_check, second_check],
+            True,
+            mocker.MagicMock()) is True
+        matching_check.check.assert_called_once_with()
+        second_check.check.assert_called_once_with()
+
+    def test_ignore_temporary_errors(self, mocker):
+        matching_check = mocker.MagicMock(spec=autosuspend.Check)
+        matching_check.name = 'foo'
+        matching_check.check.side_effect = autosuspend.TemporaryCheckError()
+        second_check = mocker.MagicMock()
+        second_check.name = 'bar'
+        second_check.check.return_value = "matches"
+
+        assert autosuspend.execute_checks(
+            [matching_check, second_check],
+            False,
+            mocker.MagicMock()) is True
+        matching_check.check.assert_called_once_with()
+        second_check.check.assert_called_once_with()

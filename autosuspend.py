@@ -493,6 +493,24 @@ _checks = []
 JUST_WOKE_UP_FILE = '/tmp/autosuspend-just-woke-up'
 
 
+def execute_checks(checks, all_checks, logger):
+    matched = False
+    for check in checks:
+        logger.debug('Executing check %s', check.name)
+        try:
+            result = check.check()
+            if result is not None:
+                logger.info('Check %s matched. Reason: %s', check.name, result)
+                matched = True
+                if not all_checks:
+                    logger.debug('Skipping further checks')
+                    break
+        except TemporaryCheckError:
+            logger.warning('Check %s failed. Ignoring...', check,
+                           exc_info=True)
+    return matched
+
+
 def loop(interval, idle_time, sleep_fn, all_checks=False):
     logger = logging.getLogger('loop')
 
@@ -500,22 +518,7 @@ def loop(interval, idle_time, sleep_fn, all_checks=False):
     while True:
         logger.info('Starting new check iteration')
 
-        matched = False
-        for check in _checks:
-            logger.debug('Executing check %s', check.name)
-            try:
-                result = check.check()
-                if result is not None:
-                    logger.info('Check %s matched. Reason: %s',
-                                check.name,
-                                result)
-                    matched = True
-                    if not all_checks:
-                        logger.debug('Skipping further checks')
-                        break
-            except TemporaryCheckError:
-                logger.warning('Check %s failed. Ignoring...', check,
-                               exc_info=True)
+        matched = execute_checks(_checks, all_checks, logger)
 
         logger.debug('All checks have been executed')
 
