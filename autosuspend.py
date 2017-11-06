@@ -13,6 +13,7 @@ import pwd
 import re
 import socket
 import subprocess
+import sys
 import time
 
 import psutil
@@ -530,11 +531,13 @@ def execute_checks(checks, all_checks, logger):
     return matched
 
 
-def loop(interval, idle_time, sleep_fn, all_checks=False):
+def loop(interval, idle_time, sleep_fn, all_checks=False, run_for=None):
     logger = logging.getLogger('loop')
 
+    start_time = time.time()
+
     idle_since = None
-    while True:
+    while (run_for is None) or (time.time() < (start_time + run_for)):
         logger.info('Starting new check iteration')
 
         matched = execute_checks(_checks, all_checks, logger)
@@ -614,7 +617,7 @@ def parse_config(config_file):
     return config
 
 
-def parse_arguments():
+def parse_arguments(args):
     parser = argparse.ArgumentParser(
         description='Automatically suspends a server '
                     'based on several criteria',
@@ -641,6 +644,14 @@ def parse_arguments():
              'the system from going to sleep. Useful to debug individual '
              'checks.')
     parser.add_argument(
+        '-r', '--runfor',
+        dest='run_for',
+        type=float,
+        default=None,
+        metavar='SEC',
+        help="If set, run for the specified amount of seconds before exiting "
+             "instead of endless execution.")
+    parser.add_argument(
         '-l', '--logging',
         type=argparse.FileType('r'),
         nargs='?',
@@ -652,7 +663,7 @@ def parse_arguments():
              'the console. If used with an argument, the '
              'configuration is read from the specified file.')
 
-    args = parser.parse_args()
+    args = parser.parse_args(args)
 
     _logger.debug('Parsed command line arguments %s', args)
 
@@ -693,9 +704,9 @@ def configure_logging(file_or_flag):
                             exc_info=True)
 
 
-def main():
+def main(args=None):
     global _checks
-    args = parse_arguments()
+    args = parse_arguments(args)
     configure_logging(args.logging)
     config = parse_config(args.config_file)
     _checks = set_up_checks(config)
@@ -703,7 +714,8 @@ def main():
          config.getfloat('general', 'idle_time', fallback=300),
          functools.partial(execute_suspend,
                            config.get('general', 'suspend_cmd')),
-         all_checks=args.all_checks)
+         all_checks=args.all_checks,
+         run_for=args.run_for)
 
 
 if __name__ == "__main__":

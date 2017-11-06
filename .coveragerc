@@ -2,8 +2,5 @@
 exclude_lines =
     pragma: no cover
     def __repr__
-    def main
     if __name__ == "__main__":
     @abc.abstractmethod
-    def parse_config
-    def parse_arguments
