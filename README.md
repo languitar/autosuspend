@@ -213,7 +213,7 @@ Executes an arbitrary command.
 In case this command returns 0, the system is assumed to be active.
 
 The command is executed as is using shell execution.
-So beware of malicious commands in obtainedc configuration files.
+So beware of malicious commands in obtained configuration files.
 
 #### Options
 
