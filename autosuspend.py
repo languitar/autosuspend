@@ -6,7 +6,6 @@ import configparser
 import copy
 import functools
 import glob
-import json
 import logging
 import logging.config
 import os
@@ -14,7 +13,6 @@ import pwd
 import re
 import socket
 import subprocess
-import sys
 import time
 
 import psutil
