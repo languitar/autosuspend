@@ -494,6 +494,49 @@ class TestPing(object):
         assert ping._hosts == ['a', 'b', 'c']
 
 
+class TestXIdleTime(object):
+
+    def test_create_default(self):
+        parser = configparser.ConfigParser()
+        parser.read_string('''[section]''')
+        check = autosuspend.XIdleTime.create('name', parser['section'])
+        assert check._timeout == 600
+        assert check._ignore_process_re == re.compile(r'a^')
+        assert check._ignore_users_re == re.compile(r'^a')
+
+    def test_create(self):
+        parser = configparser.ConfigParser()
+        parser.read_string('''[section]
+                              timeout = 42
+                              ignore_if_process = .*test
+                              ignore_users = test.*test''')
+        check = autosuspend.XIdleTime.create('name', parser['section'])
+        assert check._timeout == 42
+        assert check._ignore_process_re == re.compile(r'.*test')
+        assert check._ignore_users_re == re.compile(r'test.*test')
+
+    def test_create_no_int(self):
+        parser = configparser.ConfigParser()
+        parser.read_string('''[section]
+                              timeout = string''')
+        with pytest.raises(autosuspend.ConfigurationError):
+            autosuspend.XIdleTime.create('name', parser['section'])
+
+    def test_create_broken_process_re(self):
+        parser = configparser.ConfigParser()
+        parser.read_string('''[section]
+                              ignore_if_process = [[a-9]''')
+        with pytest.raises(autosuspend.ConfigurationError):
+            autosuspend.XIdleTime.create('name', parser['section'])
+
+    def test_create_broken_users_re(self):
+        parser = configparser.ConfigParser()
+        parser.read_string('''[section]
+                              ignore_users = [[a-9]''')
+        with pytest.raises(autosuspend.ConfigurationError):
+            autosuspend.XIdleTime.create('name', parser['section'])
+
+
 def test_execute_suspend(mocker):
     mock = mocker.patch('subprocess.check_call')
     command = ['foo', 'bar']
