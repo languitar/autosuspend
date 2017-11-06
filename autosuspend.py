@@ -546,6 +546,8 @@ def loop(interval, idle_time, sleep_fn, all_checks=False):
 
 def set_up_checks(config):
 
+    configured_checks = []
+
     check_section = [s for s in config.sections() if s.startswith('check.')]
     for section in check_section:
         name = section[len('check.'):]
@@ -557,28 +559,29 @@ def set_up_checks(config):
         enabled = config.getboolean(section, 'enabled', fallback=False)
 
         if not enabled:
-            _logger.debug('Skipping disabled check %s', name)
+            _logger.debug('Skipping disabled check {}'.format(name))
             continue
 
-        _logger.info('Configuring check %s with class %s', name, class_name)
+        _logger.info('Configuring check {} with class {}'.format(
+            name, class_name))
         try:
             klass = globals()[class_name]
         except KeyError:
-            _logger.error('Cannot create check named %s: Class does not exist',
-                          class_name)
-            sys.exit(2)
+            raise ConfigurationError(
+                'Cannot create check named {}: Class does not exist'.format(
+                    class_name))
 
         check = klass.create(name, config[section])
         if not isinstance(check, Check):
-            _logger.exception('Check %s is not a correct Check instance',
-                              check)
-            sys.exit(2)
-        _logger.debug('Created check instance %s', check)
-        _checks.append(check)
+            raise ConfigurationError(
+                'Check {} is not a correct Check instance'.format(check))
+        _logger.debug('Created check instance {}'.format(check))
+        configured_checks.append(check)
 
-    if not _checks:
-        _logger.error('No checks enabled')
-        sys.exit(2)
+    if not configured_checks:
+        raise ConfigurationError('No checks enabled')
+
+    return configured_checks
 
 
 def parse_config(config_file):
@@ -672,7 +675,7 @@ def main():
     args = parse_arguments()
     configure_logging(args.logging)
     config = parse_config(args.config_file)
-    set_up_checks(config)
+    _checks = set_up_checks(config)
     loop(config.getfloat('general', 'interval', fallback=60),
          config.getfloat('general', 'idle_time', fallback=300),
          functools.partial(execute_suspend,

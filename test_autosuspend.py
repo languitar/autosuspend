@@ -549,3 +549,54 @@ def test_configure_logging_file_fallback(mocker):
 
     mock.assert_called_once_with(42)
     mock_basic.assert_called_once_with(level=logging.WARNING)
+
+
+def test_set_up_checks(mocker):
+    mock_class = mocker.patch('autosuspend.Mpd')
+    mock_class.create.return_value = mocker.MagicMock(spec=autosuspend.Check)
+
+    parser = configparser.ConfigParser()
+    parser.read_string('''[check.Foo]
+                       class = Mpd
+                       enabled = True''')
+
+    autosuspend.set_up_checks(parser)
+
+    mock_class.create.assert_called_once_with('Foo', parser['check.Foo'])
+
+
+def test_set_up_checks_not_enabled(mocker):
+    mock_class = mocker.patch('autosuspend.Mpd')
+    mock_class.create.return_value = mocker.MagicMock(spec=autosuspend.Check)
+
+    parser = configparser.ConfigParser()
+    parser.read_string('''[check.Foo]
+                       class = Mpd
+                       enabled = False''')
+
+    with pytest.raises(autosuspend.ConfigurationError):
+        autosuspend.set_up_checks(parser)
+
+
+def test_set_up_checks_no_such_class(mocker):
+    parser = configparser.ConfigParser()
+    parser.read_string('''[check.Foo]
+                       class = FooBarr
+                       enabled = True''')
+    with pytest.raises(autosuspend.ConfigurationError):
+        autosuspend.set_up_checks(parser)
+
+
+def test_set_up_checks_not_a_check(mocker):
+    mock_class = mocker.patch('autosuspend.Mpd')
+    mock_class.create.return_value = mocker.MagicMock()
+
+    parser = configparser.ConfigParser()
+    parser.read_string('''[check.Foo]
+                       class = Mpd
+                       enabled = True''')
+
+    with pytest.raises(autosuspend.ConfigurationError):
+        autosuspend.set_up_checks(parser)
+
+    mock_class.create.assert_called_once_with('Foo', parser['check.Foo'])
