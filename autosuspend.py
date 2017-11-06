@@ -694,6 +694,7 @@ def configure_logging(file_or_flag):
 
 
 def main():
+    global _checks
     args = parse_arguments()
     configure_logging(args.logging)
     config = parse_config(args.config_file)
