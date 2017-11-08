@@ -221,12 +221,6 @@ So beware of malicious commands in obtained configuration files.
 
 #### Requirements
 
-## Debugging
-
-In case you need to track configuration issues to understand why a system goes to suspend or does not, the extensive logging output might be used. The command line flag `-l` allows to specify a [Python logging config file](https://docs.python.org/3/library/logging.config.html) to specify what to log. The provided systemd service file already uses `/etc/autosuspend-logging.conf` per default. Each iteration logs exactly which condition detected activity or not. So you should be able to find out what is going on.
-
-In case one of the conditions you monitor prevents sleeping the system in case of an external connection (logged-in users, open TCP port), then the logging configuration might be changed to use the [broadcast-logging](https://github.com/languitar/broadcast-logging) package. This way, the server will broadcast new log messages and external clients on the same network can listen to these messages without creating an explicit connection. Please refer to the documentation of the broadcast-logging package on how to enable and use it.
-
 ### XPath
 
 A generic check which queries a configured URL and expected the reply to contain XML data.
@@ -247,6 +241,12 @@ For this purpose, use the followin XPath:
 
 * [requests](https://pypi.python.org/pypi/requests)
 * [lxml](http://lxml.de/)
+
+## Debugging
+
+In case you need to track configuration issues to understand why a system goes to suspend or does not, the extensive logging output might be used. The command line flag `-l` allows to specify a [Python logging config file](https://docs.python.org/3/library/logging.config.html) to specify what to log. The provided systemd service file already uses `/etc/autosuspend-logging.conf` per default. Each iteration logs exactly which condition detected activity or not. So you should be able to find out what is going on.
+
+In case one of the conditions you monitor prevents sleeping the system in case of an external connection (logged-in users, open TCP port), then the logging configuration might be changed to use the [broadcast-logging](https://github.com/languitar/broadcast-logging) package. This way, the server will broadcast new log messages and external clients on the same network can listen to these messages without creating an explicit connection. Please refer to the documentation of the broadcast-logging package on how to enable and use it.
 
 ## License
 
