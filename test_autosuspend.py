@@ -72,6 +72,15 @@ class TestSmb(object):
 
 class TestUsers(object):
 
+    @staticmethod
+    def create_suser(name, terminal, host, started, pid):
+        try:
+            return psutil._common.suser(name, terminal, host, started, pid)
+        except TypeError:
+            # psutil 5.0
+            return psutil._common.suser(name, terminal, host, started)
+
+
     def test_no_users(self, monkeypatch):
 
         def data():
@@ -88,7 +97,7 @@ class TestUsers(object):
     def test_matching_users(self, monkeypatch):
 
         def data():
-            return [psutil._common.suser('foo', 'pts1', 'host', 12345, 12345)]
+            return [self.create_suser('foo', 'pts1', 'host', 12345, 12345)]
         monkeypatch.setattr(psutil, 'users', data)
 
         assert autosuspend.Users('users', re.compile('.*'), re.compile('.*'),
@@ -97,7 +106,7 @@ class TestUsers(object):
     def test_non_matching_user(self, monkeypatch):
 
         def data():
-            return [psutil._common.suser('foo', 'pts1', 'host', 12345, 12345)]
+            return [self.create_suser('foo', 'pts1', 'host', 12345, 12345)]
         monkeypatch.setattr(psutil, 'users', data)
 
         assert autosuspend.Users('users', re.compile('narf'), re.compile('.*'),
@@ -183,7 +192,6 @@ class TestProcesses(object):
             autosuspend.Processes.create('name', parser['section'])
 
 
-
 class TestActiveConnection(object):
 
     MY_PORT = 22
@@ -202,8 +210,8 @@ class TestActiveConnection(object):
         def connections():
             return [psutil._common.sconn(
                 -1, socket.AF_INET, socket.SOCK_STREAM,
-                psutil._common.addr(self.MY_ADDRESS, self.MY_PORT),
-                psutil._common.addr('42.42.42.42', 42), 'ESTABLISHED', None)]
+                (self.MY_ADDRESS, self.MY_PORT),
+                ('42.42.42.42', 42), 'ESTABLISHED', None)]
 
         monkeypatch.setattr(psutil, 'net_if_addrs', addresses)
         monkeypatch.setattr(psutil, 'net_connections', connections)
@@ -215,26 +223,26 @@ class TestActiveConnection(object):
         # not my port
         psutil._common.sconn(-1,
                              socket.AF_INET, socket.SOCK_STREAM,
-                             psutil._common.addr(MY_ADDRESS, 32),
-                             psutil._common.addr('42.42.42.42', 42),
+                             (MY_ADDRESS, 32),
+                             ('42.42.42.42', 42),
                              'ESTABLISHED', None),
         # not my local address
         psutil._common.sconn(-1,
                              socket.AF_INET, socket.SOCK_STREAM,
-                             psutil._common.addr('33.33.33.33', MY_PORT),
-                             psutil._common.addr('42.42.42.42', 42),
+                             ('33.33.33.33', MY_PORT),
+                             ('42.42.42.42', 42),
                              'ESTABLISHED', None),
         # not my established
         psutil._common.sconn(-1,
                              socket.AF_INET, socket.SOCK_STREAM,
-                             psutil._common.addr(MY_ADDRESS, MY_PORT),
-                             psutil._common.addr('42.42.42.42', 42),
+                             (MY_ADDRESS, MY_PORT),
+                             ('42.42.42.42', 42),
                              'NARF', None),
         # I am the client
         psutil._common.sconn(-1,
                              socket.AF_INET, socket.SOCK_STREAM,
-                             psutil._common.addr('42.42.42.42', 42),
-                             psutil._common.addr(MY_ADDRESS, MY_PORT),
+                             ('42.42.42.42', 42),
+                             (MY_ADDRESS, MY_PORT),
                              'NARF', None),
     ])
     def test_not_connected(self, monkeypatch, connection):
@@ -309,7 +317,6 @@ class TestLoad(object):
                            threshold = narf''')
         with pytest.raises(autosuspend.ConfigurationError):
             autosuspend.Load.create('name', parser['section'])
-
 
 
 class TestMpd(object):

@@ -15,7 +15,7 @@ setup(
         'pytest-runner',
     ],
     install_requires=[
-        'psutil',
+        'psutil>=5.0',
     ],
     extras_require={
         'Mpd': ['python-mpd2'],

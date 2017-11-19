@@ -1,11 +1,14 @@
 language: python
 sudo: false
+env:
+  - PSUTIL_VERSION=5.0.1
+  - PSUTIL_VERSION=5.4.1
 python:
   - "3.5"
   - "3.6"
   - "nightly"
 install:
-  - pip install pytest pytest-runner pytest-cov pytest-mock python-mpd2 psutil requests codecov lxml
+  - pip install pytest pytest-runner pytest-cov pytest-mock python-mpd2 psutil==$PSUTIL_VERSION requests codecov lxml
 script:
   - pytest --cov=autosuspend
 after_success:

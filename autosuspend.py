@@ -333,11 +333,11 @@ class ActiveConnection(Check):
         own_addresses = [(item.family, item.address)
                          for sublist in psutil.net_if_addrs().values()
                          for item in sublist]
-        connected = [c.laddr.port
+        connected = [c.laddr[1]
                      for c in psutil.net_connections()
-                     if ((c.family, c.laddr.ip) in own_addresses
+                     if ((c.family, c.laddr[0]) in own_addresses
                          and c.status == 'ESTABLISHED'
-                         and c.laddr.port in self._ports)]
+                         and c.laddr[1] in self._ports)]
         if connected:
             return 'Ports {} are connected'.format(connected)
 
