@@ -1,8 +1,12 @@
 from setuptools import setup
 
+name='autosuspend'
+version='0.7'
+release='0.7-dev'
+
 setup(
-    name='autosuspend',
-    version='0.7-dev',
+    name=name,
+    version=release,
 
     description='A daemon to suspend your server in case of inactivity',
     author='Johannes Wienke',
@@ -36,5 +40,13 @@ setup(
                  'autosuspend-logging.conf']),
         ('lib/systemd/system', ['autosuspend.service',
                                 'autosuspend-detect-suspend.service'])
-    ]
+    ],
+
+    command_options={
+        'build_sphinx': {
+            'project': ('setup.py', name),
+            'version': ('setup.py', version),
+            'release': ('setup.py', release)
+        }
+    },
 )
