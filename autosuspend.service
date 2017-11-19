@@ -3,7 +3,7 @@ Description=A daemon to suspend your server in case of inactivity
 After=network.target
 
 [Service]
-ExecStart=/usr/bin/autosuspend.py -l /etc/autosuspend-logging.conf
+ExecStart=/usr/bin/autosuspend -l /etc/autosuspend-logging.conf
 
 [Install]
 WantedBy=multi-user.target

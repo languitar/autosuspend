@@ -29,7 +29,7 @@ setup(
     ],
 
     scripts=[
-        'autosuspend.py'
+        'autosuspend'
     ],
     data_files=[
         ('etc', ['autosuspend.conf',
