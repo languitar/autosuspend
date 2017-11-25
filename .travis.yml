@@ -8,8 +8,9 @@ python:
   - "3.6"
   - "nightly"
 install:
-  - pip install pytest pytest-runner pytest-cov pytest-mock python-mpd2 psutil==$PSUTIL_VERSION requests codecov lxml
+  - pip install pytest pytest-runner pytest-cov pytest-mock python-mpd2 psutil==$PSUTIL_VERSION requests codecov lxml sphinx sphinx_rtd_theme
 script:
   - pytest --cov=autosuspend
+  - python setup.py build_sphinx
 after_success:
   - codecov
