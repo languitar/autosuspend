@@ -11,6 +11,7 @@
    configuration_file
    available_checks
    systemd_integration
+   wakeup
    debugging
    manpages
    support
