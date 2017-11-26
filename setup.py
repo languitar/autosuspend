@@ -1,8 +1,15 @@
+import os
+import os.path
+
 from setuptools import setup
 
-name='autosuspend'
-version='0.7'
-release='0.7-dev'
+name = 'autosuspend'
+
+with open(os.path.join(
+        os.path.abspath(os.path.dirname(os.path.realpath(__file__))),
+        'VERSION'), 'r') as version_file:
+    lines = version_file.readlines()
+release = lines[1].strip()
 
 setup(
     name=name,
@@ -41,12 +48,4 @@ setup(
         ('lib/systemd/system', ['autosuspend.service',
                                 'autosuspend-detect-suspend.service'])
     ],
-
-    command_options={
-        'build_sphinx': {
-            'project': ('setup.py', name),
-            'version': ('setup.py', version),
-            'release': ('setup.py', release)
-        }
-    },
 )

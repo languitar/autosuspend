@@ -1,6 +1,9 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
+import os
+import os.path
+
 # needs_sphinx = '1.0'
 
 extensions = ['sphinx.ext.intersphinx']
@@ -14,8 +17,13 @@ project = 'autosuspend'
 copyright = '2017, Johannes Wienke'
 author = 'Johannes Wienke'
 
-version = '0.7'
-release = '0.7-dev'
+with open(os.path.join(
+        os.path.abspath(os.path.dirname(os.path.realpath(__file__))),
+        '../..',
+        'VERSION'), 'r') as version_file:
+    lines = version_file.readlines()
+version = lines[0].strip()
+release = lines[1].strip()
 
 language = None
 
