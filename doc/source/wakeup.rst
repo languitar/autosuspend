@@ -1,5 +1,5 @@
-System wakup
-============
+System wakeup
+=============
 
 |project_bold| itself does not handle waking up the system in case it is needed again.
 Several solutions exist for this case, which will be enumerated here.
