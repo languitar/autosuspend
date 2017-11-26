@@ -47,6 +47,8 @@ rst_epilog = '''
 .. _systemd: https://www.freedesktop.org/wiki/Software/systemd/
 .. _systemd service files: http://www.freedesktop.org/software/systemd/man/systemd.service.html
 .. _broadcast-logging: https://github.com/languitar/broadcast-logging
+.. _tvheadend: https://tvheadend.org/
+.. _XPath: https://www.w3.org/TR/xpath/
 
 .. |project| replace:: {project}
 .. |project_bold| replace:: **{project}**

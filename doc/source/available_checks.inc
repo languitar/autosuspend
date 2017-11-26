@@ -115,12 +115,12 @@ Any active Samba connection will block suspend.
 Options
 ^^^^^^^
 
-Requirements
-^^^^^^^^^^^^
-
 .. option:: smbstatus
 
    executable needs to be present.
+
+Requirements
+^^^^^^^^^^^^
 
 Processes
 ~~~~~~~~~
@@ -194,6 +194,40 @@ Options
 
 .. option:: ignore_if_process
 
-   a regular expression to match against the process names executed by each X session owner.
+   A regular expression to match against the process names executed by each X session owner.
    In case the use has a process running, which matches against this expression, the X idle time is ignore and the check continues as if there was no activity.
    This can be useful in case of processes which inevitabl
+
+Requirements
+^^^^^^^^^^^^
+
+XPath
+~~~~~
+
+.. program:: check-xpath
+
+A generic check which queries a configured URL and expected the reply to contain XML data.
+The returned XML document is checked against a configured `XPath`_ expression and in case the expression matches, the system is assumed to be active.
+
+This can for instance be used with with the TV streaming server `tvheadend`_, which provides its current status via an XML reply.
+For this purpose, use the following XPath::
+
+    /currentload/subscriptions[number(.) > 0] | /currentload/recordings/recording
+
+Options
+^^^^^^^
+
+.. option:: url
+
+    The URL to query for the XML reply.
+
+.. option:: xpath
+
+    The XPath query to execute.
+    In case it returns a result, the system is assumed to be active.
+
+Requirements
+^^^^^^^^^^^^
+
+* `requests`_
+* `lxml`_
