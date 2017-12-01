@@ -165,7 +165,7 @@ Load
 
 .. program:: check-load
 
-Checks whether the system load 5 is below a certain value.
+Checks whether the `system load 5 <https://en.wikipedia.org/wiki/Load_(computing)>`__ is below a certain value.
 
 Options
 ^^^^^^^
