@@ -33,13 +33,13 @@ Options
 
    Usually, |project_program| stops checks in each iteration as soon as the first matching check indicates system activity.
    If this flag is set, all subsequent checks are still executed.
-   Usefull mostly for debugging purposes.
+   Useful mostly for debugging purposes.
 
 .. option:: -r SECONDS, --runfor SECONDS
 
    If specified, do not run endlessly.
    Instead, operate only for the specified amount of seconds, then exit.
-   Usefull mostly for debugging purposes.
+   Useful mostly for debugging purposes.
 
 .. option:: -l [FILE], --logging [FILE]
 
