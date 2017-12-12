@@ -104,34 +104,118 @@ class Check(object):
                                               clazz=self.__class__.__name__)
 
 
-class Ping(Check):
-    """
-    Prevents system sleep in case one or several hosts are reachable via ping.
-    """
+class ActiveConnection(Check):
 
     @classmethod
     def create(cls, name, config):
         try:
-            hosts = config['hosts'].split(',')
-            hosts = [h.strip() for h in hosts]
-            return cls(name, hosts)
-        except KeyError as error:
-            raise ConfigurationError(
-                'Unable to determine hosts to ping: {}'.format(error))
+            ports = config['ports']
+            ports = ports.split(',')
+            ports = [p.strip() for p in ports]
+            ports = set([int(p) for p in ports])
+            return cls(name, ports)
+        except KeyError:
+            raise ConfigurationError('Missing option ports')
+        except ValueError:
+            raise ConfigurationError('Ports must be integers')
 
-    def __init__(self, name, hosts):
+    def __init__(self, name, ports):
         Check.__init__(self, name)
-        self._hosts = hosts
+        self._ports = ports
 
     def check(self):
-        for host in self._hosts:
-            cmd = ['ping', '-q', '-c', '1', host]
-            if subprocess.call(cmd,
-                               stdout=subprocess.DEVNULL,
-                               stderr=subprocess.DEVNULL) == 0:
-                self.logger.debug("host " + host + " appears to be up")
-                return 'Host {} is up'.format(host)
-        return None
+        own_addresses = [(item.family, item.address)
+                         for sublist in psutil.net_if_addrs().values()
+                         for item in sublist]
+        connected = [c.laddr[1]
+                     for c in psutil.net_connections()
+                     if ((c.family, c.laddr[0]) in own_addresses
+                         and c.status == 'ESTABLISHED'
+                         and c.laddr[1] in self._ports)]
+        if connected:
+            return 'Ports {} are connected'.format(connected)
+
+
+class ExternalCommand(Check):
+
+    @classmethod
+    def create(cls, name, config):
+        try:
+            return cls(name, config['command'].strip())
+        except KeyError as error:
+            raise ConfigurationError('Missing command specification')
+
+    def __init__(self, name, command):
+        Check.__init__(self, name)
+        self._command = command
+
+    def check(self):
+        try:
+            subprocess.check_call(self._command, shell=True)
+            return 'Command {} succeeded'.format(self._command)
+        except subprocess.CalledProcessError as error:
+            return None
+
+
+class Kodi(Check):
+
+    @classmethod
+    def create(cls, name, config):
+        try:
+            url = config.get('url', fallback='http://localhost:8080/jsonrpc')
+            timeout = config.getint('timeout', fallback=5)
+            return cls(name, url, timeout)
+        except ValueError as error:
+            raise ConfigurationError(
+                'Url or timeout configuration wrong: {}'.format(error))
+
+    def __init__(self, name, url, timeout):
+        Check.__init__(self, name)
+        self._url = url
+        self._timeout = timeout
+
+    def check(self):
+        import requests
+        import requests.exceptions
+
+        try:
+            reply = requests.get(self._url +
+                                 '?request={"jsonrpc": "2.0", '
+                                 '"id": 1, '
+                                 '"method": "Player.GetActivePlayers"}').json()
+            if 'result' not in reply:
+                raise TemporaryCheckError('No result array in reply')
+            if reply['result']:
+                return "Kodi currently playing"
+            else:
+                return None
+        except requests.exceptions.RequestException as error:
+            raise TemporaryCheckError(error)
+
+
+class Load(Check):
+
+    @classmethod
+    def create(cls, name, config):
+        try:
+            return cls(name,
+                       config.getfloat('threshold', fallback=2.5))
+        except ValueError as error:
+            raise ConfigurationError(
+                'Unable to parse threshold as float: {}'.format(error))
+
+    def __init__(self, name, threshold):
+        Check.__init__(self, name)
+        self._threshold = threshold
+
+    def check(self):
+        loadcurrent = os.getloadavg()[1]
+        self.logger.debug("Load: %s", loadcurrent)
+        if loadcurrent > self._threshold:
+            return 'Load {} > threshold {}'.format(loadcurrent,
+                                                   self._threshold)
+        else:
+            return None
 
 
 class Mpd(Check):
@@ -177,40 +261,93 @@ class Mpd(Check):
             raise TemporaryCheckError(error)
 
 
-class Kodi(Check):
+class Ping(Check):
+    """
+    Prevents system sleep in case one or several hosts are reachable via ping.
+    """
 
     @classmethod
     def create(cls, name, config):
         try:
-            url = config.get('url', fallback='http://localhost:8080/jsonrpc')
-            timeout = config.getint('timeout', fallback=5)
-            return cls(name, url, timeout)
-        except ValueError as error:
+            hosts = config['hosts'].split(',')
+            hosts = [h.strip() for h in hosts]
+            return cls(name, hosts)
+        except KeyError as error:
             raise ConfigurationError(
-                'Url or timeout configuration wrong: {}'.format(error))
+                'Unable to determine hosts to ping: {}'.format(error))
 
-    def __init__(self, name, url, timeout):
+    def __init__(self, name, hosts):
         Check.__init__(self, name)
-        self._url = url
-        self._timeout = timeout
+        self._hosts = hosts
 
     def check(self):
-        import requests
-        import requests.exceptions
+        for host in self._hosts:
+            cmd = ['ping', '-q', '-c', '1', host]
+            if subprocess.call(cmd,
+                               stdout=subprocess.DEVNULL,
+                               stderr=subprocess.DEVNULL) == 0:
+                self.logger.debug("host " + host + " appears to be up")
+                return 'Host {} is up'.format(host)
+        return None
 
+
+class Processes(Check):
+
+    @classmethod
+    def create(cls, name, config):
         try:
-            reply = requests.get(self._url +
-                                 '?request={"jsonrpc": "2.0", '
-                                 '"id": 1, '
-                                 '"method": "Player.GetActivePlayers"}').json()
-            if 'result' not in reply:
-                raise TemporaryCheckError('No result array in reply')
-            if reply['result']:
-                return "Kodi currently playing"
+            processes = config['processes'].split(',')
+            processes = [p.strip() for p in processes]
+            return cls(name, processes)
+        except KeyError:
+            raise ConfigurationError('No processes to check specified')
+
+    def __init__(self, name, processes):
+        Check.__init__(self, name)
+        self._processes = processes
+
+    def check(self):
+        for proc in psutil.process_iter():
+            try:
+                pinfo = proc.name()
+                for name in self._processes:
+                    if pinfo == name:
+                        return 'Process {} is running'.format(name)
+            except psutil.NoSuchProcess:
+                pass
+        return None
+
+
+class Smb(Check):
+
+    @classmethod
+    def create(cls, name, config):
+        return cls(name)
+
+    def check(self):
+        try:
+            status_output = subprocess.check_output(
+                ['smbstatus', '-b']).decode('utf-8')
+        except subprocess.CalledProcessError as error:
+            raise SevereCheckError(error)
+
+        self.logger.debug('Received status output:\n%s',
+                          status_output)
+
+        connections = []
+        start_seen = False
+        for line in status_output.splitlines():
+            if start_seen:
+                connections.append(line)
             else:
-                return None
-        except requests.exceptions.RequestException as error:
-            raise TemporaryCheckError(error)
+                if line.startswith('----'):
+                    start_seen = True
+
+        if connections:
+            return 'SMB clients are connected:\n{}'.format(
+                '\n'.join(connections))
+        else:
+            return None
 
 
 class Users(Check):
@@ -249,122 +386,6 @@ class Users(Check):
                         user=entry.name, terminal=entry.terminal,
                         host=entry.host, started=entry.started)
         return None
-
-
-class Smb(Check):
-
-    @classmethod
-    def create(cls, name, config):
-        return cls(name)
-
-    def check(self):
-        try:
-            status_output = subprocess.check_output(
-                ['smbstatus', '-b']).decode('utf-8')
-        except subprocess.CalledProcessError as error:
-            raise SevereCheckError(error)
-
-        self.logger.debug('Received status output:\n%s',
-                          status_output)
-
-        connections = []
-        start_seen = False
-        for line in status_output.splitlines():
-            if start_seen:
-                connections.append(line)
-            else:
-                if line.startswith('----'):
-                    start_seen = True
-
-        if connections:
-            return 'SMB clients are connected:\n{}'.format(
-                '\n'.join(connections))
-        else:
-            return None
-
-
-class Processes(Check):
-
-    @classmethod
-    def create(cls, name, config):
-        try:
-            processes = config['processes'].split(',')
-            processes = [p.strip() for p in processes]
-            return cls(name, processes)
-        except KeyError:
-            raise ConfigurationError('No processes to check specified')
-
-    def __init__(self, name, processes):
-        Check.__init__(self, name)
-        self._processes = processes
-
-    def check(self):
-        for proc in psutil.process_iter():
-            try:
-                pinfo = proc.name()
-                for name in self._processes:
-                    if pinfo == name:
-                        return 'Process {} is running'.format(name)
-            except psutil.NoSuchProcess:
-                pass
-        return None
-
-
-class ActiveConnection(Check):
-
-    @classmethod
-    def create(cls, name, config):
-        try:
-            ports = config['ports']
-            ports = ports.split(',')
-            ports = [p.strip() for p in ports]
-            ports = set([int(p) for p in ports])
-            return cls(name, ports)
-        except KeyError:
-            raise ConfigurationError('Missing option ports')
-        except ValueError:
-            raise ConfigurationError('Ports must be integers')
-
-    def __init__(self, name, ports):
-        Check.__init__(self, name)
-        self._ports = ports
-
-    def check(self):
-        own_addresses = [(item.family, item.address)
-                         for sublist in psutil.net_if_addrs().values()
-                         for item in sublist]
-        connected = [c.laddr[1]
-                     for c in psutil.net_connections()
-                     if ((c.family, c.laddr[0]) in own_addresses
-                         and c.status == 'ESTABLISHED'
-                         and c.laddr[1] in self._ports)]
-        if connected:
-            return 'Ports {} are connected'.format(connected)
-
-
-class Load(Check):
-
-    @classmethod
-    def create(cls, name, config):
-        try:
-            return cls(name,
-                       config.getfloat('threshold', fallback=2.5))
-        except ValueError as error:
-            raise ConfigurationError(
-                'Unable to parse threshold as float: {}'.format(error))
-
-    def __init__(self, name, threshold):
-        Check.__init__(self, name)
-        self._threshold = threshold
-
-    def check(self):
-        loadcurrent = os.getloadavg()[1]
-        self.logger.debug("Load: %s", loadcurrent)
-        if loadcurrent > self._threshold:
-            return 'Load {} > threshold {}'.format(loadcurrent,
-                                                   self._threshold)
-        else:
-            return None
 
 
 class XIdleTime(Check):
@@ -474,27 +495,6 @@ class XIdleTime(Check):
                         number, user, idle_time, self._timeout)
 
         return None
-
-
-class ExternalCommand(Check):
-
-    @classmethod
-    def create(cls, name, config):
-        try:
-            return cls(name, config['command'].strip())
-        except KeyError as error:
-            raise ConfigurationError('Missing command specification')
-
-    def __init__(self, name, command):
-        Check.__init__(self, name)
-        self._command = command
-
-    def check(self):
-        try:
-            subprocess.check_call(self._command, shell=True)
-            return 'Command {} succeeded'.format(self._command)
-        except subprocess.CalledProcessError as error:
-            return None
 
 
 class XPath(Check):

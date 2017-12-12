@@ -4,20 +4,62 @@ Available checks
 The following checks for activity are currently implemented.
 Each of the is described with its available configuration options and required optional dependencies.
 
-Ping
-~~~~
+ActiveConnection
+~~~~~~~~~~~~~~~~
 
-.. program:: check-ping
+.. program:: check-active-connections
 
-Checks whether one or more hosts answer to ICMP requests.
+Checks whether there is currently a client connected to a TCP server at certain ports.
+Can be used to e.g. block suspending the system in case SSH users are connected or a web server is used by clients.
 
 Options
 ^^^^^^^
 
-.. option:: hosts
+.. option:: ports
 
-   Comma-separated list of host names or IPs.
+   list of comma-separated port numbers
 
+
+Requirements
+^^^^^^^^^^^^
+
+Kodi
+~~~~
+
+.. program:: check-kodi
+
+Checks whether an instance of `Kodi`_ is currently playing.
+
+Options
+^^^^^^^
+
+.. option:: url
+
+   Base URL of the JSON RPC API of the Kodi instance, default: ``http://localhost:8080/jsonrpc``
+
+.. option:: timeout
+
+   Request timeout in seconds, default: ``5``
+
+
+Requirements
+^^^^^^^^^^^^
+
+-  `requests`_
+
+Load
+~~~~
+
+.. program:: check-load
+
+Checks whether the `system load 5 <https://en.wikipedia.org/wiki/Load_(computing)>`__ is below a certain value.
+
+Options
+^^^^^^^
+
+.. option:: threshold
+
+   a float for the maximum allowed load value, default: 2.5
 
 Requirements
 ^^^^^^^^^^^^
@@ -52,29 +94,59 @@ Requirements
 
 -  `python-mpd2`_
 
-Kodi
+Ping
 ~~~~
 
-.. program:: check-kodi
+.. program:: check-ping
 
-Checks whether an instance of `Kodi`_ is currently playing.
+Checks whether one or more hosts answer to ICMP requests.
 
 Options
 ^^^^^^^
 
-.. option:: url
+.. option:: hosts
 
-   Base URL of the JSON RPC API of the Kodi instance, default: ``http://localhost:8080/jsonrpc``
-
-.. option:: timeout
-
-   Request timeout in seconds, default: ``5``
+   Comma-separated list of host names or IPs.
 
 
 Requirements
 ^^^^^^^^^^^^
 
--  `requests`_
+Processes
+~~~~~~~~~
+
+.. program:: check-processes
+
+If currently running processes match an expression, the suspend will be blocked.
+You might use this to hinder the system from suspending when for example your rsync runs.
+
+Options
+^^^^^^^
+
+.. option:: processes
+
+   list of comma-separated process names to check for
+
+
+Requirements
+^^^^^^^^^^^^
+
+Smb
+~~~
+
+.. program:: check-smb
+
+Any active Samba connection will block suspend.
+
+Options
+^^^^^^^
+
+.. option:: smbstatus
+
+   executable needs to be present.
+
+Requirements
+^^^^^^^^^^^^
 
 Users
 ~~~~~
@@ -101,78 +173,6 @@ Capturing substrings needs to be explicitly enabled using wildcard matching.
 .. option:: host
 
    A regular expression specifying the host from which a user needs to be logged in, default: ``.*``.
-
-Requirements
-^^^^^^^^^^^^
-
-Smb
-~~~
-
-.. program:: check-smb
-
-Any active Samba connection will block suspend.
-
-Options
-^^^^^^^
-
-.. option:: smbstatus
-
-   executable needs to be present.
-
-Requirements
-^^^^^^^^^^^^
-
-Processes
-~~~~~~~~~
-
-.. program:: check-processes
-
-If currently running processes match an expression, the suspend will be blocked.
-You might use this to hinder the system from suspending when for example your rsync runs.
-
-Options
-^^^^^^^
-
-.. option:: processes
-
-   list of comma-separated process names to check for
-
-
-Requirements
-^^^^^^^^^^^^
-
-ActiveConnection
-~~~~~~~~~~~~~~~~
-
-.. program:: check-active-connections
-
-Checks whether there is currently a client connected to a TCP server at certain ports.
-Can be used to e.g. block suspending the system in case SSH users are connected or a web server is used by clients.
-
-Options
-^^^^^^^
-
-.. option:: ports
-
-   list of comma-separated port numbers
-
-
-Requirements
-^^^^^^^^^^^^
-
-Load
-~~~~
-
-.. program:: check-load
-
-Checks whether the `system load 5 <https://en.wikipedia.org/wiki/Load_(computing)>`__ is below a certain value.
-
-Options
-^^^^^^^
-
-.. option:: threshold
-
-   a float for the maximum allowed load value, default: 2.5
 
 Requirements
 ^^^^^^^^^^^^
