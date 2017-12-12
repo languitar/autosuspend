@@ -1,5 +1,6 @@
 [Unit]
 Description=A daemon to suspend your server in case of inactivity
+Documentation=https://autosuspend.readthedocs.io/en/latest/systemd_integration.html
 After=network.target
 
 [Service]

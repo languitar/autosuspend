@@ -1,5 +1,6 @@
 [Unit]
 Description=Notifies autosuspend about suspension
+Documentation=https://autosuspend.readthedocs.io/en/latest/systemd_integration.html
 Before=sleep.target
 
 [Service]
