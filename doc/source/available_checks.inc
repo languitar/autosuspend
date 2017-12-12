@@ -112,6 +112,34 @@ Requirements
 
 -  `python-mpd2`_
 
+
+NetworkBandwidth
+~~~~~~~~~~~~~~~~
+
+.. program:: check-network-bandwidth
+
+Checks whether more network bandwidth is currently being used than specified.
+A set of specified interfaces is checked in this regard, each of the individually, based on the average bandwidth on that interface.
+This average is based on the global checking interval specified in the configuration file via the :option:`interval <config-general interval>` option.
+
+Options
+^^^^^^^
+
+.. option:: interfaces
+
+   Comma-separated list of network interfaces to check
+
+.. option:: threshold_send <byte/s>
+
+   If the average sending bandwidth of one of the specified interfaces is above this threshold, then activity is detected. Specified in bytes/s, default: ``100``
+
+.. option:: threshold_receive <byte/s>
+
+   If the average receive bandwidth of one of the specified interfaces is above this threshold, then activity is detected. Specified in bytes/s, default: ``100``
+
+Requirements
+^^^^^^^^^^^^
+
 Ping
 ~~~~
 

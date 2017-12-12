@@ -29,6 +29,8 @@ These sections describe the checks to execute to determine inactivity.
 General Configuration
 ~~~~~~~~~~~~~~~~~~~~~
 
+.. program:: config-general
+
 The ``[general]`` section contains options controlling the overall behavior of the |project_program| daemon. These are:
 
 .. option:: interval
@@ -46,6 +48,8 @@ The ``[general]`` section contains options controlling the overall behavior of t
 
 Check Configuration
 ~~~~~~~~~~~~~~~~~~~
+
+.. program:: config-check
 
 For each check to execute, a section with the name format ``[check.*]`` needs to be created.
 Each check has a name and an executing class which implements the behavior.
