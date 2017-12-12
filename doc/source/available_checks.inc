@@ -19,6 +19,26 @@ Options
 
    list of comma-separated port numbers
 
+Requirements
+^^^^^^^^^^^^
+
+ExternalCommand
+~~~~~~~~~~~~~~~
+
+.. program:: check-external-command
+
+Executes an arbitrary command.
+In case this command returns 0, the system is assumed to be active.
+
+The command is executed as is using shell execution.
+Beware of malicious commands in obtained configuration files.
+
+Options
+^^^^^^^
+
+.. option:: command
+
+   The command to execute including all arguments
 
 Requirements
 ^^^^^^^^^^^^
@@ -40,7 +60,6 @@ Options
 .. option:: timeout
 
    Request timeout in seconds, default: ``5``
-
 
 Requirements
 ^^^^^^^^^^^^
@@ -88,7 +107,6 @@ Options
 
    Request timeout in seconds, default: ``5``
 
-
 Requirements
 ^^^^^^^^^^^^
 
@@ -126,7 +144,6 @@ Options
 .. option:: processes
 
    list of comma-separated process names to check for
-
 
 Requirements
 ^^^^^^^^^^^^
