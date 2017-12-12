@@ -261,6 +261,69 @@ class Mpd(Check):
             raise TemporaryCheckError(error)
 
 
+class NetworkBandwidth(Check):
+
+    @classmethod
+    def create(cls, name, config):
+        try:
+            interfaces = config['interfaces']
+            interfaces = interfaces.split(',')
+            interfaces = [i.strip() for i in interfaces if i.strip()]
+            if not interfaces:
+                raise ConfigurationError('No interfaces configured')
+            host_interfaces = psutil.net_if_addrs().keys()
+            for interface in interfaces:
+                if interface not in host_interfaces:
+                    raise ConfigurationError(
+                        'Network interface {} does not exist'.format(
+                            interface))
+            threshold_send = config.getfloat('threshold_send',
+                                             fallback=100)
+            threshold_receive = config.getfloat('threshold_receive',
+                                                fallback=100)
+            return cls(name, interfaces, threshold_send, threshold_receive)
+        except KeyError as error:
+            raise ConfigurationError(
+                'Missing configuration key: {}'.format(error))
+        except ValueError as error:
+            raise ConfigurationError(
+                'Threshold in wrong format: {}'.format(error))
+
+    def __init__(self, name, interfaces, threshold_send, threshold_receive):
+        Check.__init__(self, name)
+        self._interfaces = interfaces
+        self._threshold_send = threshold_send
+        self._threshold_receive = threshold_receive
+        self._previous_values = psutil.net_io_counters(pernic=True)
+        self._previous_time = time.time()
+
+    def check(self):
+        new_values = psutil.net_io_counters(pernic=True)
+        new_time = time.time()
+        for interface in self._interfaces:
+            if interface not in new_values or \
+                    interface not in self._previous_values:
+                raise TemporaryCheckError(
+                    'Interface {} is missing'.format(interface))
+
+            # send direction
+            delta_send = new_values[interface].bytes_sent - \
+                self._previous_values[interface].bytes_sent
+            rate_send = delta_send / (new_time - self._previous_time)
+            if rate_send > self._threshold_send:
+                return 'Interface {} sending rate {} byte/s '\
+                    'higher than threshold {}'.format(
+                        interface, rate_send, self._threshold_send)
+
+            delta_receive = new_values[interface].bytes_recv - \
+                self._previous_values[interface].bytes_recv
+            rate_receive = delta_receive / (new_time - self._previous_time)
+            if rate_receive > self._threshold_receive:
+                return 'Interface {} receive rate {} byte/s '\
+                    'higher than threshold {}'.format(
+                        interface, rate_receive, self._threshold_receive)
+
+
 class Ping(Check):
     """
     Prevents system sleep in case one or several hosts are reachable via ping.

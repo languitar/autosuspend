@@ -4,12 +4,14 @@ import os.path
 import re
 import socket
 import subprocess
+import sys
 import unittest.mock
 
 import psutil
 
 import pytest
 
+import requests
 import requests.exceptions
 
 import autosuspend
@@ -407,6 +409,102 @@ class TestMpd(object):
 
         with pytest.raises(autosuspend.ConfigurationError):
             autosuspend.Mpd.create('name', parser['section'])
+
+
+class TestNetworkBandwidth(object):
+
+    def test_smoke(self):
+        check = autosuspend.NetworkBandwidth(
+            'name', psutil.net_if_addrs().keys(), 0, 0)
+        # make some traffic
+        requests.get('https://www.google.de/')
+        assert check.check() is not None
+
+    @pytest.fixture
+    def mock_interfaces(self, mocker):
+        mock = mocker.patch('psutil.net_if_addrs')
+        mock.return_value = {'foo': None, 'bar': None, 'baz': None}
+
+    def test_create(self, mock_interfaces):
+        parser = configparser.ConfigParser()
+        parser.read_string('''
+[section]
+interfaces = foo, baz
+threshold_send = 200
+threshold_receive = 300
+''')
+        check = autosuspend.NetworkBandwidth.create('name', parser['section'])
+        assert set(check._interfaces) == set(['foo', 'baz'])
+        assert check._threshold_send == 200
+        assert check._threshold_receive == 300
+
+    def test_create_default(self, mock_interfaces):
+        parser = configparser.ConfigParser()
+        parser.read_string('''
+[section]
+interfaces = foo, baz
+''')
+        check = autosuspend.NetworkBandwidth.create('name', parser['section'])
+        assert set(check._interfaces) == set(['foo', 'baz'])
+        assert check._threshold_send == 100
+        assert check._threshold_receive == 100
+
+    @pytest.mark.parametrize("config,error_match", [
+        ('''
+[section]
+interfaces = foo, NOTEXIST
+threshold_send = 200
+threshold_receive = 300
+''', r'does not exist'),
+        ('''
+[section]
+threshold_send = 200
+threshold_receive = 300
+''', r'configuration key: \'interfaces\''),
+        ('''
+[section]
+interfaces =
+threshold_send = 200
+threshold_receive = 300
+''', r'No interfaces configured'),
+        ('''
+[section]
+interfaces = foo, bar
+threshold_send = xxx
+''', r'Threshold in wrong format'),
+        ('''
+[section]
+interfaces = foo, bar
+threshold_receive = xxx
+''', r'Threshold in wrong format'),
+    ])
+    def test_create_error(self, mock_interfaces, config, error_match):
+        parser = configparser.ConfigParser()
+        parser.read_string(config)
+        with pytest.raises(autosuspend.ConfigurationError, match=error_match):
+            autosuspend.NetworkBandwidth.create('name', parser['section'])
+
+    @pytest.mark.parametrize('send_threshold,receive_threshold,match', [
+        (sys.float_info.max, 0, 'receive'),
+        (0, sys.float_info.max, 'sending'),
+    ])
+    def test_with_activity(self, send_threshold, receive_threshold, match):
+        check = autosuspend.NetworkBandwidth(
+            'name', psutil.net_if_addrs().keys(),
+            send_threshold, receive_threshold)
+        # make some traffic
+        requests.get('https://www.google.de/')
+        res = check.check()
+        assert res is not None
+        assert match in res
+
+    def test_no_activity(self):
+        check = autosuspend.NetworkBandwidth(
+            'name', psutil.net_if_addrs().keys(),
+            sys.float_info.max, sys.float_info.max)
+        # make some traffic
+        requests.get('https://www.google.de/')
+        assert check.check() is None
 
 
 class TestKodi(object):
