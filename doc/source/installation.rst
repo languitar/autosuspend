@@ -20,7 +20,25 @@ Please refer to :ref:`available-checks` for further details on these checks in w
 Binary packages
 ---------------
 
-There is currently an `Archlinux AUR package <https://aur.archlinux.org/packages/autosuspend/>`_ for |project|.
+Debian (unstable)
+~~~~~~~~~~~~~~~~~
+
+Installation from official package sources::
+
+    apt-get install autosuspend
+
+Archlinux (AUR)
+~~~~~~~~~~~~~~~
+
+|project| is available as an `Archlinux AUR package <https://aur.archlinux.org/packages/autosuspend/>`_.
+
+Installation via :program:`pacaur`::
+
+    pacaur -S autosuspend
+
+Other distributions
+~~~~~~~~~~~~~~~~~~~
+
 In case you want to generate a package for a different Linux distribution, I'd be glad to hear about that.
 
 From-source installation
