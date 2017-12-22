@@ -20,7 +20,7 @@ Please refer to :ref:`available-checks` for further details on these checks in w
 Binary packages
 ---------------
 
-Debian (unstable)
+Debian (testing)
 ~~~~~~~~~~~~~~~~~
 
 Installation from official package sources::
