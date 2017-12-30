@@ -16,7 +16,7 @@ import re
 import socket
 import subprocess
 import time
-from typing import Callable, Iterable, List, Optional, Sequence
+from typing import Callable, Iterable, List, Optional, Sequence, Type, TypeVar
 
 import psutil
 
@@ -872,18 +872,32 @@ def loop(processor: Processor,
         processor.iteration(time.time(), just_woke_up)
 
 
-def set_up_checks(config: configparser.ConfigParser) -> List[Check]:
+CheckType = TypeVar('CheckType', bound=Check)
+
+
+def set_up_checks(config: configparser.ConfigParser,
+                  prefix: str,
+                  target_class: Type[CheckType],
+                  error_none: bool = False) -> List[CheckType]:
     """Set up :py.class:`Check` instances from a given configuration.
 
     Args:
         config:
             the configuration to use
+        prefix:
+            The prefix of sections in the configuration file to use for
+            creating instances.
+        target_class:
+            the base class to check new instance agains
+        error_none:
+            Raise an error if nothing was configured?
     """
-    configured_checks = []
+    configured_checks = []  # type: List[CheckType]
 
-    check_section = [s for s in config.sections() if s.startswith('check.')]
+    check_section = [s for s in config.sections()
+                     if s.startswith('{}.'.format(prefix))]
     for section in check_section:
-        name = section[len('check.'):]
+        name = section[len('{}.'.format(prefix)):]
         # legacy method to determine the check name from the section header
         class_name = name
         # if there is an explicit class, use that one with higher priority
@@ -905,13 +919,14 @@ def set_up_checks(config: configparser.ConfigParser) -> List[Check]:
                     class_name))
 
         check = klass.create(name, config[section])
-        if not isinstance(check, Activity):
+        if not isinstance(check, target_class):
             raise ConfigurationError(
-                'Check {} is not a correct Activity instance'.format(check))
+                'Check {} is not a correct {} instance'.format(
+                    check, target_class.__name__))
         _logger.debug('Created check instance {}'.format(check))
         configured_checks.append(check)
 
-    if not configured_checks:
+    if not configured_checks and error_none:
         raise ConfigurationError('No checks enabled')
 
     return configured_checks
@@ -1032,7 +1047,7 @@ def main(args=None):
 
     config = parse_config(args.config_file)
 
-    checks = set_up_checks(config)
+    checks = set_up_checks(config, 'check', Activity)
 
     processor = Processor(
         checks,
