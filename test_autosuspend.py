@@ -5,7 +5,6 @@ import re
 import socket
 import subprocess
 import sys
-import unittest.mock
 
 import psutil
 
@@ -81,7 +80,6 @@ class TestUsers(object):
         except TypeError:
             # psutil 5.0
             return psutil._common.suser(name, terminal, host, started)
-
 
     def test_no_users(self, monkeypatch):
 
