@@ -42,6 +42,7 @@ rst_epilog = '''
 .. _lxml: http://lxml.de/
 .. _MPD: http://www.musicpd.org/
 .. _python-mpd2: https://pypi.python.org/pypi/python-mpd2
+.. _dbus-python: https://cgit.freedesktop.org/dbus/dbus-python/
 .. _Kodi: https://kodi.tv/
 .. _requests: https://pypi.python.org/pypi/requests
 .. _systemd: https://www.freedesktop.org/wiki/Software/systemd/

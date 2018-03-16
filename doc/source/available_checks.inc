@@ -83,6 +83,35 @@ Options
 Requirements
 ^^^^^^^^^^^^
 
+LogindSessionsIdle
+~~~~~~~~~~~~~~~~~~
+
+.. program:: check-logind-idle
+
+Prevents suspending in case ``IdleHint`` for one of the running sessions `logind <https://www.freedesktop.org/wiki/Software/systemd/logind/>`_ sessions is set to ``no``.
+Support for setting this hint currently varies greatly across display managers, screen lockers etc.
+Thus, check exactly whether the hint is set on your system via ``loginctl show-session``.
+
+Options
+^^^^^^^
+
+.. option:: types
+
+   A comma-separated list of sessions types to inspect for activity.
+   The check ignores sessions of other types.
+   Default: ``tty``, ``x11``, ``wayland``
+
+.. option:: states
+
+   A comma-separated list of session states to inspect.
+   For instance, ``lingering`` sessions used for background programs might not be of interest.
+   Default: ``active``, ``online``
+
+Requirements
+^^^^^^^^^^^^
+
+-  `dbus-python`_
+
 Mpd
 ~~~
 

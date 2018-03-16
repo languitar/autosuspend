@@ -560,6 +560,64 @@ class XIdleTime(Check):
         return None
 
 
+class LogindSessionsIdle(Check):
+    """Prevents suspending in case a logind session is marked not idle.
+
+    The decision is based on the ``IdleHint`` property of logind sessions.
+    """
+
+    @classmethod
+    def create(cls, name, config):
+        types = config.get('types', fallback='tty,x11,wayland')
+        types = [t.strip() for t in types.split(',')]
+        states = config.get('states', fallback='active,online')
+        states = [t.strip() for t in states.split(',')]
+        return cls(name, types, states)
+
+    def __init__(self, name, types, states):
+        Check.__init__(self, name)
+        self._types = types
+        self._states = states
+
+    def check(self):
+
+        import dbus
+        bus = dbus.SystemBus()
+        login1 = bus.get_object("org.freedesktop.login1",
+                                "/org/freedesktop/login1")
+
+        self.logger.debug('Requesting active sessions')
+        sessions = login1.ListSessions(
+            dbus_interface='org.freedesktop.login1.Manager')
+        self.logger.debug('Received active sessions: %s', sessions)
+
+        for session_id, path in [(s[0], s[4]) for s in sessions]:
+            self.logger.debug('Inspecting session %s', session_id)
+
+            session = bus.get_object('org.freedesktop.login1', path)
+            properties_interface = dbus.Interface(
+                session, 'org.freedesktop.DBus.Properties')
+            properties = properties_interface.GetAll(
+                'org.freedesktop.login1.Session')
+            self.logger.debug('Session %s properties: %s',
+                              session_id, properties)
+
+            if properties['Type'] not in self._types:
+                self.logger.debug('Ignoring session of wrong type %s',
+                                  properties['type'])
+                continue
+            if properties['State'] not in self._states:
+                self.logger.debug('Ignoring session because its state is %s',
+                                  properties['State'])
+                continue
+
+            if properties['IdleHint'] == 'no':
+                return 'Login session {} is not idle'.format(
+                           session_id, properties['IdleHint'])
+
+        return None
+
+
 class XPath(Check):
 
     @classmethod

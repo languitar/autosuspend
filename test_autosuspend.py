@@ -730,6 +730,45 @@ class TestXPath(object):
             autosuspend.XPath.create('name', parser['section'])
 
 
+class TestLogindSessionsIdle(object):
+
+    def test_smoke(self):
+        check = autosuspend.LogindSessionsIdle(
+            'test', ['tty', 'x11', 'wayland'], ['active', 'online'])
+        assert check._types == ['tty', 'x11', 'wayland']
+        assert check._states == ['active', 'online']
+        try:
+            # only run the test if the dbus module is available (not on travis)
+            import dbus  # noqa: F401
+            check.check()
+        except ImportError:
+            pass
+
+    def test_configure_defaults(self):
+        parser = configparser.ConfigParser()
+        parser.read_string('[section]')
+        check = autosuspend.LogindSessionsIdle.create(
+            'name', parser['section'])
+        assert check._types == ['tty', 'x11', 'wayland']
+        assert check._states == ['active', 'online']
+
+    def test_configure_types(self):
+        parser = configparser.ConfigParser()
+        parser.read_string('''[section]
+                           types=test, bla,foo''')
+        check = autosuspend.LogindSessionsIdle.create(
+            'name', parser['section'])
+        assert check._types == ['test', 'bla', 'foo']
+
+    def test_configure_states(self):
+        parser = configparser.ConfigParser()
+        parser.read_string('''[section]
+                           states=test, bla,foo''')
+        check = autosuspend.LogindSessionsIdle.create(
+            'name', parser['section'])
+        assert check._states == ['test', 'bla', 'foo']
+
+
 def test_execute_suspend(mocker):
     mock = mocker.patch('subprocess.check_call')
     command = ['foo', 'bar']
