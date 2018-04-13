@@ -188,7 +188,8 @@ class Kodi(Check):
             reply = requests.get(self._url +
                                  '?request={"jsonrpc": "2.0", '
                                  '"id": 1, '
-                                 '"method": "Player.GetActivePlayers"}').json()
+                                 '"method": "Player.GetActivePlayers"}',
+                                 timeout=self._timeout).json()
             if 'result' not in reply:
                 raise TemporaryCheckError('No result array in reply')
             if reply['result']:
@@ -690,15 +691,19 @@ class XPath(Check):
                 etree.fromstring('<a></a>').xpath(xpath)
             except etree.XPathEvalError:
                 raise ConfigurationError('Invalid xpath expression: ' + xpath)
-            return cls(name, xpath, config['url'])
+            timeout = config.getint('timeout', fallback=5)
+            return cls(name, xpath, config['url'], timeout)
+        except ValueError as error:
+            raise ConfigurationError('Configuration error ' + str(error))
         except KeyError as error:
             raise ConfigurationError('No ' + str(error) +
                                      ' entry defined for the XPath check')
 
-    def __init__(self, name, xpath, url):
+    def __init__(self, name, xpath, url, timeout):
         Check.__init__(self, name)
         self._xpath = xpath
         self._url = url
+        self._timeout = timeout
 
     def check(self):
         import requests
@@ -706,7 +711,7 @@ class XPath(Check):
         from lxml import etree
 
         try:
-            reply = requests.get(self._url).text
+            reply = requests.get(self._url, timeout=self._timeout).text
             root = etree.fromstring(reply)
             if root.xpath(self._xpath):
                 return "XPath matches for url " + self._url

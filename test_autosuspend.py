@@ -728,9 +728,9 @@ class TestXPath(object):
         mock_method = mocker.patch('requests.get', return_value=mock_reply)
 
         url = 'nourl'
-        assert autosuspend.XPath('foo', '/a', url).check() is not None
+        assert autosuspend.XPath('foo', '/a', url, 5).check() is not None
 
-        mock_method.assert_called_once_with(url)
+        mock_method.assert_called_once_with(url, timeout=5)
         text_property.assert_called_once_with()
 
     def test_not_matching(self, mocker):
@@ -740,7 +740,7 @@ class TestXPath(object):
         text_property.return_value = "<a></a>"
         mocker.patch('requests.get', return_value=mock_reply)
 
-        assert autosuspend.XPath('foo', '/b', 'nourl').check() is None
+        assert autosuspend.XPath('foo', '/b', 'nourl', 5).check() is None
 
     def test_broken_xml(self, mocker):
         with pytest.raises(autosuspend.TemporaryCheckError):
@@ -750,7 +750,7 @@ class TestXPath(object):
             text_property.return_value = "//broken"
             mocker.patch('requests.get', return_value=mock_reply)
 
-            autosuspend.XPath('foo', '/b', 'nourl').check()
+            autosuspend.XPath('foo', '/b', 'nourl', 5).check()
 
     def test_xpath_prevalidation(self):
         with pytest.raises(autosuspend.ConfigurationError,
@@ -771,6 +771,40 @@ class TestXPath(object):
                                url=nourl''')
             del parser['section'][entry]
             autosuspend.XPath.create('name', parser['section'])
+
+    def test_create_default_timeout(self):
+        parser = configparser.ConfigParser()
+        parser.read_string('''[section]
+                           xpath=/valid
+                           url=nourl''')
+        check = autosuspend.XPath.create('name', parser['section'])
+        assert check._timeout == 5
+
+    def test_create_timeout(self):
+        parser = configparser.ConfigParser()
+        parser.read_string('''[section]
+                           xpath=/valid
+                           url=nourl
+                           timeout=42''')
+        check = autosuspend.XPath.create('name', parser['section'])
+        assert check._timeout == 42
+
+    def test_create_invalid_timeout(self):
+        with pytest.raises(autosuspend.ConfigurationError,
+                           match=r"^Configuration error .*"):
+            parser = configparser.ConfigParser()
+            parser.read_string('''[section]
+                               xpath=/valid
+                               url=nourl
+                               timeout=xx''')
+            autosuspend.XPath.create('name', parser['section'])
+
+    def test_requests_exception(self, mocker):
+        with pytest.raises(autosuspend.TemporaryCheckError):
+            mock_method = mocker.patch('requests.get')
+            mock_method.side_effect = requests.exceptions.ReadTimeout()
+
+            autosuspend.XPath('foo', '/a', 'asdf', 5).check()
 
 
 class TestLogindSessionsIdle(object):

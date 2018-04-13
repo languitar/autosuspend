@@ -315,12 +315,16 @@ Options
 
 .. option:: url
 
-    The URL to query for the XML reply.
+   The URL to query for the XML reply.
 
 .. option:: xpath
 
-    The XPath query to execute.
-    In case it returns a result, the system is assumed to be active.
+   The XPath query to execute.
+   In case it returns a result, the system is assumed to be active.
+
+.. options:: timeout
+
+   Timeout for executed requests in seconds. Default: 5.
 
 Requirements
 ^^^^^^^^^^^^
