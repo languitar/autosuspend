@@ -1,6 +1,7 @@
 import configparser
 import logging
 import os.path
+import pwd
 import re
 import socket
 import subprocess
@@ -605,18 +606,21 @@ class TestXIdleTime(object):
         check = autosuspend.XIdleTime.create('name', parser['section'])
         assert check._timeout == 600
         assert check._ignore_process_re == re.compile(r'a^')
-        assert check._ignore_users_re == re.compile(r'^a')
+        assert check._ignore_users_re == re.compile(r'a^')
+        assert check._provide_sessions == check._list_sessions_sockets
 
     def test_create(self):
         parser = configparser.ConfigParser()
         parser.read_string('''[section]
                               timeout = 42
                               ignore_if_process = .*test
-                              ignore_users = test.*test''')
+                              ignore_users = test.*test
+                              method = logind''')
         check = autosuspend.XIdleTime.create('name', parser['section'])
         assert check._timeout == 42
         assert check._ignore_process_re == re.compile(r'.*test')
         assert check._ignore_users_re == re.compile(r'test.*test')
+        assert check._provide_sessions == check._list_sessions_logind
 
     def test_create_no_int(self):
         parser = configparser.ConfigParser()
@@ -638,6 +642,45 @@ class TestXIdleTime(object):
                               ignore_users = [[a-9]''')
         with pytest.raises(autosuspend.ConfigurationError):
             autosuspend.XIdleTime.create('name', parser['section'])
+
+    def test_create_unknown_method(self):
+        parser = configparser.ConfigParser()
+        parser.read_string('''[section]
+                              method = asdfasdf''')
+        with pytest.raises(autosuspend.ConfigurationError):
+            autosuspend.XIdleTime.create('name', parser['section'])
+
+    def test_list_sessions_logind(self, mocker):
+        mock = mocker.patch('autosuspend._list_logind_sessions')
+        mock.return_value = [('c1', {'Name': 'foo'}),
+                             ('c2', {'Display': 'asdfasf'}),
+                             ('c3', {'Name': 'hello', 'Display': 'nonumber'}),
+                             ('c4', {'Name': 'hello', 'Display': '3'})]
+
+        parser = configparser.ConfigParser()
+        parser.read_string('''[section]''')
+        check = autosuspend.XIdleTime.create('name', parser['section'])
+        assert check._list_sessions_logind() == [(3, 'hello')]
+
+    def test_list_sessions_socket(self, mocker):
+        mock_glob = mocker.patch('glob.glob')
+        mock_glob.return_value = ['/tmp/.X11-unix/X0',
+                                  '/tmp/.X11-unix/X42',
+                                  '/tmp/.X11-unix/Xnum']
+
+        stat_return = os.stat(os.path.realpath(__file__))
+        this_user = pwd.getpwuid(stat_return.st_uid)
+        mock_stat = mocker.patch('os.stat')
+        mock_stat.return_value = stat_return
+
+        mock_pwd = mocker.patch('pwd.getpwuid')
+        mock_pwd.return_value = this_user
+
+        parser = configparser.ConfigParser()
+        parser.read_string('''[section]''')
+        check = autosuspend.XIdleTime.create('name', parser['section'])
+        assert check._list_sessions_sockets() == [(0, this_user.pw_name),
+                                                  (42, this_user.pw_name)]
 
 
 class TestExternalCommand(object):

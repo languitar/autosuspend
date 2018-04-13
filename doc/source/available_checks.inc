@@ -88,7 +88,7 @@ LogindSessionsIdle
 
 .. program:: check-logind-idle
 
-Prevents suspending in case ``IdleHint`` for one of the running sessions `logind <https://www.freedesktop.org/wiki/Software/systemd/logind/>`_ sessions is set to ``no``.
+Prevents suspending in case ``IdleHint`` for one of the running sessions `logind`_ sessions is set to ``no``.
 Support for setting this hint currently varies greatly across display managers, screen lockers etc.
 Thus, check exactly whether the hint is set on your system via ``loginctl show-session``.
 
@@ -257,7 +257,10 @@ XIdleTime
 .. program:: check-xidletime
 
 Checks whether all active local X displays have been idle for a sufficiently long time.
-This assumes a recent operating system where the X server is started with user permissions (i.e. not as root).
+Determining which X11 sessions currently exist on a running system is a harder problem than one might expect.
+Sometimes, the server runs as root, sometimes under the real user, and many other configuration variants exist.
+Thus, multiple sources for active X serer instances are implemented for this check, each of them having different requirements and limitations.
+They can be changed using the provided configuration option.
 
 Options
 ^^^^^^^
@@ -266,14 +269,33 @@ Options
 
    required idle time in seconds
 
+.. option:: method
+
+   The method to use for acquiring running X sessions.
+   Valid options are ``sockets`` and ``logind``.
+   The default is ``sockets``.
+
+   ``sockets``
+     Uses the X server sockets files found in :file:`/tmp/.X11-unix`.
+     This method requires that all X server instances run with user permissions and not as root.
+   ``logind``
+     Uses `logind`_ to obtain the running X server instances.
+     This does not support manually started servers.
+
 .. option:: ignore_if_process
 
    A regular expression to match against the process names executed by each X session owner.
-   In case the use has a process running, which matches against this expression, the X idle time is ignore and the check continues as if there was no activity.
-   This can be useful in case of processes which inevitabl
+   In case the use has a running process that matches this expression, the X idle time is ignored and the check continues as if there was no activity.
+   This can be useful in case of processes which inevitably tinker with the idle time.
+
+.. options:: ignore_users
+
+   Do not check sessions of users matching this regular expressions.
 
 Requirements
 ^^^^^^^^^^^^
+
+* `dbus-python`_ for the ``logind`` method
 
 XPath
 ~~~~~
@@ -283,7 +305,7 @@ XPath
 A generic check which queries a configured URL and expected the reply to contain XML data.
 The returned XML document is checked against a configured `XPath`_ expression and in case the expression matches, the system is assumed to be active.
 
-This can for instance be used with with the TV streaming server `tvheadend`_, which provides its current status via an XML reply.
+This can for instance be used with the TV streaming server `tvheadend`_, which provides its current status via an XML reply.
 For this purpose, use the following XPath::
 
     /currentload/subscriptions[number(.) > 0] | /currentload/recordings/recording

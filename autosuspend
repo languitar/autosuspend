@@ -10,6 +10,7 @@ import glob
 import logging
 import logging.config
 import os
+import os.path
 import pwd
 import re
 import socket
@@ -454,6 +455,34 @@ class Users(Check):
         return None
 
 
+def _list_logind_sessions():
+    """Lists running logind sessions and their properties.
+
+    Returns:
+        list of (session_id, properties dict):
+            A list with tuples of sessions ids and their associated properties
+            represented as dicts.
+    """
+    import dbus
+    bus = dbus.SystemBus()
+    login1 = bus.get_object("org.freedesktop.login1",
+                            "/org/freedesktop/login1")
+
+    sessions = login1.ListSessions(
+        dbus_interface='org.freedesktop.login1.Manager')
+
+    results = []
+    for session_id, path in [(s[0], s[4]) for s in sessions]:
+        session = bus.get_object('org.freedesktop.login1', path)
+        properties_interface = dbus.Interface(
+            session, 'org.freedesktop.DBus.Properties')
+        properties = properties_interface.GetAll(
+            'org.freedesktop.login1.Session')
+        results.append((session_id, properties))
+
+    return results
+
+
 class XIdleTime(Check):
     """Check that local X display have been idle long enough."""
 
@@ -461,32 +490,46 @@ class XIdleTime(Check):
     def create(cls, name, config):
         try:
             return cls(name, config.getint('timeout', fallback=600),
+                       config.get('method', fallback='sockets'),
                        re.compile(config.get('ignore_if_process',
                                              fallback=r'a^')),
                        re.compile(config.get('ignore_users',
-                                             fallback=r'^a')))
+                                             fallback=r'a^')))
         except re.error as error:
             raise ConfigurationError(
                 'Regular expression is invalid: {}'.format(error))
         except ValueError as error:
             raise ConfigurationError(
-                'Unable to parse timeout as int: {}'.format(error))
+                'Unable to parse configuration: {}'.format(error))
 
-    def __init__(self, name, timeout, ignore_process_re, ignore_users_re):
+    def __init__(self, name, timeout, method,
+                 ignore_process_re, ignore_users_re):
         Check.__init__(self, name)
         self._timeout = timeout
+        if method == 'sockets':
+            self._provide_sessions = self._list_sessions_sockets
+        elif method == 'logind':
+            self._provide_sessions = self._list_sessions_logind
+        else:
+            raise ValueError(
+                "Unknown session discovery method {}".format(method))
         self._ignore_process_re = ignore_process_re
         self._ignore_users_re = ignore_users_re
 
-    def check(self):
+    def _list_sessions_sockets(self):
+        """Lists running X sessions by iterating the X sockets.
+
+        This method assumes that X servers are run under the users using the
+        server.
+        """
         sockets = glob.glob('/tmp/.X11-unix/X*')
         self.logger.debug('Found sockets: %s', sockets)
-        for sock in sockets:
-            self.logger.info('Checking socket %s', sock)
 
+        results = []
+        for sock in sockets:
             # determine the number of the X display
             try:
-                number = int(sock[len('/tmp/.X11-unix/X'):])
+                display = int(sock[len('/tmp/.X11-unix/X'):])
             except ValueError as error:
                 self.logger.warning(
                     'Cannot parse display number from socket %s. Skipping.',
@@ -502,41 +545,76 @@ class XIdleTime(Check):
                     sock, exc_info=True)
                 continue
 
+            results.append((display, user))
+
+        return results
+
+    def _list_sessions_logind(self):
+        """Lists running X sessions using logind.
+
+        This method assumes that a ``Display`` variable is set in the logind
+        sessions.
+        """
+        results = []
+        for session_id, properties in _list_logind_sessions():
+            if 'Name' in properties and 'Display' in properties:
+                try:
+                    results.append(
+                        (int(properties['Display'].replace(':', '')),
+                         str(properties['Name'])))
+                except ValueError as e:
+                    self.logger.warn(
+                        'Unable to parse display from session properties %s',
+                        properties, exc_info=True)
+            else:
+                self.logger.debug(
+                    'Skipping session %s because it does not contain '
+                    'a user name and a display', session_id)
+        return results
+
+    def _is_skip_process_running(self, user):
+        user_processes = []
+        for process in psutil.process_iter():
+            try:
+                if process.username() == user:
+                    user_processes.append(process.name())
+            except (psutil.NoSuchProcess,
+                    psutil.ZombieProcess,
+                    psutil.AccessDenied):
+                # ignore processes which have disappeared etc.
+                pass
+
+        for process in user_processes:
+            if self._ignore_process_re.match(process) is not None:
+                self.logger.debug(
+                    "Process %s with pid %s matches the ignore regex '%s'."
+                    " Skipping idle time check for this user.",
+                    process.name(), process.pid, self._ignore_process_re)
+                return True
+
+        return False
+
+    def check(self):
+        for display, user in self._provide_sessions():
+            self.logger.info('Checking display %s of user %s', display, user)
+
             # check whether this users should be ignored completely
             if self._ignore_users_re.match(user) is not None:
                 self.logger.debug("Skipping user '%s' due to request", user)
                 continue
 
             # check whether any of the running processes of this user matches
-            # the ignore regular expression. In that case we skip ideltime
-            # checking because we assume the user has a process running, which
+            # the ignore regular expression. In that case we skip idletime
+            # checking because we assume the user has a process running that
             # inevitably tampers with the idle time.
-            user_processes = []
-            for process in psutil.process_iter():
-                try:
-                    if process.username() == user:
-                        user_processes.append(process.name())
-                except (psutil.NoSuchProcess,
-                        psutil.ZombieProcess,
-                        psutil.AccessDenied):
-                    # ignore processes which have disappeared etc.
-                    pass
-
-            skip = False
-            for process in user_processes:
-                if self._ignore_process_re.match(process) is not None:
-                    self.logger.debug(
-                        "Process %s with pid %s matches the ignore regex '%s'."
-                        " Skipping idle time check for this user.",
-                        process.name(), process.pid, self._ignore_process_re)
-                    skip = True
-                    break
-            if skip:
+            if self._is_skip_process_running(user):
                 continue
 
             # prepare the environment for the xprintidle call
             env = copy.deepcopy(os.environ)
-            env['DISPLAY'] = ':{}'.format(number)
+            env['DISPLAY'] = ':{}'.format(display)
+            env['XAUTHORITY'] = os.path.join(os.path.expanduser('~' + user),
+                                             '.Xauthority')
 
             try:
                 idle_time = subprocess.check_output(
@@ -545,17 +623,17 @@ class XIdleTime(Check):
             except (subprocess.CalledProcessError, ValueError) as error:
                 self.logger.warning(
                     'Unable to determine the idle time for display %s.',
-                    number, exc_info=True)
+                    display, exc_info=True)
                 raise TemporaryCheckError(error)
 
             self.logger.debug(
                 'Idle time for display %s of user %s is %s seconds.',
-                number, user, idle_time)
+                display, user, idle_time)
 
             if idle_time < self._timeout:
                 return 'X session {} of user {} ' \
                     'has idle time {} < threshold {}'.format(
-                        number, user, idle_time, self._timeout)
+                        display, user, idle_time, self._timeout)
 
         return None
 
@@ -580,25 +658,7 @@ class LogindSessionsIdle(Check):
         self._states = states
 
     def check(self):
-
-        import dbus
-        bus = dbus.SystemBus()
-        login1 = bus.get_object("org.freedesktop.login1",
-                                "/org/freedesktop/login1")
-
-        self.logger.debug('Requesting active sessions')
-        sessions = login1.ListSessions(
-            dbus_interface='org.freedesktop.login1.Manager')
-        self.logger.debug('Received active sessions: %s', sessions)
-
-        for session_id, path in [(s[0], s[4]) for s in sessions]:
-            self.logger.debug('Inspecting session %s', session_id)
-
-            session = bus.get_object('org.freedesktop.login1', path)
-            properties_interface = dbus.Interface(
-                session, 'org.freedesktop.DBus.Properties')
-            properties = properties_interface.GetAll(
-                'org.freedesktop.login1.Session')
+        for session_id, properties in _list_logind_sessions():
             self.logger.debug('Session %s properties: %s',
                               session_id, properties)
 

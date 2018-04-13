@@ -50,6 +50,7 @@ rst_epilog = '''
 .. _broadcast-logging: https://github.com/languitar/broadcast-logging
 .. _tvheadend: https://tvheadend.org/
 .. _XPath: https://www.w3.org/TR/xpath/
+.. _logind: https://www.freedesktop.org/wiki/Software/systemd/logind/
 
 .. |project| replace:: {project}
 .. |project_bold| replace:: **{project}**
