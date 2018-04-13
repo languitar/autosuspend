@@ -288,7 +288,7 @@ Options
    In case the use has a running process that matches this expression, the X idle time is ignored and the check continues as if there was no activity.
    This can be useful in case of processes which inevitably tinker with the idle time.
 
-.. options:: ignore_users
+.. option:: ignore_users
 
    Do not check sessions of users matching this regular expressions.
 
@@ -322,7 +322,7 @@ Options
    The XPath query to execute.
    In case it returns a result, the system is assumed to be active.
 
-.. options:: timeout
+.. option:: timeout
 
    Timeout for executed requests in seconds. Default: 5.
 
