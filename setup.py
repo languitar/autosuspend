@@ -32,7 +32,7 @@ setup(
         'Mpd': ['python-mpd2'],
         'Kodi': ['requests'],
         'XPath': ['lxml', 'requests'],
-        'LogindSessionsIdle': ['dbus-python'],
+        'Logind support': ['dbus-python'],
     },
     tests_require=[
         'pytest',
