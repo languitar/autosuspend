@@ -741,8 +741,6 @@ def execute_suspend(command: str):
 _checks = []  # type: List[Check]
 # pylint: enable=invalid-name
 
-JUST_WOKE_UP_FILE = '/tmp/autosuspend-just-woke-up'
-
 
 def execute_checks(checks: Iterable[Check], all_checks: bool, logger) -> bool:
     """Execute the provided checks sequentially.
@@ -778,7 +776,8 @@ def loop(interval: int,
          idle_time: int,
          sleep_fn: Callable,
          all_checks: bool = False,
-         run_for: Optional[int] = None) -> None:
+         run_for: Optional[int] = None,
+         woke_up_file: str = '/var/run/autosuspend-just-woke-up') -> None:
     """Run the main loop of the daemon.
 
     Args:
@@ -805,9 +804,9 @@ def loop(interval: int,
 
         logger.debug('All checks have been executed')
 
-        if os.path.isfile(JUST_WOKE_UP_FILE):
+        if os.path.isfile(woke_up_file):
             logger.info('Just woke up from suspension. Resetting')
-            os.remove(JUST_WOKE_UP_FILE)
+            os.remove(woke_up_file)
             idle_since = None
             time.sleep(interval)
         elif matched:
@@ -994,7 +993,9 @@ def main(args=None):
          functools.partial(execute_suspend,
                            config.get('general', 'suspend_cmd')),
          all_checks=args.all_checks,
-         run_for=args.run_for)
+         run_for=args.run_for,
+         woke_up_file=config.get('general', 'woke_up_file',
+                                 fallback='/var/run/autosuspend-just-woke-up'))
 
 
 if __name__ == "__main__":

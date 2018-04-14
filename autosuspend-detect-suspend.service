@@ -5,7 +5,7 @@ Before=sleep.target
 
 [Service]
 Type=simple
-ExecStart=/usr/bin/touch /tmp/autosuspend-just-woke-up
+ExecStart=/usr/bin/touch /var/run/autosuspend-just-woke-up
 
 [Install]
 WantedBy=sleep.target

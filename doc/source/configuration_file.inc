@@ -46,6 +46,13 @@ The ``[general]`` section contains options controlling the overall behavior of t
    The command to execute in case the host shall be suspended.
    This line can contain additional command line arguments to the command to execute.
 
+.. option:: woke_up_file
+
+   Location of a file that indicates to |project_program| that the computer has suspended since the last time checks were executed.
+   This file is usually created by a `systemd`_ service.
+   Thus, changing the location also requires adapting the respective service.
+   Refer to :ref:`systemd-integration` for further details.
+
 Check Configuration
 ~~~~~~~~~~~~~~~~~~~
 
