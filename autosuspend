@@ -737,11 +737,6 @@ def execute_suspend(command: str):
                         exc_info=True)
 
 
-# pylint: disable=invalid-name
-_checks = []  # type: List[Check]
-# pylint: enable=invalid-name
-
-
 def execute_checks(checks: Iterable[Check], all_checks: bool, logger) -> bool:
     """Execute the provided checks sequentially.
 
@@ -772,15 +767,79 @@ def execute_checks(checks: Iterable[Check], all_checks: bool, logger) -> bool:
     return matched
 
 
-def loop(interval: int,
-         idle_time: int,
-         sleep_fn: Callable,
-         all_checks: bool = False,
-         run_for: Optional[int] = None,
-         woke_up_file: str = '/var/run/autosuspend-just-woke-up') -> None:
+class Processor(object):
+    """Implements the logic for triggering suspension.
+
+    Args:
+        checks:
+            the activity checks to execute
+        idle_time:
+            the required amount of time the system has to be idle before
+            suspension is triggered
+        sleep_fn:
+            a callable that triggers suspension
+        all_checks:
+            if ``True``, execute all activity checks even if a previous one
+            already matched.
+    """
+
+    def __init__(self,
+                 checks: List[Check],
+                 idle_time: float,
+                 sleep_fn: Callable,
+                 all_checks: bool) -> None:
+        self._logger = logging.getLogger('Processor')
+        self._checks = checks
+        self._idle_time = idle_time
+        self._sleep_fn = sleep_fn
+        self._all_checks = all_checks
+        self._idle_since = None  # type: Optional[float]
+
+    def _reset_state(self, reason: str) -> None:
+        self._logger.info('%s. Resetting state', reason)
+        self._idle_since = None
+
+    def iteration(self, timestamp: float, just_woke_up: bool):
+        self._logger.info('Starting new check iteration')
+
+        matched = execute_checks(self._checks, self._all_checks,
+                                 self._logger)
+        self._logger.debug('All checks have been executed. Matched: %s',
+                           matched)
+
+        # exit in case something prevents suspension
+        if just_woke_up:
+            self._reset_state('Just woke up from suspension')
+            return
+        if matched:
+            self._reset_state('System is active')
+            return
+
+        # set idle timestamp if required
+        if self._idle_since is None:
+            self._idle_since = timestamp
+
+        self._logger.info('System is idle since %s', self._idle_since)
+
+        # determine if systems is idle long enough
+        if timestamp - self._idle_since > self._idle_time:
+            self._logger.info('System is idle long enough. Suspending...')
+            self._reset_state('Going to suspend')
+            self._sleep_fn()
+        else:
+            self._logger.info('Desired idle time of %s s not reached yet.',
+                              self._idle_time)
+
+
+def loop(processor: Processor,
+         interval: int,
+         run_for: Optional[int],
+         woke_up_file: str) -> None:
     """Run the main loop of the daemon.
 
     Args:
+        processor:
+            the processor to use for handling the suspension computations
         interval:
             the length of one iteration of the main loop in seconds
         idle_time:
@@ -792,41 +851,15 @@ def loop(interval: int,
             if specified, run the main loop for the specified amount of seconds
             before terminating (approximately)
     """
-    logger = logging.getLogger('loop')
 
     start_time = time.time()
-
-    idle_since = None
     while (run_for is None) or (time.time() < (start_time + run_for)):
-        logger.info('Starting new check iteration')
 
-        matched = execute_checks(_checks, all_checks, logger)
-
-        logger.debug('All checks have been executed')
-
-        if os.path.isfile(woke_up_file):
-            logger.info('Just woke up from suspension. Resetting')
+        just_woke_up = os.path.isfile(woke_up_file)
+        if just_woke_up:
             os.remove(woke_up_file)
-            idle_since = None
-            time.sleep(interval)
-        elif matched:
-            logger.info('Check iteration finished. System is active. '
-                        'Sleeping until next iteration')
-            idle_since = None
-            time.sleep(interval)
-        else:
-            if idle_since is None:
-                idle_since = time.time()
-            logger.info('No checks matched. System is idle since %s',
-                        idle_since)
-            if time.time() - idle_since > idle_time:
-                logger.info('System is idle long enough. Suspending...')
-                sleep_fn()
-                idle_since = None
-            else:
-                logger.info('Desired idle time of %s secs not reached so far. '
-                            'Continuing checks', idle_time)
-                time.sleep(interval)
+
+        processor.iteration(time.time(), just_woke_up)
 
 
 def set_up_checks(config: configparser.ConfigParser) -> List[Check]:
@@ -983,16 +1016,23 @@ def configure_logging(file_or_flag):
 
 def main(args=None):
     """Run the daemon."""
-    global _checks
     args = parse_arguments(args)
+
     configure_logging(args.logging)
+
     config = parse_config(args.config_file)
-    _checks = set_up_checks(config)
-    loop(config.getfloat('general', 'interval', fallback=60),
-         config.getfloat('general', 'idle_time', fallback=300),
-         functools.partial(execute_suspend,
-                           config.get('general', 'suspend_cmd')),
-         all_checks=args.all_checks,
+
+    checks = set_up_checks(config)
+
+    processor = Processor(
+        checks,
+        config.getfloat('general', 'idle_time', fallback=300),
+        functools.partial(execute_suspend,
+                          config.get('general', 'suspend_cmd')),
+        all_checks=args.all_checks)
+
+    loop(processor,
+         config.getfloat('general', 'interval', fallback=60),
          run_for=args.run_for,
          woke_up_file=config.get('general', 'woke_up_file',
                                  fallback='/var/run/autosuspend-just-woke-up'))

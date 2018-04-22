@@ -1023,3 +1023,78 @@ class TestExecuteChecks(object):
             mocker.MagicMock()) is True
         matching_check.check.assert_called_once_with()
         second_check.check.assert_called_once_with()
+
+
+class _StubCheck(autosuspend.Check):
+
+    def create(cls, name, config):
+        pass
+
+    def __init__(self, name, match):
+        autosuspend.Check.__init__(self, name)
+        self.match = match
+
+    def check(self):
+        return self.match
+
+
+class TestProcessor(object):
+
+    def test_smoke(self):
+        suspending = [False]
+
+        def sleep_fn():
+            suspending[0] = True
+
+        processor = autosuspend.Processor([_StubCheck('stub', None)],
+                                          2,
+                                          sleep_fn,
+                                          False)
+        # should init the timestamp initially
+        processor.iteration(0, False)
+        assert not suspending[0]
+        # not yet reached
+        processor.iteration(1, False)
+        assert not suspending[0]
+        # time must be greater, not equal
+        processor.iteration(2, False)
+        assert not suspending[0]
+        # go to sleep
+        processor.iteration(3, False)
+        assert suspending[0]
+
+        suspending[0] = False
+
+        # second iteration to check that the idle time got reset
+        processor.iteration(4, False)
+        assert not suspending[0]
+        # go to sleep again
+        processor.iteration(6.02, False)
+        assert suspending[0]
+
+    def test_just_woke_up_handling(self):
+        suspending = [False]
+
+        def sleep_fn():
+            suspending[0] = True
+
+        processor = autosuspend.Processor([_StubCheck('stub', None)],
+                                          2,
+                                          sleep_fn,
+                                          False)
+
+        # should init the timestamp initially
+        processor.iteration(0, False)
+        assert not suspending[0]
+        # should go to sleep but we just woke up
+        processor.iteration(3, True)
+        assert not suspending[0]
+        # start over again
+        processor.iteration(4, False)
+        assert not suspending[0]
+        # not yet sleeping
+        processor.iteration(6, False)
+        assert not suspending[0]
+        # now go to sleep
+        processor.iteration(7, False)
+        assert suspending[0]
