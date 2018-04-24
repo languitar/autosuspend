@@ -9,6 +9,7 @@ import autosuspend
 ROOT = os.path.dirname(os.path.realpath(__file__))
 
 SUSPENSION_FILE = 'would_suspend'
+WOKE_UP_FILE = 'test-woke-up'
 
 
 @pytest.fixture
@@ -51,3 +52,20 @@ def test_suspend(suspension_file):
         '-l'])
 
     assert suspension_file.exists()
+
+
+def test_woke_up_file_removed():
+    try:
+        open(WOKE_UP_FILE, 'a').close()
+        autosuspend.main([
+            '-c',
+            os.path.join(ROOT, 'test_data', 'dont_suspend.conf'),
+            '-r',
+            '5',
+            '-l'])
+        assert not os.path.exists(WOKE_UP_FILE)
+    finally:
+        try:
+            os.remove(WOKE_UP_FILE)
+        except OSError as error:
+            pass
