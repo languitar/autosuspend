@@ -140,6 +140,32 @@ class Wakeup(Check):
         pass
 
 
+class WakeupFile(Wakeup):
+    """Determines scheduled wake ups from the contents of a file on disk."""
+
+    @classmethod
+    def create(cls, name, config):
+        try:
+            path = config['path']
+            return cls(name, path)
+        except KeyError:
+            raise ConfigurationError('Missing option path')
+
+    def __init__(self, name, path):
+        Check.__init__(self, name)
+        self._path = path
+
+    def check(self):
+        try:
+            with open(self._path, 'r') as time_file:
+                return float(time_file.readlines()[0].strip())
+        except FileNotFoundError:
+            # this is ok
+            pass
+        except (ValueError, PermissionError, IOError) as error:
+            raise TemporaryCheckError(error)
+
+
 class ActiveConnection(Activity):
     """Checks if a client connection exists on specified ports."""
 

@@ -818,6 +818,37 @@ class TestXPath(object):
             autosuspend.XPath('foo', '/a', 'asdf', 5).check()
 
 
+class TestWakeupFile(object):
+
+    def test_create(self):
+        parser = configparser.ConfigParser()
+        parser.read_string('''[section]
+                              path = /tmp/test''')
+        check = autosuspend.WakeupFile.create('name', parser['section'])
+        assert check._path == '/tmp/test'
+
+    def test_create_no_path(self):
+        parser = configparser.ConfigParser()
+        parser.read_string('''[section]''')
+        with pytest.raises(autosuspend.ConfigurationError):
+            autosuspend.WakeupFile.create('name', parser['section'])
+
+    def test_smoke(self, tmpdir):
+        file = tmpdir.join('file')
+        file.write('42\n\n')
+        assert autosuspend.WakeupFile('name', str(file)).check() == 42
+
+    def test_no_file(self, tmpdir):
+        assert autosuspend.WakeupFile('name',
+                                      str(tmpdir.join('narf'))).check() is None
+
+    def test_invalid_number(self, tmpdir):
+        file = tmpdir.join('filexxx')
+        file.write('nonumber\n\n')
+        with pytest.raises(autosuspend.TemporaryCheckError):
+            autosuspend.WakeupFile('name', str(file)).check()
+
+
 class TestLogindSessionsIdle(object):
 
     def test_smoke(self):
