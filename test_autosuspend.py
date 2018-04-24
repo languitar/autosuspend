@@ -877,6 +877,24 @@ def test_execute_suspend_call_exception(mocker):
     assert spy.call_count == 1
 
 
+def test_schedule_wakeup(mocker):
+    mock = mocker.patch('subprocess.check_call')
+    autosuspend.schedule_wakeup('echo {timestamp}', 42)
+    mock.assert_called_once_with('echo 42', shell=True)
+
+
+def test_schedule_wakeup_call_exception(mocker):
+    mock = mocker.patch('subprocess.check_call')
+    mock.side_effect = subprocess.CalledProcessError(2, "foo")
+
+    spy = mocker.spy(autosuspend._logger, 'warning')
+
+    autosuspend.schedule_wakeup("foo", 42)
+
+    mock.assert_called_once_with("foo", shell=True)
+    assert spy.call_count == 1
+
+
 def test_configure_logging_debug(mocker):
     mock = mocker.patch('logging.basicConfig')
 
@@ -1034,76 +1052,252 @@ class TestExecuteChecks(object):
         second_check.check.assert_called_once_with()
 
 
-class _StubCheck(autosuspend.Check):
+class TestExecuteWakeups(object):
+
+    def test_no_wakeups(self, mocker):
+        assert autosuspend.execute_wakeups(
+            [], 0, mocker.MagicMock()) is None
+
+    def test_all_none(self, mocker):
+        wakeup = mocker.MagicMock(
+            spec=autosuspend.Wakeup)
+        wakeup.check.return_value = None
+        assert autosuspend.execute_wakeups(
+            [wakeup], 0, mocker.MagicMock()) is None
+
+    def test_basic_return(self, mocker):
+        wakeup = mocker.MagicMock(
+            spec=autosuspend.Wakeup)
+        wakeup.check.return_value = 42
+        assert autosuspend.execute_wakeups(
+            [wakeup], 0, mocker.MagicMock()) == 42
+
+    def test_soonest_taken(self, mocker):
+        wakeup = mocker.MagicMock(
+            spec=autosuspend.Wakeup)
+        wakeup.check.return_value = 42
+        wakeup_earlier = mocker.MagicMock(
+            spec=autosuspend.Wakeup)
+        wakeup_earlier.check.return_value = 12
+        wakeup_later = mocker.MagicMock(
+            spec=autosuspend.Wakeup)
+        wakeup_later.check.return_value = 14
+        assert autosuspend.execute_wakeups(
+            [wakeup, wakeup_earlier, wakeup_later],
+            0, mocker.MagicMock()) == 12
+
+    def test_ignore_temporary_errors(self, mocker):
+        wakeup = mocker.MagicMock(
+            spec=autosuspend.Wakeup)
+        wakeup.check.return_value = 42
+        wakeup_error = mocker.MagicMock(
+            spec=autosuspend.Wakeup)
+        wakeup_error.check.side_effect = autosuspend.TemporaryCheckError()
+        wakeup_earlier = mocker.MagicMock(
+            spec=autosuspend.Wakeup)
+        wakeup_earlier.check.return_value = 12
+        assert autosuspend.execute_wakeups(
+            [wakeup, wakeup_error, wakeup_earlier],
+            0, mocker.MagicMock()) == 12
+
+    def test_ignore_too_early(self, mocker):
+        wakeup = mocker.MagicMock(
+            spec=autosuspend.Wakeup)
+        wakeup.check.return_value = 10
+        assert autosuspend.execute_wakeups(
+            [wakeup], 10, mocker.MagicMock()) is None
+        assert autosuspend.execute_wakeups(
+            [wakeup], 12, mocker.MagicMock()) is None
+
+
+class _StubCheck(autosuspend.Activity):
 
     def create(cls, name, config):
         pass
 
     def __init__(self, name, match):
-        autosuspend.Check.__init__(self, name)
+        autosuspend.Activity.__init__(self, name)
         self.match = match
 
     def check(self):
         return self.match
 
 
+@pytest.fixture
+def sleep_fn():
+
+    class Func(object):
+
+        def __init__(self):
+            self.called = False
+
+        def reset(self):
+            self.called = False
+
+        def __call__(self):
+            self.called = True
+
+    return Func()
+
+
+@pytest.fixture
+def wakeup_fn():
+
+    class Func(object):
+
+        def __init__(self):
+            self.call_arg = None
+
+        def reset(self):
+            self.call_arg = None
+
+        def __call__(self, arg):
+            self.call_arg = arg
+
+    return Func()
+
+
 class TestProcessor(object):
 
-    def test_smoke(self):
-        suspending = [False]
-
-        def sleep_fn():
-            suspending[0] = True
-
+    def test_smoke(self, sleep_fn, wakeup_fn):
         processor = autosuspend.Processor([_StubCheck('stub', None)],
+                                          [],
                                           2,
+                                          0,
+                                          0,
                                           sleep_fn,
+                                          wakeup_fn,
                                           False)
         # should init the timestamp initially
         processor.iteration(0, False)
-        assert not suspending[0]
+        assert not sleep_fn.called
         # not yet reached
         processor.iteration(1, False)
-        assert not suspending[0]
+        assert not sleep_fn.called
         # time must be greater, not equal
         processor.iteration(2, False)
-        assert not suspending[0]
+        assert not sleep_fn.called
         # go to sleep
         processor.iteration(3, False)
-        assert suspending[0]
+        assert sleep_fn.called
 
-        suspending[0] = False
+        sleep_fn.reset()
 
         # second iteration to check that the idle time got reset
         processor.iteration(4, False)
-        assert not suspending[0]
+        assert not sleep_fn.called
         # go to sleep again
         processor.iteration(6.02, False)
-        assert suspending[0]
+        assert sleep_fn.called
 
-    def test_just_woke_up_handling(self):
-        suspending = [False]
+        assert wakeup_fn.call_arg is None
 
-        def sleep_fn():
-            suspending[0] = True
-
+    def test_just_woke_up_handling(self, sleep_fn, wakeup_fn):
         processor = autosuspend.Processor([_StubCheck('stub', None)],
+                                          [],
                                           2,
+                                          0,
+                                          0,
                                           sleep_fn,
+                                          wakeup_fn,
                                           False)
 
         # should init the timestamp initially
         processor.iteration(0, False)
-        assert not suspending[0]
+        assert not sleep_fn.called
         # should go to sleep but we just woke up
         processor.iteration(3, True)
-        assert not suspending[0]
+        assert not sleep_fn.called
         # start over again
         processor.iteration(4, False)
-        assert not suspending[0]
+        assert not sleep_fn.called
         # not yet sleeping
         processor.iteration(6, False)
-        assert not suspending[0]
+        assert not sleep_fn.called
         # now go to sleep
         processor.iteration(7, False)
-        assert suspending[0]
+        assert sleep_fn.called
+
+        assert wakeup_fn.call_arg is None
+
+    def test_wakeup_blocks_sleep(self, mocker, sleep_fn, wakeup_fn):
+        wakeup = mocker.MagicMock(spec=autosuspend.Wakeup)
+        wakeup.check.return_value = 6
+        processor = autosuspend.Processor([_StubCheck('stub', None)],
+                                          [wakeup],
+                                          2,
+                                          10,
+                                          0,
+                                          sleep_fn,
+                                          wakeup_fn,
+                                          False)
+
+        # init iteration
+        processor.iteration(0, False)
+        # no activity and enough time passed to start sleeping
+        processor.iteration(3, False)
+        assert not sleep_fn.called
+        assert wakeup_fn.call_arg is None
+
+    def test_wakeup_scheduled(self, mocker, sleep_fn, wakeup_fn):
+        wakeup = mocker.MagicMock(spec=autosuspend.Wakeup)
+        wakeup.check.return_value = 25
+        processor = autosuspend.Processor([_StubCheck('stub', None)],
+                                          [wakeup],
+                                          2,
+                                          10,
+                                          0,
+                                          sleep_fn,
+                                          wakeup_fn,
+                                          False)
+
+        # init iteration
+        processor.iteration(0, False)
+        # no activity and enough time passed to start sleeping
+        processor.iteration(3, False)
+        assert sleep_fn.called
+        assert wakeup_fn.call_arg == 25
+
+        sleep_fn.reset()
+        wakeup_fn.reset()
+
+        # ensure that wake up is not scheduled again
+        processor.iteration(25, False)
+        assert wakeup_fn.call_arg is None
+
+    def test_wakeup_delta_blocks(self, mocker, sleep_fn, wakeup_fn):
+        wakeup = mocker.MagicMock(spec=autosuspend.Wakeup)
+        wakeup.check.return_value = 25
+        processor = autosuspend.Processor([_StubCheck('stub', None)],
+                                          [wakeup],
+                                          2,
+                                          10,
+                                          22,
+                                          sleep_fn,
+                                          wakeup_fn,
+                                          False)
+
+        # init iteration
+        processor.iteration(0, False)
+        # no activity and enough time passed to start sleeping
+        processor.iteration(3, False)
+        assert not sleep_fn.called
+
+    def test_wakeup_delta_applied(self, mocker, sleep_fn, wakeup_fn):
+        wakeup = mocker.MagicMock(spec=autosuspend.Wakeup)
+        wakeup.check.return_value = 25
+        processor = autosuspend.Processor([_StubCheck('stub', None)],
+                                          [wakeup],
+                                          2,
+                                          10,
+                                          4,
+                                          sleep_fn,
+                                          wakeup_fn,
+                                          False)
+
+        # init iteration
+        processor.iteration(0, False)
+        # no activity and enough time passed to start sleeping
+        processor.iteration(3, False)
+        assert sleep_fn.called
+        assert wakeup_fn.call_arg == 21
