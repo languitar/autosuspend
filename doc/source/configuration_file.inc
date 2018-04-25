@@ -11,6 +11,7 @@ A simple configuration file could look like:
    interval = 30
    idle_time = 900
    suspend_cmd = /usr/bin/systemctl suspend
+   wakeup_cmd = echo {timestamp:d} > /sys/class/rtc/rtc0/wakealarm
    
    [check.Ping]
    enabled = false
@@ -22,11 +23,14 @@ A simple configuration file could look like:
    name = .*
    terminal = .*
    host = [0-9].*
+   
+   [wakeup.WakeupFile]
+   path = /var/run/autosuspend/wakeup
 
-The configuration file consists of a ``[general]`` section, which specifies general processing options, and multiple options of the format ``[check.*]``.
-These sections describe the checks to execute to determine inactivity.
+The configuration file consists of a ``[general]`` section, which specifies general processing options, and multiple sections of the format ``[check.*]`` and ``[wakeup.*]``.
+These sections describe the activity and wake up checks to execute.
 
-General Configuration
+General configuration
 ~~~~~~~~~~~~~~~~~~~~~
 
 .. program:: config-general
@@ -40,11 +44,29 @@ The ``[general]`` section contains options controlling the overall behavior of t
 .. option:: idle_time
 
    The required amount of time in seconds with no detected activity before the host will be suspended.
+   Default: 300 seconds
+
+.. option:: min_sleep_time
+
+   The minimal amount of time in seconds the system has to sleep for actually triggering suspension.
+   If a scheduled wake up results in an effective time below this value, the system will not sleep.
+   Default: 1200 seconds
+
+.. option:: wakeup_delta
+
+   Wake up the system this amount of seconds earlier than the time that was determined for an event that requires the system to be up.
+   This value adds a safety margin for the time a the wake up effectively takes.
+   Default: 30 seconds
 
 .. option:: suspend_cmd
 
    The command to execute in case the host shall be suspended.
    This line can contain additional command line arguments to the command to execute.
+
+.. option:: wakeup_cmd
+
+   The command to execute for scheduling a wake up of the system.
+   The given string is processed using Python's :meth:`str.format` and a format argument called ``timestamp`` encodes the UTC timestamp of the planned wake up time (float).
 
 .. option:: woke_up_file
 
@@ -53,15 +75,15 @@ The ``[general]`` section contains options controlling the overall behavior of t
    Thus, changing the location also requires adapting the respective service.
    Refer to :ref:`systemd-integration` for further details.
 
-Check Configuration
-~~~~~~~~~~~~~~~~~~~
+Activity check configuration
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 .. program:: config-check
 
-For each check to execute, a section with the name format ``[check.*]`` needs to be created.
+For each activity check to execute, a section with the name format ``[check.*]`` needs to be created.
 Each check has a name and an executing class which implements the behavior.
 The fraction of the section name ``check.`` determines the name, and in case no class option is given inside the section, also the class which implements the check.
-In case the `option:`class` option is specified, the name is completely user-defined and the same check can even be instantiated multiple times with differing names.
+In case the :option:`class` option is specified, the name is completely user-defined and the same check can even be instantiated multiple times with differing names.
 
 For each check, these generic options can be specified:
 
@@ -76,3 +98,9 @@ For each check, these generic options can be specified:
    ``false`` is assumed if not specified.
 
 Furthermore, each check might have custom options.
+
+Wake up check configuration
+~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Wake up checks uses the same configuration logic as the previously described activity checks.
+However, the configuration file sections start with ``wakeup.`` instead of ``check.``.

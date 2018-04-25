@@ -1,5 +1,5 @@
-Available checks
-----------------
+Available activity checks
+-------------------------
 
 The following checks for activity are currently implemented.
 Each of the is described with its available configuration options and required optional dependencies.

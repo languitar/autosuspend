@@ -1,5 +1,5 @@
-|project| - a daemon to suspend a system on inactivity
-======================================================
+|project| - a daemon to automatically suspend and wake up a system
+==================================================================
 
 .. include:: description.inc
 
@@ -10,6 +10,7 @@
    installation
    configuration_file
    available_checks
+   available_wakeups
    systemd_integration
    wakeup
    debugging

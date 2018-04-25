@@ -13,6 +13,8 @@ Configures the |project_program| daemon.
 
 .. include:: configuration_file.inc
 
+The options of individual checks are outlined below.
+
 .. include:: available_checks.inc
 
-The options of individual checks are outlined below.
+.. include:: available_wakeups.inc
