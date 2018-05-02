@@ -499,22 +499,25 @@ threshold_receive = xxx
         (sys.float_info.max, 0, 'receive'),
         (0, sys.float_info.max, 'sending'),
     ])
-    def test_with_activity(self, send_threshold, receive_threshold, match):
+    def test_with_activity(self, send_threshold, receive_threshold, match,
+                           stub_server):
         check = autosuspend.NetworkBandwidth(
             'name', psutil.net_if_addrs().keys(),
             send_threshold, receive_threshold)
         # make some traffic
-        requests.get('https://www.google.de/')
+        requests.get('http://localhost:{}/'.format(
+            stub_server.server_address[1]))
         res = check.check()
         assert res is not None
         assert match in res
 
-    def test_no_activity(self):
+    def test_no_activity(self, stub_server):
         check = autosuspend.NetworkBandwidth(
             'name', psutil.net_if_addrs().keys(),
             sys.float_info.max, sys.float_info.max)
         # make some traffic
-        requests.get('https://www.google.de/')
+        requests.get('http://localhost:{}/'.format(
+            stub_server.server_address[1]))
         assert check.check() is None
 
 
