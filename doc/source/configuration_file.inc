@@ -11,7 +11,7 @@ A simple configuration file could look like:
    interval = 30
    idle_time = 900
    suspend_cmd = /usr/bin/systemctl suspend
-   wakeup_cmd = echo {timestamp:d} > /sys/class/rtc/rtc0/wakealarm
+   wakeup_cmd = echo {timestamp:.0f} > /sys/class/rtc/rtc0/wakealarm
    
    [check.Ping]
    enabled = false
@@ -67,6 +67,7 @@ The ``[general]`` section contains options controlling the overall behavior of t
 
    The command to execute for scheduling a wake up of the system.
    The given string is processed using Python's :meth:`str.format` and a format argument called ``timestamp`` encodes the UTC timestamp of the planned wake up time (float).
+   Additionally ``iso`` can be used to acquire the timestamp in ISO 8601 format.
 
 .. option:: woke_up_file
 

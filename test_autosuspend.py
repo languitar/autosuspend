@@ -1,4 +1,5 @@
 import configparser
+from datetime import datetime, timedelta, timezone
 import http.server
 import logging
 import os.path
@@ -836,17 +837,20 @@ class TestWakeupFile(object):
     def test_smoke(self, tmpdir):
         file = tmpdir.join('file')
         file.write('42\n\n')
-        assert autosuspend.WakeupFile('name', str(file)).check() == 42
+        assert autosuspend.WakeupFile('name', str(file)).check(
+            datetime.now(timezone.utc)) == datetime.fromtimestamp(
+                42, timezone.utc)
 
     def test_no_file(self, tmpdir):
-        assert autosuspend.WakeupFile('name',
-                                      str(tmpdir.join('narf'))).check() is None
+        assert autosuspend.WakeupFile('name', str(tmpdir.join('narf'))).check(
+            datetime.now(timezone.utc)) is None
 
     def test_invalid_number(self, tmpdir):
         file = tmpdir.join('filexxx')
         file.write('nonumber\n\n')
         with pytest.raises(autosuspend.TemporaryCheckError):
-            autosuspend.WakeupFile('name', str(file)).check()
+            autosuspend.WakeupFile('name', str(file)).check(
+                datetime.now(timezone.utc))
 
 
 class TestLogindSessionsIdle(object):
@@ -910,8 +914,10 @@ def test_execute_suspend_call_exception(mocker):
 
 def test_schedule_wakeup(mocker):
     mock = mocker.patch('subprocess.check_call')
-    autosuspend.schedule_wakeup('echo {timestamp}', 42)
-    mock.assert_called_once_with('echo 42', shell=True)
+    dt = datetime.fromtimestamp(1525270801, timezone(timedelta(hours=4)))
+    autosuspend.schedule_wakeup('echo {timestamp:.0f} {iso}', dt)
+    mock.assert_called_once_with('echo 1525270801 2018-05-02T18:20:01+04:00',
+                                 shell=True)
 
 
 def test_schedule_wakeup_call_exception(mocker):
@@ -920,7 +926,7 @@ def test_schedule_wakeup_call_exception(mocker):
 
     spy = mocker.spy(autosuspend._logger, 'warning')
 
-    autosuspend.schedule_wakeup("foo", 42)
+    autosuspend.schedule_wakeup("foo", datetime.now(timezone.utc))
 
     mock.assert_called_once_with("foo", shell=True)
     assert spy.call_count == 1
@@ -1099,46 +1105,54 @@ class TestExecuteWakeups(object):
     def test_basic_return(self, mocker):
         wakeup = mocker.MagicMock(
             spec=autosuspend.Wakeup)
-        wakeup.check.return_value = 42
+        now = datetime.now(timezone.utc)
+        wakeup_time = now + timedelta(seconds=10)
+        wakeup.check.return_value = wakeup_time
         assert autosuspend.execute_wakeups(
-            [wakeup], 0, mocker.MagicMock()) == 42
+            [wakeup], now, mocker.MagicMock()) == wakeup_time
 
     def test_soonest_taken(self, mocker):
+        reference = datetime.now(timezone.utc)
         wakeup = mocker.MagicMock(
             spec=autosuspend.Wakeup)
-        wakeup.check.return_value = 42
+        wakeup.check.return_value = reference + timedelta(seconds=20)
+        earlier = reference + timedelta(seconds=10)
         wakeup_earlier = mocker.MagicMock(
             spec=autosuspend.Wakeup)
-        wakeup_earlier.check.return_value = 12
+        wakeup_earlier.check.return_value = earlier
+        in_between = reference + timedelta(seconds=15)
         wakeup_later = mocker.MagicMock(
             spec=autosuspend.Wakeup)
-        wakeup_later.check.return_value = 14
+        wakeup_later.check.return_value = in_between
         assert autosuspend.execute_wakeups(
             [wakeup, wakeup_earlier, wakeup_later],
-            0, mocker.MagicMock()) == 12
+            reference, mocker.MagicMock()) == earlier
 
     def test_ignore_temporary_errors(self, mocker):
+        now = datetime.now(timezone.utc)
+
         wakeup = mocker.MagicMock(
             spec=autosuspend.Wakeup)
-        wakeup.check.return_value = 42
+        wakeup.check.return_value = now + timedelta(seconds=20)
         wakeup_error = mocker.MagicMock(
             spec=autosuspend.Wakeup)
         wakeup_error.check.side_effect = autosuspend.TemporaryCheckError()
         wakeup_earlier = mocker.MagicMock(
             spec=autosuspend.Wakeup)
-        wakeup_earlier.check.return_value = 12
+        wakeup_earlier.check.return_value = now + timedelta(seconds=10)
         assert autosuspend.execute_wakeups(
             [wakeup, wakeup_error, wakeup_earlier],
-            0, mocker.MagicMock()) == 12
+            now, mocker.MagicMock()) == now + timedelta(seconds=10)
 
     def test_ignore_too_early(self, mocker):
+        now = datetime.now(timezone.utc)
         wakeup = mocker.MagicMock(
             spec=autosuspend.Wakeup)
-        wakeup.check.return_value = 10
+        wakeup.check.return_value = now
         assert autosuspend.execute_wakeups(
-            [wakeup], 10, mocker.MagicMock()) is None
+            [wakeup], now, mocker.MagicMock()) is None
         assert autosuspend.execute_wakeups(
-            [wakeup], 12, mocker.MagicMock()) is None
+            [wakeup], now + timedelta(seconds=1), mocker.MagicMock()) is None
 
 
 class _StubCheck(autosuspend.Activity):
@@ -1200,25 +1214,27 @@ class TestProcessor(object):
                                           wakeup_fn,
                                           False)
         # should init the timestamp initially
-        processor.iteration(0, False)
+        start = datetime.now(timezone.utc)
+        processor.iteration(start, False)
         assert not sleep_fn.called
         # not yet reached
-        processor.iteration(1, False)
+        processor.iteration(start + timedelta(seconds=1), False)
         assert not sleep_fn.called
         # time must be greater, not equal
-        processor.iteration(2, False)
+        processor.iteration(start + timedelta(seconds=2), False)
         assert not sleep_fn.called
         # go to sleep
-        processor.iteration(3, False)
+        processor.iteration(start + timedelta(seconds=3), False)
         assert sleep_fn.called
 
         sleep_fn.reset()
 
         # second iteration to check that the idle time got reset
-        processor.iteration(4, False)
+        processor.iteration(start + timedelta(seconds=4), False)
         assert not sleep_fn.called
         # go to sleep again
-        processor.iteration(6.02, False)
+        processor.iteration(start + timedelta(seconds=6, milliseconds=2),
+                            False)
         assert sleep_fn.called
 
         assert wakeup_fn.call_arg is None
@@ -1234,26 +1250,28 @@ class TestProcessor(object):
                                           False)
 
         # should init the timestamp initially
-        processor.iteration(0, False)
+        start = datetime.now(timezone.utc)
+        processor.iteration(start, False)
         assert not sleep_fn.called
         # should go to sleep but we just woke up
-        processor.iteration(3, True)
+        processor.iteration(start + timedelta(seconds=3), True)
         assert not sleep_fn.called
         # start over again
-        processor.iteration(4, False)
+        processor.iteration(start + timedelta(seconds=4), False)
         assert not sleep_fn.called
         # not yet sleeping
-        processor.iteration(6, False)
+        processor.iteration(start + timedelta(seconds=6), False)
         assert not sleep_fn.called
         # now go to sleep
-        processor.iteration(7, False)
+        processor.iteration(start + timedelta(seconds=7), False)
         assert sleep_fn.called
 
         assert wakeup_fn.call_arg is None
 
     def test_wakeup_blocks_sleep(self, mocker, sleep_fn, wakeup_fn):
+        start = datetime.now(timezone.utc)
         wakeup = mocker.MagicMock(spec=autosuspend.Wakeup)
-        wakeup.check.return_value = 6
+        wakeup.check.return_value = start + timedelta(seconds=6)
         processor = autosuspend.Processor([_StubCheck('stub', None)],
                                           [wakeup],
                                           2,
@@ -1264,15 +1282,16 @@ class TestProcessor(object):
                                           False)
 
         # init iteration
-        processor.iteration(0, False)
+        processor.iteration(start, False)
         # no activity and enough time passed to start sleeping
-        processor.iteration(3, False)
+        processor.iteration(start + timedelta(seconds=3), False)
         assert not sleep_fn.called
         assert wakeup_fn.call_arg is None
 
     def test_wakeup_scheduled(self, mocker, sleep_fn, wakeup_fn):
+        start = datetime.now(timezone.utc)
         wakeup = mocker.MagicMock(spec=autosuspend.Wakeup)
-        wakeup.check.return_value = 25
+        wakeup.check.return_value = start + timedelta(seconds=25)
         processor = autosuspend.Processor([_StubCheck('stub', None)],
                                           [wakeup],
                                           2,
@@ -1283,22 +1302,23 @@ class TestProcessor(object):
                                           False)
 
         # init iteration
-        processor.iteration(0, False)
+        processor.iteration(start, False)
         # no activity and enough time passed to start sleeping
-        processor.iteration(3, False)
+        processor.iteration(start + timedelta(seconds=3), False)
         assert sleep_fn.called
-        assert wakeup_fn.call_arg == 25
+        assert wakeup_fn.call_arg == start + timedelta(seconds=25)
 
         sleep_fn.reset()
         wakeup_fn.reset()
 
         # ensure that wake up is not scheduled again
-        processor.iteration(25, False)
+        processor.iteration(start + timedelta(seconds=25), False)
         assert wakeup_fn.call_arg is None
 
     def test_wakeup_delta_blocks(self, mocker, sleep_fn, wakeup_fn):
+        start = datetime.now(timezone.utc)
         wakeup = mocker.MagicMock(spec=autosuspend.Wakeup)
-        wakeup.check.return_value = 25
+        wakeup.check.return_value = start + timedelta(seconds=25)
         processor = autosuspend.Processor([_StubCheck('stub', None)],
                                           [wakeup],
                                           2,
@@ -1309,14 +1329,15 @@ class TestProcessor(object):
                                           False)
 
         # init iteration
-        processor.iteration(0, False)
+        processor.iteration(start, False)
         # no activity and enough time passed to start sleeping
-        processor.iteration(3, False)
+        processor.iteration(start + timedelta(seconds=3), False)
         assert not sleep_fn.called
 
     def test_wakeup_delta_applied(self, mocker, sleep_fn, wakeup_fn):
+        start = datetime.now(timezone.utc)
         wakeup = mocker.MagicMock(spec=autosuspend.Wakeup)
-        wakeup.check.return_value = 25
+        wakeup.check.return_value = start + timedelta(seconds=25)
         processor = autosuspend.Processor([_StubCheck('stub', None)],
                                           [wakeup],
                                           2,
@@ -1327,8 +1348,8 @@ class TestProcessor(object):
                                           False)
 
         # init iteration
-        processor.iteration(0, False)
+        processor.iteration(start, False)
         # no activity and enough time passed to start sleeping
-        processor.iteration(3, False)
+        processor.iteration(start + timedelta(seconds=3), False)
         assert sleep_fn.called
-        assert wakeup_fn.call_arg == 21
+        assert wakeup_fn.call_arg == start + timedelta(seconds=21)

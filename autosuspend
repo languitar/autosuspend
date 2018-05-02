@@ -5,6 +5,7 @@ import abc
 import argparse
 import configparser
 import copy
+import datetime
 import functools
 import glob
 import logging
@@ -124,12 +125,17 @@ class Wakeup(Check):
     """Represents a check for potential wake up points."""
 
     @abc.abstractmethod
-    def check(self) -> Optional[float]:
+    def check(self,
+              timestamp: datetime.datetime) -> Optional[datetime.datetime]:
         """Indicate if a wakeup has to be scheduled for this check.
 
+        Args:
+            timestamp:
+                the time at which the call to the wakeup check is made
+
         Returns:
-            a timestamp describing when the system needs to be running again or
-            ``None`` if no wakeup is required. In UTC seconds, Unix timestamp.
+            a datetime describing when the system needs to be running again or
+            ``None`` if no wakeup is required. Use timezone aware datetimes.
 
         Raises:
             TemporaryCheckError:
@@ -141,7 +147,9 @@ class Wakeup(Check):
 
 
 class WakeupFile(Wakeup):
-    """Determines scheduled wake ups from the contents of a file on disk."""
+    """Determines scheduled wake ups from the contents of a file on disk.
+
+    File contents are interpreted as a Unix timestamp in seconds UTC."""
 
     @classmethod
     def create(cls, name, config):
@@ -155,10 +163,12 @@ class WakeupFile(Wakeup):
         Check.__init__(self, name)
         self._path = path
 
-    def check(self):
+    def check(self, timestamp):
         try:
             with open(self._path, 'r') as time_file:
-                return float(time_file.readlines()[0].strip())
+                return datetime.datetime.fromtimestamp(
+                    float(time_file.readlines()[0].strip()),
+                    datetime.timezone.utc)
         except FileNotFoundError:
             # this is ok
             pass
@@ -794,8 +804,9 @@ def execute_suspend(command: str):
                         exc_info=True)
 
 
-def schedule_wakeup(command_template: str, wakeup_at: float):
-    command = command_template.format(timestamp=wakeup_at)
+def schedule_wakeup(command_template: str, wakeup_at: datetime.datetime):
+    command = command_template.format(timestamp=wakeup_at.timestamp(),
+                                      iso=wakeup_at.isoformat())
     _logger.info('Scheduling wakeup using command: %s', command)
     try:
         subprocess.check_call(command, shell=True)
@@ -837,13 +848,13 @@ def execute_checks(checks: Iterable[Activity],
 
 
 def execute_wakeups(wakeups: Iterable[Wakeup],
-                    timestamp: float,
-                    logger) -> Optional[float]:
+                    timestamp: datetime.datetime,
+                    logger) -> Optional[datetime.datetime]:
 
     wakeup_at = None
     for wakeup in wakeups:
         try:
-            this_at = wakeup.check()
+            this_at = wakeup.check(timestamp)
 
             # sanity checks
             if this_at is None:
@@ -876,7 +887,7 @@ class Processor(object):
             the wakeup checks to execute
         idle_time:
             the required amount of time the system has to be idle before
-            suspension is triggered
+            suspension is triggered in seconds
         min_sleep_time:
             the minimum time the system has to sleep before it is woken up
             again in seconds.
@@ -916,7 +927,7 @@ class Processor(object):
         self._logger.info('%s. Resetting state', reason)
         self._idle_since = None
 
-    def iteration(self, timestamp: float, just_woke_up: bool):
+    def iteration(self, timestamp: datetime.datetime, just_woke_up: bool):
         self._logger.info('Starting new check iteration')
 
         # determine system activity
@@ -929,7 +940,7 @@ class Processor(object):
         self._logger.debug('Checks report, system should wake up at %s',
                            wakeup_at)
         if wakeup_at is not None:
-            wakeup_at -= self._wakeup_delta
+            wakeup_at -= datetime.timedelta(seconds=self._wakeup_delta)
         self._logger.debug('With delta, system should wake up at %s',
                            wakeup_at)
 
@@ -948,17 +959,20 @@ class Processor(object):
         self._logger.info('System is idle since %s', self._idle_since)
 
         # determine if systems is idle long enough
-        if timestamp - self._idle_since > self._idle_time:
+        self._logger.debug('Idle seconds: %s',
+                           (timestamp - self._idle_since).total_seconds())
+        if (timestamp - self._idle_since).total_seconds() > self._idle_time:
             self._logger.info('System is idle long enough.')
 
             # idle time would be reached, handle wake up
             if wakeup_at is not None:
                 wakeup_in = wakeup_at - timestamp
-                if wakeup_in < self._min_sleep_time:
+                if wakeup_in.total_seconds() < self._min_sleep_time:
                     self._logger.info('Would wake up in %s seconds, which is '
                                       'below the minimum amount of %s s. '
                                       'Not suspending.',
-                                      wakeup_in, self._min_sleep_time)
+                                      wakeup_in.total_seconds(),
+                                      self._min_sleep_time)
                     return
 
                 # schedule wakeup
@@ -993,14 +1007,17 @@ def loop(processor: Processor,
             before terminating (approximately)
     """
 
-    start_time = time.time()
-    while (run_for is None) or (time.time() < (start_time + run_for)):
+    start_time = datetime.datetime.now(datetime.timezone.utc)
+    while (run_for is None) or (datetime.datetime.now(datetime.timezone.utc)
+                                < (start_time + datetime.timedelta(
+                                    seconds=run_for))):
 
         just_woke_up = os.path.isfile(woke_up_file)
         if just_woke_up:
             os.remove(woke_up_file)
 
-        processor.iteration(time.time(), just_woke_up)
+        processor.iteration(datetime.datetime.now(datetime.timezone.utc),
+                            just_woke_up)
 
 
 CheckType = TypeVar('CheckType', bound=Check)
