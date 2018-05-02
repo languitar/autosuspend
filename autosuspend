@@ -176,6 +176,100 @@ class WakeupFile(Wakeup):
             raise TemporaryCheckError(error)
 
 
+class XPathMixin(object):
+
+    @classmethod
+    def create(cls, name, config, **kwargs):
+        from lxml import etree
+        try:
+            xpath = config['xpath'].strip()
+            # validate the expression
+            try:
+                etree.fromstring('<a></a>').xpath(xpath)
+            except etree.XPathEvalError:
+                raise ConfigurationError('Invalid xpath expression: ' + xpath)
+            timeout = config.getint('timeout', fallback=5)
+            return cls(name, xpath, config['url'], timeout, **kwargs)
+        except ValueError as error:
+            raise ConfigurationError('Configuration error ' + str(error))
+        except KeyError as error:
+            raise ConfigurationError('No ' + str(error) +
+                                     ' entry defined for the XPath check')
+
+    def __init__(self, xpath, url, timeout):
+        self._xpath = xpath
+        self._url = url
+        self._timeout = timeout
+
+    def evaluate(self):
+        import requests
+        import requests.exceptions
+        from lxml import etree
+
+        try:
+            reply = requests.get(self._url, timeout=self._timeout).text
+            root = etree.fromstring(reply)
+            return root.xpath(self._xpath)
+        except requests.exceptions.RequestException as error:
+            raise TemporaryCheckError(error)
+        except etree.XMLSyntaxError as error:
+            raise TemporaryCheckError(error)
+
+
+class WakeupXPath(XPathMixin, Wakeup):
+    """Determines wake up times by issuing a network request and parsing the
+    response using an XPath expression.
+
+    The matched results are expected to represent timestamps in seconds UTC.
+    """
+
+    def __init__(self, name, url, xpath, timeout):
+        Wakeup.__init__(self, name)
+        XPathMixin.__init__(self, url, xpath, timeout)
+
+    def convert_result(self, result, timestamp):
+        return datetime.datetime.fromtimestamp(float(result),
+                                               datetime.timezone.utc)
+
+    def check(self, timestamp):
+        matches = self.evaluate()
+        try:
+            if matches:
+                return min([self.convert_result(m, timestamp)
+                            for m in matches])
+        except TypeError as error:
+            raise TemporaryCheckError(
+                'XPath returned a result that is not a string: ' + str(error))
+        except ValueError as error:
+            raise TemporaryCheckError('Result cannot be parsed: ' + str(error))
+
+
+class WakeupXPathDelta(WakeupXPath):
+
+    UNITS = ['days', 'seconds', 'microseconds', 'milliseconds',
+             'minutes', 'hours', 'weeks']
+
+    @classmethod
+    def create(cls, name, config):
+        try:
+            return super(WakeupXPath, cls).create(
+                name, config,
+                unit=config.get('unit', fallback='minutes'))
+        except ValueError as error:
+            raise ConfigurationError(str(error))
+
+    def __init__(self, name, url, xpath, timeout, unit='minutes'):
+        if unit not in self.UNITS:
+            raise ValueError('Unsupported unit')
+        WakeupXPath.__init__(self, name, url, xpath, timeout)
+        self._unit = unit
+
+    def convert_result(self, result, timestamp):
+        kwargs = {}
+        kwargs[self._unit] = float(result)
+        return timestamp + datetime.timedelta(**kwargs)
+
+
 class ActiveConnection(Activity):
     """Checks if a client connection exists on specified ports."""
 
@@ -746,46 +840,15 @@ class LogindSessionsIdle(Activity):
         return None
 
 
-class XPath(Activity):
+class XPath(XPathMixin, Activity):
 
-    @classmethod
-    def create(cls, name, config):
-        from lxml import etree
-        try:
-            xpath = config['xpath'].strip()
-            # validate the expression
-            try:
-                etree.fromstring('<a></a>').xpath(xpath)
-            except etree.XPathEvalError:
-                raise ConfigurationError('Invalid xpath expression: ' + xpath)
-            timeout = config.getint('timeout', fallback=5)
-            return cls(name, xpath, config['url'], timeout)
-        except ValueError as error:
-            raise ConfigurationError('Configuration error ' + str(error))
-        except KeyError as error:
-            raise ConfigurationError('No ' + str(error) +
-                                     ' entry defined for the XPath check')
-
-    def __init__(self, name, xpath, url, timeout):
+    def __init__(self, name, url, xpath, timeout):
         Activity.__init__(self, name)
-        self._xpath = xpath
-        self._url = url
-        self._timeout = timeout
+        XPathMixin.__init__(self, url, xpath, timeout)
 
     def check(self):
-        import requests
-        import requests.exceptions
-        from lxml import etree
-
-        try:
-            reply = requests.get(self._url, timeout=self._timeout).text
-            root = etree.fromstring(reply)
-            if root.xpath(self._xpath):
-                return "XPath matches for url " + self._url
-        except requests.exceptions.RequestException as error:
-            raise TemporaryCheckError(error)
-        except etree.XMLSyntaxError as error:
-            raise TemporaryCheckError(error)
+        if self.evaluate():
+            return "XPath matches for url " + self._url
 
 
 def execute_suspend(command: str):

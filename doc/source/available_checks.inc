@@ -302,7 +302,7 @@ XPath
 
 .. program:: check-xpath
 
-A generic check which queries a configured URL and expected the reply to contain XML data.
+A generic check which queries a configured URL and expects the reply to contain XML data.
 The returned XML document is checked against a configured `XPath`_ expression and in case the expression matches, the system is assumed to be active.
 
 This can for instance be used with the TV streaming server `tvheadend`_, which provides its current status via an XML reply.

@@ -733,6 +733,80 @@ class TestExternalCommand(object):
         mock.assert_called_once_with('foo bar', shell=True)
 
 
+class _XPathMixinSub(autosuspend.XPathMixin, autosuspend.Activity):
+
+    def __init__(self, name, url, xpath, timeout):
+        autosuspend.Activity.__init__(self, name)
+        autosuspend.XPathMixin.__init__(self, url, xpath, timeout)
+
+
+class TestXPathMixin(object):
+
+    def test_broken_xml(self, mocker):
+        with pytest.raises(autosuspend.TemporaryCheckError):
+            mock_reply = mocker.MagicMock()
+            text_property = mocker.PropertyMock()
+            type(mock_reply).text = text_property
+            text_property.return_value = "//broken"
+            mocker.patch('requests.get', return_value=mock_reply)
+
+            _XPathMixinSub('foo', '/b', 'nourl', 5).evaluate()
+
+    def test_xpath_prevalidation(self):
+        with pytest.raises(autosuspend.ConfigurationError,
+                           match=r'^Invalid xpath.*'):
+            parser = configparser.ConfigParser()
+            parser.read_string('''[section]
+                               xpath=|34/ad
+                               url=nourl''')
+            _XPathMixinSub.create('name', parser['section'])
+
+    @pytest.mark.parametrize('entry,', ['xpath', 'url'])
+    def test_missing_config_entry(self, entry):
+        with pytest.raises(autosuspend.ConfigurationError,
+                           match=r"^No '" + entry + "'.*"):
+            parser = configparser.ConfigParser()
+            parser.read_string('''[section]
+                               xpath=/valid
+                               url=nourl''')
+            del parser['section'][entry]
+            _XPathMixinSub.create('name', parser['section'])
+
+    def test_create_default_timeout(self):
+        parser = configparser.ConfigParser()
+        parser.read_string('''[section]
+                           xpath=/valid
+                           url=nourl''')
+        check = _XPathMixinSub.create('name', parser['section'])
+        assert check._timeout == 5
+
+    def test_create_timeout(self):
+        parser = configparser.ConfigParser()
+        parser.read_string('''[section]
+                           xpath=/valid
+                           url=nourl
+                           timeout=42''')
+        check = _XPathMixinSub.create('name', parser['section'])
+        assert check._timeout == 42
+
+    def test_create_invalid_timeout(self):
+        with pytest.raises(autosuspend.ConfigurationError,
+                           match=r"^Configuration error .*"):
+            parser = configparser.ConfigParser()
+            parser.read_string('''[section]
+                               xpath=/valid
+                               url=nourl
+                               timeout=xx''')
+            _XPathMixinSub.create('name', parser['section'])
+
+    def test_requests_exception(self, mocker):
+        with pytest.raises(autosuspend.TemporaryCheckError):
+            mock_method = mocker.patch('requests.get')
+            mock_method.side_effect = requests.exceptions.ReadTimeout()
+
+            _XPathMixinSub('foo', '/a', 'asdf', 5).evaluate()
+
+
 class TestXPath(object):
 
     def test_matching(self, mocker):
@@ -756,70 +830,6 @@ class TestXPath(object):
         mocker.patch('requests.get', return_value=mock_reply)
 
         assert autosuspend.XPath('foo', '/b', 'nourl', 5).check() is None
-
-    def test_broken_xml(self, mocker):
-        with pytest.raises(autosuspend.TemporaryCheckError):
-            mock_reply = mocker.MagicMock()
-            text_property = mocker.PropertyMock()
-            type(mock_reply).text = text_property
-            text_property.return_value = "//broken"
-            mocker.patch('requests.get', return_value=mock_reply)
-
-            autosuspend.XPath('foo', '/b', 'nourl', 5).check()
-
-    def test_xpath_prevalidation(self):
-        with pytest.raises(autosuspend.ConfigurationError,
-                           match=r'^Invalid xpath.*'):
-            parser = configparser.ConfigParser()
-            parser.read_string('''[section]
-                               xpath=|34/ad
-                               url=nourl''')
-            autosuspend.XPath.create('name', parser['section'])
-
-    @pytest.mark.parametrize('entry,', ['xpath', 'url'])
-    def test_missing_config_entry(self, entry):
-        with pytest.raises(autosuspend.ConfigurationError,
-                           match=r"^No '" + entry + "'.*"):
-            parser = configparser.ConfigParser()
-            parser.read_string('''[section]
-                               xpath=/valid
-                               url=nourl''')
-            del parser['section'][entry]
-            autosuspend.XPath.create('name', parser['section'])
-
-    def test_create_default_timeout(self):
-        parser = configparser.ConfigParser()
-        parser.read_string('''[section]
-                           xpath=/valid
-                           url=nourl''')
-        check = autosuspend.XPath.create('name', parser['section'])
-        assert check._timeout == 5
-
-    def test_create_timeout(self):
-        parser = configparser.ConfigParser()
-        parser.read_string('''[section]
-                           xpath=/valid
-                           url=nourl
-                           timeout=42''')
-        check = autosuspend.XPath.create('name', parser['section'])
-        assert check._timeout == 42
-
-    def test_create_invalid_timeout(self):
-        with pytest.raises(autosuspend.ConfigurationError,
-                           match=r"^Configuration error .*"):
-            parser = configparser.ConfigParser()
-            parser.read_string('''[section]
-                               xpath=/valid
-                               url=nourl
-                               timeout=xx''')
-            autosuspend.XPath.create('name', parser['section'])
-
-    def test_requests_exception(self, mocker):
-        with pytest.raises(autosuspend.TemporaryCheckError):
-            mock_method = mocker.patch('requests.get')
-            mock_method.side_effect = requests.exceptions.ReadTimeout()
-
-            autosuspend.XPath('foo', '/a', 'asdf', 5).check()
 
 
 class TestWakeupFile(object):
@@ -854,6 +864,113 @@ class TestWakeupFile(object):
         with pytest.raises(autosuspend.TemporaryCheckError):
             autosuspend.WakeupFile('name', str(file)).check(
                 datetime.now(timezone.utc))
+
+
+class TestWakeupXPath(object):
+
+    def test_matching(self, mocker):
+        mock_reply = mocker.MagicMock()
+        text_property = mocker.PropertyMock()
+        type(mock_reply).text = text_property
+        text_property.return_value = '<a value="42.3"></a>'
+        mock_method = mocker.patch('requests.get', return_value=mock_reply)
+
+        url = 'nourl'
+        assert autosuspend.WakeupXPath(
+            'foo', '/a/@value', url, 5).check(
+                datetime.now(timezone.utc)) == datetime.fromtimestamp(
+                    42.3, timezone.utc)
+
+        mock_method.assert_called_once_with(url, timeout=5)
+        text_property.assert_called_once_with()
+
+    def test_not_matching(self, mocker):
+        mock_reply = mocker.MagicMock()
+        text_property = mocker.PropertyMock()
+        type(mock_reply).text = text_property
+        text_property.return_value = "<a></a>"
+        mocker.patch('requests.get', return_value=mock_reply)
+
+        assert autosuspend.WakeupXPath('foo', '/b', 'nourl', 5).check(
+            datetime.now(timezone.utc)) is None
+
+    def test_not_a_string(self, mocker):
+        mock_reply = mocker.MagicMock()
+        text_property = mocker.PropertyMock()
+        type(mock_reply).text = text_property
+        text_property.return_value = "<a></a>"
+        mocker.patch('requests.get', return_value=mock_reply)
+
+        with pytest.raises(autosuspend.TemporaryCheckError):
+            autosuspend.WakeupXPath('foo', '/a', 'nourl', 5).check(
+                datetime.now(timezone.utc))
+
+    def test_not_a_number(self, mocker):
+        mock_reply = mocker.MagicMock()
+        text_property = mocker.PropertyMock()
+        type(mock_reply).text = text_property
+        text_property.return_value = '<a value="narf"></a>'
+        mocker.patch('requests.get', return_value=mock_reply)
+
+        with pytest.raises(autosuspend.TemporaryCheckError):
+            autosuspend.WakeupXPath('foo', '/a/@value', 'nourl', 5).check(
+                datetime.now(timezone.utc))
+
+    def test_multiple_min(self, mocker):
+        mock_reply = mocker.MagicMock()
+        text_property = mocker.PropertyMock()
+        type(mock_reply).text = text_property
+        text_property.return_value = '''<root>
+    <a value="40"></a>
+    <a value="10"></a>
+    <a value="20"></a>
+</root>
+'''
+        mocker.patch('requests.get', return_value=mock_reply)
+
+        assert autosuspend.WakeupXPath(
+            'foo', '//a/@value', 'nourl', 5).check(
+                datetime.now(timezone.utc)) == datetime.fromtimestamp(
+                    10, timezone.utc)
+
+
+class TestWakeupXPathDelta(object):
+
+    @pytest.mark.parametrize("unit,factor", [
+        ('microseconds', 0.000001),
+        ('milliseconds', 0.001),
+        ('seconds', 1),
+        ('minutes', 60),
+        ('hours', 60 * 60),
+        ('days', 60 * 60 * 24),
+        ('weeks', 60 * 60 * 24 * 7),
+    ])
+    def test_smoke(self, mocker, unit, factor):
+        mock_reply = mocker.MagicMock()
+        text_property = mocker.PropertyMock()
+        type(mock_reply).text = text_property
+        text_property.return_value = '<a value="42"></a>'
+        mocker.patch('requests.get', return_value=mock_reply)
+
+        url = 'nourl'
+        now = datetime.now(timezone.utc)
+        result = autosuspend.WakeupXPathDelta(
+            'foo', '/a/@value', url, 5, unit).check(now)
+        assert result == now + timedelta(seconds=42) * factor
+
+    def test_create(self):
+        parser = configparser.ConfigParser()
+        parser.read_string('''[section]
+                           xpath=/valid
+                           url=nourl
+                           timeout=20
+                           unit=weeks''')
+        check = autosuspend.WakeupXPathDelta.create('name', parser['section'])
+        assert check._unit == 'weeks'
+
+    def test_init_wrong_unit(self):
+        with pytest.raises(ValueError):
+            autosuspend.WakeupXPathDelta('name', 'url', '/a', 5, 'unknownunit')
 
 
 class TestLogindSessionsIdle(object):
