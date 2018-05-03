@@ -1,3 +1,4 @@
+import datetime
 import os
 import os.path
 
@@ -7,6 +8,7 @@ import autosuspend
 ROOT = os.path.dirname(os.path.realpath(__file__))
 
 SUSPENSION_FILE = 'would_suspend'
+SCHEDULED_FILE = 'wakeup_at'
 WOKE_UP_FILE = 'test-woke-up'
 
 
@@ -41,16 +43,24 @@ def test_suspend(tmpdir):
     assert tmpdir.join(SUSPENSION_FILE).check()
 
 
+def test_wakeup_scheduled(tmpdir):
+    # configure when to wake up
+    now = datetime.datetime.now(datetime.timezone.utc)
+    wakeup_at = now + datetime.timedelta(hours=4)
+    with tmpdir.join('wakeup_time').open('w') as out:
+        out.write(str(wakeup_at.timestamp()))
 
-def test_suspend(suspension_file):
     autosuspend.main([
         '-c',
-        os.path.join(ROOT, 'test_data', 'would_suspend.conf'),
+        configure_config('would_schedule.conf', tmpdir).strpath,
         '-r',
         '10',
         '-l'])
 
-    assert suspension_file.exists()
+    assert tmpdir.join(SUSPENSION_FILE).check()
+    assert tmpdir.join(SCHEDULED_FILE).check()
+    assert int(tmpdir.join(SCHEDULED_FILE).read()) == int(
+        round((wakeup_at - datetime.timedelta(seconds=30)).timestamp()))
 
 
 def test_woke_up_file_removed(tmpdir):
