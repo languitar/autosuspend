@@ -1082,6 +1082,8 @@ def loop(processor: Processor,
         processor.iteration(datetime.datetime.now(datetime.timezone.utc),
                             just_woke_up)
 
+        time.sleep(interval)
+
 
 CheckType = TypeVar('CheckType', bound=Check)
 
