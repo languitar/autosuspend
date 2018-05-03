@@ -698,20 +698,30 @@ class TestXIdleTime(object):
                                                   (42, this_user.pw_name)]
 
 
-class TestExternalCommand(object):
+class _CommandMixinSub(autosuspend.CommandMixin, autosuspend.Activity):
+
+    def __init__(self, name, command):
+        autosuspend.Activity.__init__(self, name)
+        autosuspend.CommandMixin.__init__(self, command)
+
+
+class TestCommandMixin(object):
 
     def test_create(self):
         parser = configparser.ConfigParser()
         parser.read_string('''[section]
                               command = narf bla  ''')
-        check = autosuspend.ExternalCommand.create('name', parser['section'])
+        check = _CommandMixinSub.create('name', parser['section'])
         assert check._command == 'narf bla'
 
     def test_create_no_command(self):
         parser = configparser.ConfigParser()
         parser.read_string('''[section]''')
         with pytest.raises(autosuspend.ConfigurationError):
-            autosuspend.ExternalCommand.create('name', parser['section'])
+            _CommandMixinSub.create('name', parser['section'])
+
+
+class TestExternalCommand(object):
 
     def test_check(self, mocker):
         mock = mocker.patch('subprocess.check_call')
@@ -864,6 +874,45 @@ class TestWakeupFile(object):
         with pytest.raises(autosuspend.TemporaryCheckError):
             autosuspend.WakeupFile('name', str(file)).check(
                 datetime.now(timezone.utc))
+
+
+class TestWakeupCommand(object):
+
+    def test_smoke(self):
+        check = autosuspend.WakeupCommand('test', 'echo 1234')
+        assert check.check(
+            datetime.now(timezone.utc)) == datetime.fromtimestamp(
+                1234, timezone.utc)
+
+    def test_no_output(self):
+        check = autosuspend.WakeupCommand('test', 'echo')
+        assert check.check(datetime.now(timezone.utc)) is None
+
+    def test_not_parseable(self):
+        check = autosuspend.WakeupCommand('test', 'echo asdfasdf')
+        with pytest.raises(autosuspend.TemporaryCheckError):
+            check.check(datetime.now(timezone.utc))
+
+    def test_multiple_lines(self, mocker):
+        mock = mocker.patch('subprocess.check_output')
+        mock.return_value = '1234\nignore\n'
+        check = autosuspend.WakeupCommand('test', 'echo bla')
+        assert check.check(
+            datetime.now(timezone.utc)) == datetime.fromtimestamp(
+                1234, timezone.utc)
+
+    def test_multiple_lines_but_empty(self, mocker):
+        mock = mocker.patch('subprocess.check_output')
+        mock.return_value = '   \nignore\n'
+        check = autosuspend.WakeupCommand('test', 'echo bla')
+        assert check.check(datetime.now(timezone.utc)) is None
+
+    def test_process_error(self, mocker):
+        mock = mocker.patch('subprocess.check_output')
+        mock.side_effect = subprocess.CalledProcessError(2, 'foo bar')
+        check = autosuspend.WakeupCommand('test', 'echo bla')
+        with pytest.raises(autosuspend.TemporaryCheckError):
+            check.check(datetime.now(timezone.utc))
 
 
 class TestWakeupXPath(object):

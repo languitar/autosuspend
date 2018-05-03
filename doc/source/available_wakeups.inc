@@ -4,6 +4,25 @@ Available wake up checks
 The following checks for wake up times are currently implemented.
 Each of the checks is described with its available configuration options and required optional dependencies.
 
+WakeupCommand
+~~~~~~~~~~~~~
+
+.. program:: wakeup-command
+
+Determines the wake up time by calling an external command
+The command always has to succeed.
+If something is printed on stdout by the command, this has to be the next wake up time in UTC seconds.
+
+The command is executed as is using shell execution.
+Beware of malicious commands in obtained configuration files.
+
+Options
+^^^^^^^
+
+.. option:: command
+
+   The command to execute including all arguments
+
 WakeupFile
 ~~~~~~~~~~
 

@@ -176,6 +176,46 @@ class WakeupFile(Wakeup):
             raise TemporaryCheckError(error)
 
 
+class CommandMixin(object):
+    """Mixin for configuring checks based on external commands."""
+
+    @classmethod
+    def create(cls, name, config):
+        try:
+            return cls(name, config['command'].strip())
+        except KeyError as error:
+            raise ConfigurationError('Missing command specification')
+
+    def __init__(self, command):
+        self._command = command
+
+
+class WakeupCommand(CommandMixin, Wakeup):
+    """Determine wake up times based on an external command.
+
+    The called command must return a timestamp in UTC or nothing in case no
+    wake up is planned.
+    """
+
+    def __init__(self, name, command):
+        CommandMixin.__init__(self, command)
+        Wakeup.__init__(self, name)
+
+    def check(self, timestamp):
+        try:
+            output = subprocess.check_output(self._command,
+                                             shell=True).splitlines()[0]
+            self.logger.debug('Command %s succeeded with output %s',
+                              self._command, output)
+            if output.strip():
+                return datetime.datetime.fromtimestamp(
+                    float(output.strip()),
+                    datetime.timezone.utc)
+
+        except (subprocess.CalledProcessError, ValueError) as error:
+            raise TemporaryCheckError(error) from error
+
+
 class XPathMixin(object):
 
     @classmethod
@@ -303,18 +343,11 @@ class ActiveConnection(Activity):
             return 'Ports {} are connected'.format(connected)
 
 
-class ExternalCommand(Activity):
-
-    @classmethod
-    def create(cls, name, config):
-        try:
-            return cls(name, config['command'].strip())
-        except KeyError as error:
-            raise ConfigurationError('Missing command specification')
+class ExternalCommand(CommandMixin, Activity):
 
     def __init__(self, name, command):
+        CommandMixin.__init__(self, command)
         Check.__init__(self, name)
-        self._command = command
 
     def check(self):
         try:
