@@ -1,5 +1,5 @@
-Available checks
-----------------
+Available activity checks
+-------------------------
 
 The following checks for activity are currently implemented.
 Each of the is described with its available configuration options and required optional dependencies.
@@ -302,20 +302,15 @@ XPath
 
 .. program:: check-xpath
 
-A generic check which queries a configured URL and expected the reply to contain XML data.
+A generic check which queries a configured URL and expects the reply to contain XML data.
 The returned XML document is checked against a configured `XPath`_ expression and in case the expression matches, the system is assumed to be active.
 
 This can for instance be used with the TV streaming server `tvheadend`_, which provides its current status via an XML reply.
 In case you want to prevent suspending in case there are active subscriptions or recordings, use the following XPath::
 
-    /currentload/subscriptions[number(.) > 0] | /currentload/recordings/recording
+    /currentload/subscriptions[number(.) > 0] | /currentload/recordings/recording/start
 
 If you have a permantently running subscriber like `Kodi`_, increase the ``0`` to ``1``.
-The second fragment after the ``|`` prevents suspending in case any recording is planned, even far in the future. If you want to be a bit more permissive, the second fragment could be replaced with::
-
-    /currentload/recordings/recording/status | /currentload/recordings/recording/next[number(.) < 10]
-
-This only prevents suspending in case of active or planned recordings closer that 10 minutes.
 
 Options
 ^^^^^^^

@@ -1,7 +1,6 @@
+import datetime
 import os
 import os.path
-
-import pytest
 
 import autosuspend
 
@@ -9,45 +8,67 @@ import autosuspend
 ROOT = os.path.dirname(os.path.realpath(__file__))
 
 SUSPENSION_FILE = 'would_suspend'
+SCHEDULED_FILE = 'wakeup_at'
+WOKE_UP_FILE = 'test-woke-up'
 
 
-@pytest.fixture
-def suspension_file():
-    try:
-        os.remove(SUSPENSION_FILE)
-    except OSError as error:
-        pass
-
-    class SuspensionFileFixture(object):
-
-        def exists(self):
-            return os.path.exists(SUSPENSION_FILE)
-
-    yield SuspensionFileFixture()
-
-    try:
-        os.remove(SUSPENSION_FILE)
-    except OSError as error:
-        pass
+def configure_config(config, tmpdir):
+    out_path = tmpdir.join(config)
+    with open(os.path.join(ROOT, 'test_data', config), 'r') as in_config:
+        with out_path.open('w') as out_config:
+            out_config.write(in_config.read().replace('@TMPDIR@',
+                                                      tmpdir.strpath))
+    return out_path
 
 
-def test_no_suspend_if_matching(suspension_file):
+def test_no_suspend_if_matching(tmpdir):
     autosuspend.main([
         '-c',
-        os.path.join(ROOT, 'test_data', 'dont_suspend.conf'),
+        configure_config('dont_suspend.conf', tmpdir).strpath,
         '-r',
         '10',
         '-l'])
 
-    assert not suspension_file.exists()
+    assert not tmpdir.join(SUSPENSION_FILE).check()
 
 
-def test_suspend(suspension_file):
+def test_suspend(tmpdir):
     autosuspend.main([
         '-c',
-        os.path.join(ROOT, 'test_data', 'would_suspend.conf'),
+        configure_config('would_suspend.conf', tmpdir).strpath,
         '-r',
         '10',
         '-l'])
 
-    assert suspension_file.exists()
+    assert tmpdir.join(SUSPENSION_FILE).check()
+
+
+def test_wakeup_scheduled(tmpdir):
+    # configure when to wake up
+    now = datetime.datetime.now(datetime.timezone.utc)
+    wakeup_at = now + datetime.timedelta(hours=4)
+    with tmpdir.join('wakeup_time').open('w') as out:
+        out.write(str(wakeup_at.timestamp()))
+
+    autosuspend.main([
+        '-c',
+        configure_config('would_schedule.conf', tmpdir).strpath,
+        '-r',
+        '10',
+        '-l'])
+
+    assert tmpdir.join(SUSPENSION_FILE).check()
+    assert tmpdir.join(SCHEDULED_FILE).check()
+    assert int(tmpdir.join(SCHEDULED_FILE).read()) == int(
+        round((wakeup_at - datetime.timedelta(seconds=30)).timestamp()))
+
+
+def test_woke_up_file_removed(tmpdir):
+    tmpdir.join(WOKE_UP_FILE).ensure()
+    autosuspend.main([
+        '-c',
+        configure_config('dont_suspend.conf', tmpdir).strpath,
+        '-r',
+        '5',
+        '-l'])
+    assert not tmpdir.join(WOKE_UP_FILE).check()

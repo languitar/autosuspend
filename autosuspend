@@ -5,6 +5,7 @@ import abc
 import argparse
 import configparser
 import copy
+import datetime
 import functools
 import glob
 import logging
@@ -16,7 +17,7 @@ import re
 import socket
 import subprocess
 import time
-from typing import Callable, Iterable, List, Optional, Sequence
+from typing import Callable, Iterable, List, Optional, Sequence, Type, TypeVar
 
 import psutil
 
@@ -52,7 +53,7 @@ class SevereCheckError(RuntimeError):
 
 
 class Check(object):
-    """Base class for checks.
+    """Base class for all kinds of checks.
 
     Subclasses must call this class' ``__init__`` method.
 
@@ -79,13 +80,24 @@ class Check(object):
         """
         pass
 
-    def __init__(self, name: str=None) -> None:
+    def __init__(self, name: str = None) -> None:
         if name:
             self.name = name
         else:
             self.name = self.__class__.__name__
         self.logger = logging.getLogger(
             'check.{}'.format(self.name))
+
+    def __str__(self):
+        return '{name}[class={clazz}]'.format(name=self.name,
+                                              clazz=self.__class__.__name__)
+
+
+class Activity(Check):
+    """Base class for activity checks.
+
+    Subclasses must call this class' __init__ method.
+    """
 
     @abc.abstractmethod
     def check(self) -> Optional[str]:
@@ -109,7 +121,156 @@ class Check(object):
                                               clazz=self.__class__.__name__)
 
 
-class ActiveConnection(Check):
+class Wakeup(Check):
+    """Represents a check for potential wake up points."""
+
+    @abc.abstractmethod
+    def check(self,
+              timestamp: datetime.datetime) -> Optional[datetime.datetime]:
+        """Indicate if a wakeup has to be scheduled for this check.
+
+        Args:
+            timestamp:
+                the time at which the call to the wakeup check is made
+
+        Returns:
+            a datetime describing when the system needs to be running again or
+            ``None`` if no wakeup is required. Use timezone aware datetimes.
+
+        Raises:
+            TemporaryCheckError:
+                Check execution currently fails but might recover later
+            SevereCheckError:
+                Check executions fails severely
+        """
+        pass
+
+
+class WakeupFile(Wakeup):
+    """Determines scheduled wake ups from the contents of a file on disk.
+
+    File contents are interpreted as a Unix timestamp in seconds UTC."""
+
+    @classmethod
+    def create(cls, name, config):
+        try:
+            path = config['path']
+            return cls(name, path)
+        except KeyError:
+            raise ConfigurationError('Missing option path')
+
+    def __init__(self, name, path):
+        Check.__init__(self, name)
+        self._path = path
+
+    def check(self, timestamp):
+        try:
+            with open(self._path, 'r') as time_file:
+                return datetime.datetime.fromtimestamp(
+                    float(time_file.readlines()[0].strip()),
+                    datetime.timezone.utc)
+        except FileNotFoundError:
+            # this is ok
+            pass
+        except (ValueError, PermissionError, IOError) as error:
+            raise TemporaryCheckError(error)
+
+
+class XPathMixin(object):
+
+    @classmethod
+    def create(cls, name, config, **kwargs):
+        from lxml import etree
+        try:
+            xpath = config['xpath'].strip()
+            # validate the expression
+            try:
+                etree.fromstring('<a></a>').xpath(xpath)
+            except etree.XPathEvalError:
+                raise ConfigurationError('Invalid xpath expression: ' + xpath)
+            timeout = config.getint('timeout', fallback=5)
+            return cls(name, xpath, config['url'], timeout, **kwargs)
+        except ValueError as error:
+            raise ConfigurationError('Configuration error ' + str(error))
+        except KeyError as error:
+            raise ConfigurationError('No ' + str(error) +
+                                     ' entry defined for the XPath check')
+
+    def __init__(self, xpath, url, timeout):
+        self._xpath = xpath
+        self._url = url
+        self._timeout = timeout
+
+    def evaluate(self):
+        import requests
+        import requests.exceptions
+        from lxml import etree
+
+        try:
+            reply = requests.get(self._url, timeout=self._timeout).text
+            root = etree.fromstring(reply)
+            return root.xpath(self._xpath)
+        except requests.exceptions.RequestException as error:
+            raise TemporaryCheckError(error)
+        except etree.XMLSyntaxError as error:
+            raise TemporaryCheckError(error)
+
+
+class WakeupXPath(XPathMixin, Wakeup):
+    """Determines wake up times by issuing a network request and parsing the
+    response using an XPath expression.
+
+    The matched results are expected to represent timestamps in seconds UTC.
+    """
+
+    def __init__(self, name, url, xpath, timeout):
+        Wakeup.__init__(self, name)
+        XPathMixin.__init__(self, url, xpath, timeout)
+
+    def convert_result(self, result, timestamp):
+        return datetime.datetime.fromtimestamp(float(result),
+                                               datetime.timezone.utc)
+
+    def check(self, timestamp):
+        matches = self.evaluate()
+        try:
+            if matches:
+                return min([self.convert_result(m, timestamp)
+                            for m in matches])
+        except TypeError as error:
+            raise TemporaryCheckError(
+                'XPath returned a result that is not a string: ' + str(error))
+        except ValueError as error:
+            raise TemporaryCheckError('Result cannot be parsed: ' + str(error))
+
+
+class WakeupXPathDelta(WakeupXPath):
+
+    UNITS = ['days', 'seconds', 'microseconds', 'milliseconds',
+             'minutes', 'hours', 'weeks']
+
+    @classmethod
+    def create(cls, name, config):
+        try:
+            return super(WakeupXPath, cls).create(
+                name, config,
+                unit=config.get('unit', fallback='minutes'))
+        except ValueError as error:
+            raise ConfigurationError(str(error))
+
+    def __init__(self, name, url, xpath, timeout, unit='minutes'):
+        if unit not in self.UNITS:
+            raise ValueError('Unsupported unit')
+        WakeupXPath.__init__(self, name, url, xpath, timeout)
+        self._unit = unit
+
+    def convert_result(self, result, timestamp):
+        kwargs = {}
+        kwargs[self._unit] = float(result)
+        return timestamp + datetime.timedelta(**kwargs)
+
+
+class ActiveConnection(Activity):
     """Checks if a client connection exists on specified ports."""
 
     @classmethod
@@ -126,7 +287,7 @@ class ActiveConnection(Check):
             raise ConfigurationError('Ports must be integers')
 
     def __init__(self, name, ports):
-        Check.__init__(self, name)
+        Activity.__init__(self, name)
         self._ports = ports
 
     def check(self):
@@ -142,7 +303,7 @@ class ActiveConnection(Check):
             return 'Ports {} are connected'.format(connected)
 
 
-class ExternalCommand(Check):
+class ExternalCommand(Activity):
 
     @classmethod
     def create(cls, name, config):
@@ -163,7 +324,7 @@ class ExternalCommand(Check):
             return None
 
 
-class Kodi(Check):
+class Kodi(Activity):
 
     @classmethod
     def create(cls, name, config):
@@ -200,7 +361,7 @@ class Kodi(Check):
             raise TemporaryCheckError(error)
 
 
-class Load(Check):
+class Load(Activity):
 
     @classmethod
     def create(cls, name, config):
@@ -225,7 +386,7 @@ class Load(Check):
             return None
 
 
-class Mpd(Check):
+class Mpd(Activity):
 
     @classmethod
     def create(cls, name, config):
@@ -268,7 +429,7 @@ class Mpd(Check):
             raise TemporaryCheckError(error)
 
 
-class NetworkBandwidth(Check):
+class NetworkBandwidth(Activity):
 
     @classmethod
     def create(cls, name, config):
@@ -331,7 +492,7 @@ class NetworkBandwidth(Check):
                         interface, rate_receive, self._threshold_receive)
 
 
-class Ping(Check):
+class Ping(Activity):
     """Check if one or several hosts are reachable via ping."""
 
     @classmethod
@@ -359,7 +520,7 @@ class Ping(Check):
         return None
 
 
-class Processes(Check):
+class Processes(Activity):
 
     @classmethod
     def create(cls, name, config):
@@ -386,7 +547,7 @@ class Processes(Check):
         return None
 
 
-class Smb(Check):
+class Smb(Activity):
 
     @classmethod
     def create(cls, name, config):
@@ -418,7 +579,7 @@ class Smb(Check):
             return None
 
 
-class Users(Check):
+class Users(Activity):
 
     @classmethod
     def create(cls, name, config):
@@ -435,7 +596,7 @@ class Users(Check):
                 'Regular expression is invalid: {}'.format(error))
 
     def __init__(self, name, user_regex, terminal_regex, host_regex):
-        Check.__init__(self, name)
+        Activity.__init__(self, name)
         self._user_regex = user_regex
         self._terminal_regex = terminal_regex
         self._host_regex = host_regex
@@ -484,7 +645,7 @@ def _list_logind_sessions():
     return results
 
 
-class XIdleTime(Check):
+class XIdleTime(Activity):
     """Check that local X display have been idle long enough."""
 
     @classmethod
@@ -505,7 +666,7 @@ class XIdleTime(Check):
 
     def __init__(self, name, timeout, method,
                  ignore_process_re, ignore_users_re):
-        Check.__init__(self, name)
+        Activity.__init__(self, name)
         self._timeout = timeout
         if method == 'sockets':
             self._provide_sessions = self._list_sessions_sockets
@@ -639,7 +800,7 @@ class XIdleTime(Check):
         return None
 
 
-class LogindSessionsIdle(Check):
+class LogindSessionsIdle(Activity):
     """Prevents suspending in case a logind session is marked not idle.
 
     The decision is based on the ``IdleHint`` property of logind sessions.
@@ -654,7 +815,7 @@ class LogindSessionsIdle(Check):
         return cls(name, types, states)
 
     def __init__(self, name, types, states):
-        Check.__init__(self, name)
+        Activity.__init__(self, name)
         self._types = types
         self._states = states
 
@@ -679,46 +840,15 @@ class LogindSessionsIdle(Check):
         return None
 
 
-class XPath(Check):
+class XPath(XPathMixin, Activity):
 
-    @classmethod
-    def create(cls, name, config):
-        from lxml import etree
-        try:
-            xpath = config['xpath'].strip()
-            # validate the expression
-            try:
-                etree.fromstring('<a></a>').xpath(xpath)
-            except etree.XPathEvalError:
-                raise ConfigurationError('Invalid xpath expression: ' + xpath)
-            timeout = config.getint('timeout', fallback=5)
-            return cls(name, xpath, config['url'], timeout)
-        except ValueError as error:
-            raise ConfigurationError('Configuration error ' + str(error))
-        except KeyError as error:
-            raise ConfigurationError('No ' + str(error) +
-                                     ' entry defined for the XPath check')
-
-    def __init__(self, name, xpath, url, timeout):
-        Check.__init__(self, name)
-        self._xpath = xpath
-        self._url = url
-        self._timeout = timeout
+    def __init__(self, name, url, xpath, timeout):
+        Activity.__init__(self, name)
+        XPathMixin.__init__(self, url, xpath, timeout)
 
     def check(self):
-        import requests
-        import requests.exceptions
-        from lxml import etree
-
-        try:
-            reply = requests.get(self._url, timeout=self._timeout).text
-            root = etree.fromstring(reply)
-            if root.xpath(self._xpath):
-                return "XPath matches for url " + self._url
-        except requests.exceptions.RequestException as error:
-            raise TemporaryCheckError(error)
-        except etree.XMLSyntaxError as error:
-            raise TemporaryCheckError(error)
+        if self.evaluate():
+            return "XPath matches for url " + self._url
 
 
 def execute_suspend(command: str):
@@ -737,12 +867,20 @@ def execute_suspend(command: str):
                         exc_info=True)
 
 
-# pylint: disable=invalid-name
-_checks = []  # type: List[Check]
-# pylint: enable=invalid-name
+def schedule_wakeup(command_template: str, wakeup_at: datetime.datetime):
+    command = command_template.format(timestamp=wakeup_at.timestamp(),
+                                      iso=wakeup_at.isoformat())
+    _logger.info('Scheduling wakeup using command: %s', command)
+    try:
+        subprocess.check_call(command, shell=True)
+    except subprocess.CalledProcessError:
+        _logger.warning('Unable to execute wakeup scheduling command: %s',
+                        command, exc_info=True)
 
 
-def execute_checks(checks: Iterable[Check], all_checks: bool, logger) -> bool:
+def execute_checks(checks: Iterable[Activity],
+                   all_checks: bool,
+                   logger) -> bool:
     """Execute the provided checks sequentially.
 
     Args:
@@ -772,15 +910,154 @@ def execute_checks(checks: Iterable[Check], all_checks: bool, logger) -> bool:
     return matched
 
 
-def loop(interval: int,
-         idle_time: int,
-         sleep_fn: Callable,
-         all_checks: bool = False,
-         run_for: Optional[int] = None,
-         woke_up_file: str = '/var/run/autosuspend-just-woke-up') -> None:
+def execute_wakeups(wakeups: Iterable[Wakeup],
+                    timestamp: datetime.datetime,
+                    logger) -> Optional[datetime.datetime]:
+
+    wakeup_at = None
+    for wakeup in wakeups:
+        try:
+            this_at = wakeup.check(timestamp)
+
+            # sanity checks
+            if this_at is None:
+                continue
+            if this_at <= timestamp:
+                logger.warning('Wakeup %s returned a scheduled wakeup at %s, '
+                               'which is earlier than the current time %s. '
+                               'Ignoring.',
+                               wakeup, this_at, timestamp)
+                continue
+
+            if wakeup_at is None:
+                wakeup_at = this_at
+            else:
+                wakeup_at = min(this_at, wakeup_at)
+        except TemporaryCheckError:
+            logger.warning('Wakeup %s failed. Ignoring...', wakeup,
+                           exc_info=True)
+
+    return wakeup_at
+
+
+class Processor(object):
+    """Implements the logic for triggering suspension.
+
+    Args:
+        activities:
+            the activity checks to execute
+        wakeups:
+            the wakeup checks to execute
+        idle_time:
+            the required amount of time the system has to be idle before
+            suspension is triggered in seconds
+        min_sleep_time:
+            the minimum time the system has to sleep before it is woken up
+            again in seconds.
+        wakeup_delta:
+            wake up this amount of seconds before the scheduled wake up time.
+        sleep_fn:
+            a callable that triggers suspension
+        wakeup_fn:
+            a callable that schedules the wakeup at the specified time in UTC
+            seconds
+        all_activities:
+            if ``True``, execute all activity checks even if a previous one
+            already matched.
+    """
+
+    def __init__(self,
+                 activities: List[Activity],
+                 wakeups: List[Wakeup],
+                 idle_time: float,
+                 min_sleep_time: float,
+                 wakeup_delta: float,
+                 sleep_fn: Callable,
+                 wakeup_fn: Callable[[float], None],
+                 all_activities: bool) -> None:
+        self._logger = logging.getLogger('Processor')
+        self._activities = activities
+        self._wakeups = wakeups
+        self._idle_time = idle_time
+        self._min_sleep_time = min_sleep_time
+        self._wakeup_delta = wakeup_delta
+        self._sleep_fn = sleep_fn
+        self._wakeup_fn = wakeup_fn
+        self._all_activities = all_activities
+        self._idle_since = None  # type: Optional[float]
+
+    def _reset_state(self, reason: str) -> None:
+        self._logger.info('%s. Resetting state', reason)
+        self._idle_since = None
+
+    def iteration(self, timestamp: datetime.datetime, just_woke_up: bool):
+        self._logger.info('Starting new check iteration')
+
+        # determine system activity
+        active = execute_checks(self._activities, self._all_activities,
+                                self._logger)
+        self._logger.debug('All activity checks have been executed. '
+                           'Active: %s', active)
+        # determine potential wake ups
+        wakeup_at = execute_wakeups(self._wakeups, timestamp, self._logger)
+        self._logger.debug('Checks report, system should wake up at %s',
+                           wakeup_at)
+        if wakeup_at is not None:
+            wakeup_at -= datetime.timedelta(seconds=self._wakeup_delta)
+        self._logger.debug('With delta, system should wake up at %s',
+                           wakeup_at)
+
+        # exit in case something prevents suspension
+        if just_woke_up:
+            self._reset_state('Just woke up from suspension')
+            return
+        if active:
+            self._reset_state('System is active')
+            return
+
+        # set idle timestamp if required
+        if self._idle_since is None:
+            self._idle_since = timestamp
+
+        self._logger.info('System is idle since %s', self._idle_since)
+
+        # determine if systems is idle long enough
+        self._logger.debug('Idle seconds: %s',
+                           (timestamp - self._idle_since).total_seconds())
+        if (timestamp - self._idle_since).total_seconds() > self._idle_time:
+            self._logger.info('System is idle long enough.')
+
+            # idle time would be reached, handle wake up
+            if wakeup_at is not None:
+                wakeup_in = wakeup_at - timestamp
+                if wakeup_in.total_seconds() < self._min_sleep_time:
+                    self._logger.info('Would wake up in %s seconds, which is '
+                                      'below the minimum amount of %s s. '
+                                      'Not suspending.',
+                                      wakeup_in.total_seconds(),
+                                      self._min_sleep_time)
+                    return
+
+                # schedule wakeup
+                self._logger.info('Scheduling wakeup at %s', wakeup_at)
+                self._wakeup_fn(wakeup_at)
+
+            self._reset_state('Going to suspend')
+            self._sleep_fn()
+        else:
+            self._logger.info('Desired idle time of %s s not reached yet.',
+                              self._idle_time)
+
+
+def loop(processor: Processor,
+         interval: int,
+         run_for: Optional[int],
+         woke_up_file: str) -> None:
     """Run the main loop of the daemon.
 
     Args:
+        processor:
+            the processor to use for handling the suspension computations
         interval:
             the length of one iteration of the main loop in seconds
         idle_time:
@@ -792,55 +1069,48 @@ def loop(interval: int,
             if specified, run the main loop for the specified amount of seconds
             before terminating (approximately)
     """
-    logger = logging.getLogger('loop')
 
-    start_time = time.time()
+    start_time = datetime.datetime.now(datetime.timezone.utc)
+    while (run_for is None) or (datetime.datetime.now(datetime.timezone.utc)
+                                < (start_time + datetime.timedelta(
+                                    seconds=run_for))):
 
-    idle_since = None
-    while (run_for is None) or (time.time() < (start_time + run_for)):
-        logger.info('Starting new check iteration')
-
-        matched = execute_checks(_checks, all_checks, logger)
-
-        logger.debug('All checks have been executed')
-
-        if os.path.isfile(woke_up_file):
-            logger.info('Just woke up from suspension. Resetting')
+        just_woke_up = os.path.isfile(woke_up_file)
+        if just_woke_up:
             os.remove(woke_up_file)
-            idle_since = None
-            time.sleep(interval)
-        elif matched:
-            logger.info('Check iteration finished. System is active. '
-                        'Sleeping until next iteration')
-            idle_since = None
-            time.sleep(interval)
-        else:
-            if idle_since is None:
-                idle_since = time.time()
-            logger.info('No checks matched. System is idle since %s',
-                        idle_since)
-            if time.time() - idle_since > idle_time:
-                logger.info('System is idle long enough. Suspending...')
-                sleep_fn()
-                idle_since = None
-            else:
-                logger.info('Desired idle time of %s secs not reached so far. '
-                            'Continuing checks', idle_time)
-                time.sleep(interval)
+
+        processor.iteration(datetime.datetime.now(datetime.timezone.utc),
+                            just_woke_up)
+
+        time.sleep(interval)
 
 
-def set_up_checks(config: configparser.ConfigParser) -> List[Check]:
+CheckType = TypeVar('CheckType', bound=Check)
+
+
+def set_up_checks(config: configparser.ConfigParser,
+                  prefix: str,
+                  target_class: Type[CheckType],
+                  error_none: bool = False) -> List[CheckType]:
     """Set up :py.class:`Check` instances from a given configuration.
 
     Args:
         config:
             the configuration to use
+        prefix:
+            The prefix of sections in the configuration file to use for
+            creating instances.
+        target_class:
+            the base class to check new instance agains
+        error_none:
+            Raise an error if nothing was configured?
     """
-    configured_checks = []
+    configured_checks = []  # type: List[CheckType]
 
-    check_section = [s for s in config.sections() if s.startswith('check.')]
+    check_section = [s for s in config.sections()
+                     if s.startswith('{}.'.format(prefix))]
     for section in check_section:
-        name = section[len('check.'):]
+        name = section[len('{}.'.format(prefix)):]
         # legacy method to determine the check name from the section header
         class_name = name
         # if there is an explicit class, use that one with higher priority
@@ -862,13 +1132,14 @@ def set_up_checks(config: configparser.ConfigParser) -> List[Check]:
                     class_name))
 
         check = klass.create(name, config[section])
-        if not isinstance(check, Check):
+        if not isinstance(check, target_class):
             raise ConfigurationError(
-                'Check {} is not a correct Check instance'.format(check))
+                'Check {} is not a correct {} instance'.format(
+                    check, target_class.__name__))
         _logger.debug('Created check instance {}'.format(check))
         configured_checks.append(check)
 
-    if not configured_checks:
+    if not configured_checks and error_none:
         raise ConfigurationError('No checks enabled')
 
     return configured_checks
@@ -983,16 +1254,27 @@ def configure_logging(file_or_flag):
 
 def main(args=None):
     """Run the daemon."""
-    global _checks
     args = parse_arguments(args)
+
     configure_logging(args.logging)
+
     config = parse_config(args.config_file)
-    _checks = set_up_checks(config)
-    loop(config.getfloat('general', 'interval', fallback=60),
-         config.getfloat('general', 'idle_time', fallback=300),
-         functools.partial(execute_suspend,
-                           config.get('general', 'suspend_cmd')),
-         all_checks=args.all_checks,
+
+    checks = set_up_checks(config, 'check', Activity, error_none=True)
+    wakeups = set_up_checks(config, 'wakeup', Wakeup)
+
+    processor = Processor(
+        checks, wakeups,
+        config.getfloat('general', 'idle_time', fallback=300),
+        config.getfloat('general', 'min_sleep_time', fallback=1200),
+        config.getfloat('general', 'wakeup_delta', fallback=30),
+        functools.partial(execute_suspend,
+                          config.get('general', 'suspend_cmd')),
+        functools.partial(schedule_wakeup,
+                          config.get('general', 'wakeup_cmd')),
+        all_activities=args.all_checks)
+    loop(processor,
+         config.getfloat('general', 'interval', fallback=60),
          run_for=args.run_for,
          woke_up_file=config.get('general', 'woke_up_file',
                                  fallback='/var/run/autosuspend-just-woke-up'))
