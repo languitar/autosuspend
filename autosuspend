@@ -884,13 +884,15 @@ class XPath(XPathMixin, Activity):
             return "XPath matches for url " + self._url
 
 
-def execute_suspend(command: str):
+def execute_suspend(command: str, wakeup_at: Optional[datetime.datetime]):
     """Suspend the system by calling the specified command.
 
     Args:
         command:
             The command to execute, which will be executed using shell
             execution
+        wakeup_at:
+            potential next wakeup time. Only informative.
     """
     _logger.info('Suspending using command: %s', command)
     try:
@@ -898,6 +900,54 @@ def execute_suspend(command: str):
     except subprocess.CalledProcessError:
         _logger.warning('Unable to execute suspend command: %s', command,
                         exc_info=True)
+
+
+def notify_suspend(command_wakeup_template: Optional[str],
+                   command_no_wakeup: Optional[str],
+                   wakeup_at: Optional[datetime.datetime]):
+    """Calls a command to notify on suspending.
+
+    Args:
+        command_no_wakeup_template:
+            A template for the command to execute in case a wakeup is
+            scheduled.
+            It will be executed using shell execution.
+            The template is processed with string formatting to include
+            information on a potentially scheduled wakeup.
+            Notifications can be disable by providing ``None`` here.
+        command_no_wakeup:
+            Command to execute for notification in case no wake up is
+            scheduled.
+            Will be executed using shell execution.
+        wakeup_at:
+            if not ``None``, this is the time the system will wake up again
+    """
+
+    def safe_exec(command):
+        _logger.info('Notifying using command: %s', command)
+        try:
+            subprocess.check_call(command, shell=True)
+        except subprocess.CalledProcessError:
+            _logger.warning('Unable to execute notification command: %s',
+                            command, exc_info=True)
+
+    if wakeup_at and command_wakeup_template:
+        command = command_wakeup_template.format(
+            timestamp=wakeup_at.timestamp(),
+            iso=wakeup_at.isoformat())
+        safe_exec(command)
+    elif not wakeup_at and command_no_wakeup:
+        safe_exec(command_no_wakeup)
+    else:
+        _logger.info('No suitable notification command configured.')
+
+
+def notify_and_suspend(suspend_cmd: str,
+                       notify_cmd_wakeup_template: Optional[str],
+                       notify_cmd_no_wakeup: Optional[str],
+                       wakeup_at: Optional[datetime.datetime]):
+    notify_suspend(notify_cmd_wakeup_template, notify_cmd_no_wakeup, wakeup_at)
+    execute_suspend(suspend_cmd, wakeup_at)
 
 
 def schedule_wakeup(command_template: str, wakeup_at: datetime.datetime):
@@ -994,6 +1044,9 @@ class Processor(object):
         wakeup_fn:
             a callable that schedules the wakeup at the specified time in UTC
             seconds
+        notify_fn:
+            a callable that is called before suspending.
+            One argument gives the scheduled wakeup time or ``None``.
         all_activities:
             if ``True``, execute all activity checks even if a previous one
             already matched.
@@ -1006,7 +1059,7 @@ class Processor(object):
                  min_sleep_time: float,
                  wakeup_delta: float,
                  sleep_fn: Callable,
-                 wakeup_fn: Callable[[float], None],
+                 wakeup_fn: Callable[[datetime.datetime], None],
                  all_activities: bool) -> None:
         self._logger = logging.getLogger('Processor')
         self._activities = activities
@@ -1076,7 +1129,7 @@ class Processor(object):
                 self._wakeup_fn(wakeup_at)
 
             self._reset_state('Going to suspend')
-            self._sleep_fn()
+            self._sleep_fn(wakeup_at)
         else:
             self._logger.info('Desired idle time of %s s not reached yet.',
                               self._idle_time)
@@ -1301,8 +1354,12 @@ def main(args=None):
         config.getfloat('general', 'idle_time', fallback=300),
         config.getfloat('general', 'min_sleep_time', fallback=1200),
         config.getfloat('general', 'wakeup_delta', fallback=30),
-        functools.partial(execute_suspend,
-                          config.get('general', 'suspend_cmd')),
+        functools.partial(notify_and_suspend,
+                          config.get('general', 'suspend_cmd'),
+                          config.get('general', 'notify_cmd_wakeup',
+                                     fallback=None),
+                          config.get('general', 'notify_cmd_no_wakeup',
+                                     fallback=None)),
         functools.partial(schedule_wakeup,
                           config.get('general', 'wakeup_cmd')),
         all_activities=args.all_checks)

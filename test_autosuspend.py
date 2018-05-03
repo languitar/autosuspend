@@ -1064,7 +1064,7 @@ class TestLogindSessionsIdle(object):
 def test_execute_suspend(mocker):
     mock = mocker.patch('subprocess.check_call')
     command = ['foo', 'bar']
-    autosuspend.execute_suspend(command)
+    autosuspend.execute_suspend(command, None)
     mock.assert_called_once_with(command, shell=True)
 
 
@@ -1075,7 +1075,7 @@ def test_execute_suspend_call_exception(mocker):
 
     spy = mocker.spy(autosuspend._logger, 'warning')
 
-    autosuspend.execute_suspend(command)
+    autosuspend.execute_suspend(command, None)
 
     mock.assert_called_once_with(command, shell=True)
     assert spy.call_count == 1
@@ -1324,6 +1324,54 @@ class TestExecuteWakeups(object):
             [wakeup], now + timedelta(seconds=1), mocker.MagicMock()) is None
 
 
+class TestNotifySuspend(object):
+
+    def test_date(self, mocker):
+        mock = mocker.patch('subprocess.check_call')
+        dt = datetime.fromtimestamp(1525270801, timezone(timedelta(hours=4)))
+        autosuspend.notify_suspend(
+            'echo {timestamp:.0f} {iso}', 'not this', dt)
+        mock.assert_called_once_with(
+            'echo 1525270801 2018-05-02T18:20:01+04:00', shell=True)
+
+    def test_date_no_command(self, mocker):
+        mock = mocker.patch('subprocess.check_call')
+        dt = datetime.fromtimestamp(1525270801, timezone(timedelta(hours=4)))
+        autosuspend.notify_suspend(None, 'not this', dt)
+        mock.assert_not_called()
+
+    def test_no_date(self, mocker):
+        mock = mocker.patch('subprocess.check_call')
+        autosuspend.notify_suspend(
+            'echo {timestamp:.0f} {iso}', 'echo nothing', None)
+        mock.assert_called_once_with('echo nothing', shell=True)
+
+    def test_no_date_no_command(self, mocker):
+        mock = mocker.patch('subprocess.check_call')
+        autosuspend.notify_suspend(
+            'echo {timestamp:.0f} {iso}', None, None)
+        mock.assert_not_called()
+
+    def test_ignore_execution_errors(self, mocker):
+        mock = mocker.patch('subprocess.check_call')
+        mock.side_effect = subprocess.CalledProcessError(2, 'cmd')
+        dt = datetime.fromtimestamp(1525270801, timezone(timedelta(hours=4)))
+        autosuspend.notify_suspend(None, 'not this', dt)
+
+
+def test_notify_and_suspend(mocker):
+    mock = mocker.patch('subprocess.check_call')
+    dt = datetime.fromtimestamp(1525270801, timezone(timedelta(hours=4)))
+    autosuspend.notify_and_suspend('echo suspend',
+                                   'echo notify {timestamp:.0f} {iso}',
+                                   'not this',
+                                   dt)
+    mock.assert_has_calls([
+        mocker.call('echo notify 1525270801 2018-05-02T18:20:01+04:00',
+                    shell=True),
+        mocker.call('echo suspend', shell=True)])
+
+
 class _StubCheck(autosuspend.Activity):
 
     def create(cls, name, config):
@@ -1344,12 +1392,15 @@ def sleep_fn():
 
         def __init__(self):
             self.called = False
+            self.call_arg = None
 
         def reset(self):
             self.called = False
+            self.call_arg = None
 
-        def __call__(self):
+        def __call__(self, arg):
             self.called = True
+            self.call_arg = arg
 
     return Func()
 
@@ -1395,6 +1446,7 @@ class TestProcessor(object):
         # go to sleep
         processor.iteration(start + timedelta(seconds=3), False)
         assert sleep_fn.called
+        assert sleep_fn.call_arg is None
 
         sleep_fn.reset()
 
@@ -1475,6 +1527,7 @@ class TestProcessor(object):
         # no activity and enough time passed to start sleeping
         processor.iteration(start + timedelta(seconds=3), False)
         assert sleep_fn.called
+        assert sleep_fn.call_arg == start + timedelta(seconds=25)
         assert wakeup_fn.call_arg == start + timedelta(seconds=25)
 
         sleep_fn.reset()

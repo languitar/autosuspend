@@ -12,6 +12,8 @@ A simple configuration file could look like:
    idle_time = 900
    suspend_cmd = /usr/bin/systemctl suspend
    wakeup_cmd = echo {timestamp:.0f} > /sys/class/rtc/rtc0/wakealarm
+   notify_cmd_wakeup = su myuser -c notify-send -a autosuspend 'Suspending the system. Wake up at {iso}'
+   notify_cmd_no_wakeup = su myuser -c notify-send -a autosuspend 'Suspending the system.'
    
    [check.Ping]
    enabled = false
@@ -25,6 +27,7 @@ A simple configuration file could look like:
    host = [0-9].*
    
    [wakeup.WakeupFile]
+   enabled = True
    path = /var/run/autosuspend/wakeup
 
 The configuration file consists of a ``[general]`` section, which specifies general processing options, and multiple sections of the format ``[check.*]`` and ``[wakeup.*]``.
@@ -68,6 +71,21 @@ The ``[general]`` section contains options controlling the overall behavior of t
    The command to execute for scheduling a wake up of the system.
    The given string is processed using Python's :meth:`str.format` and a format argument called ``timestamp`` encodes the UTC timestamp of the planned wake up time (float).
    Additionally ``iso`` can be used to acquire the timestamp in ISO 8601 format.
+
+.. option:: notify_cmd_wakeup
+
+   A command to execute before the system is going to suspend for the purpose of notifying interested clients.
+   This command is only called in case a wake up is scheduled.
+   The given string is processed using Python's :meth:`str.format` and a format argument called ``timestamp`` encodes the UTC timestamp of the planned wake up time (float).
+   Additionally ``iso`` can be used to acquire the timestamp in ISO 8601 format.
+   If empty or not specified, no command will be called.
+
+.. option:: notify_cmd_no_wakeup
+
+   A command to execute before the system is going to suspend for the purpose of notifying interested clients.
+   This command is only called in case NO wake up is scheduled.
+   Hence, no string formatting options are available.
+   If empty or not specified, no command will be called.
 
 .. option:: woke_up_file
 
