@@ -247,7 +247,7 @@ class XPathMixin(object):
         from lxml import etree
 
         try:
-            reply = requests.get(self._url, timeout=self._timeout).text
+            reply = requests.get(self._url, timeout=self._timeout).content
             root = etree.fromstring(reply)
             return root.xpath(self._xpath)
         except requests.exceptions.RequestException as error:

@@ -20,6 +20,23 @@ import requests.exceptions
 import autosuspend
 
 
+@pytest.fixture
+def stub_server(request):
+    previous_cwd = os.getcwd()
+    if request and hasattr(request, 'param'):
+        os.chdir(request.param)
+
+    server = http.server.HTTPServer(('localhost', 0),
+                                    http.server.SimpleHTTPRequestHandler)
+    threading.Thread(target=server.serve_forever).start()
+
+    yield server
+
+    server.shutdown()
+    if request and hasattr(request, 'param'):
+        os.chdir(previous_cwd)
+
+
 class TestCheck(object):
 
     class DummyCheck(autosuspend.Check):
@@ -415,14 +432,6 @@ class TestMpd(object):
 
 class TestNetworkBandwidth(object):
 
-    @pytest.fixture
-    def stub_server(self):
-        server = http.server.HTTPServer(('localhost', 0),
-                                        http.server.SimpleHTTPRequestHandler)
-        threading.Thread(target=server.serve_forever).start()
-        yield server
-        server.shutdown()
-
     def test_smoke(self, stub_server):
         check = autosuspend.NetworkBandwidth(
             'name', psutil.net_if_addrs().keys(), 0, 0)
@@ -752,15 +761,35 @@ class _XPathMixinSub(autosuspend.XPathMixin, autosuspend.Activity):
 
 class TestXPathMixin(object):
 
+    @pytest.mark.parametrize('stub_server',
+                             [os.path.join(os.path.dirname(__file__),
+                                           'test_data')],
+                             indirect=True)
+    def test_smoke(self, stub_server):
+        address = 'http://localhost:{}/xml_with_encoding.xml'.format(
+            stub_server.server_address[1])
+        _XPathMixinSub('foo', '/b', address, 5).evaluate()
+
     def test_broken_xml(self, mocker):
         with pytest.raises(autosuspend.TemporaryCheckError):
             mock_reply = mocker.MagicMock()
-            text_property = mocker.PropertyMock()
-            type(mock_reply).text = text_property
-            text_property.return_value = "//broken"
+            content_property = mocker.PropertyMock()
+            type(mock_reply).content = content_property
+            content_property.return_value = b"//broken"
             mocker.patch('requests.get', return_value=mock_reply)
 
             _XPathMixinSub('foo', '/b', 'nourl', 5).evaluate()
+
+    def test_xml_with_encoding(self, mocker):
+        mock_reply = mocker.MagicMock()
+        content_property = mocker.PropertyMock()
+        type(mock_reply).content = content_property
+        content_property.return_value = \
+            b"""<?xml version="1.0" encoding="ISO-8859-1" ?>
+<root></root>"""
+        mocker.patch('requests.get', return_value=mock_reply)
+
+        _XPathMixinSub('foo', '/b', 'nourl', 5).evaluate()
 
     def test_xpath_prevalidation(self):
         with pytest.raises(autosuspend.ConfigurationError,
@@ -821,22 +850,22 @@ class TestXPath(object):
 
     def test_matching(self, mocker):
         mock_reply = mocker.MagicMock()
-        text_property = mocker.PropertyMock()
-        type(mock_reply).text = text_property
-        text_property.return_value = "<a></a>"
+        content_property = mocker.PropertyMock()
+        type(mock_reply).content = content_property
+        content_property.return_value = "<a></a>"
         mock_method = mocker.patch('requests.get', return_value=mock_reply)
 
         url = 'nourl'
         assert autosuspend.XPath('foo', '/a', url, 5).check() is not None
 
         mock_method.assert_called_once_with(url, timeout=5)
-        text_property.assert_called_once_with()
+        content_property.assert_called_once_with()
 
     def test_not_matching(self, mocker):
         mock_reply = mocker.MagicMock()
-        text_property = mocker.PropertyMock()
-        type(mock_reply).text = text_property
-        text_property.return_value = "<a></a>"
+        content_property = mocker.PropertyMock()
+        type(mock_reply).content = content_property
+        content_property.return_value = "<a></a>"
         mocker.patch('requests.get', return_value=mock_reply)
 
         assert autosuspend.XPath('foo', '/b', 'nourl', 5).check() is None
@@ -919,9 +948,9 @@ class TestWakeupXPath(object):
 
     def test_matching(self, mocker):
         mock_reply = mocker.MagicMock()
-        text_property = mocker.PropertyMock()
-        type(mock_reply).text = text_property
-        text_property.return_value = '<a value="42.3"></a>'
+        content_property = mocker.PropertyMock()
+        type(mock_reply).content = content_property
+        content_property.return_value = '<a value="42.3"></a>'
         mock_method = mocker.patch('requests.get', return_value=mock_reply)
 
         url = 'nourl'
@@ -931,13 +960,13 @@ class TestWakeupXPath(object):
                     42.3, timezone.utc)
 
         mock_method.assert_called_once_with(url, timeout=5)
-        text_property.assert_called_once_with()
+        content_property.assert_called_once_with()
 
     def test_not_matching(self, mocker):
         mock_reply = mocker.MagicMock()
-        text_property = mocker.PropertyMock()
-        type(mock_reply).text = text_property
-        text_property.return_value = "<a></a>"
+        content_property = mocker.PropertyMock()
+        type(mock_reply).content = content_property
+        content_property.return_value = "<a></a>"
         mocker.patch('requests.get', return_value=mock_reply)
 
         assert autosuspend.WakeupXPath('foo', '/b', 'nourl', 5).check(
@@ -945,9 +974,9 @@ class TestWakeupXPath(object):
 
     def test_not_a_string(self, mocker):
         mock_reply = mocker.MagicMock()
-        text_property = mocker.PropertyMock()
-        type(mock_reply).text = text_property
-        text_property.return_value = "<a></a>"
+        content_property = mocker.PropertyMock()
+        type(mock_reply).content = content_property
+        content_property.return_value = "<a></a>"
         mocker.patch('requests.get', return_value=mock_reply)
 
         with pytest.raises(autosuspend.TemporaryCheckError):
@@ -956,9 +985,9 @@ class TestWakeupXPath(object):
 
     def test_not_a_number(self, mocker):
         mock_reply = mocker.MagicMock()
-        text_property = mocker.PropertyMock()
-        type(mock_reply).text = text_property
-        text_property.return_value = '<a value="narf"></a>'
+        content_property = mocker.PropertyMock()
+        type(mock_reply).content = content_property
+        content_property.return_value = '<a value="narf"></a>'
         mocker.patch('requests.get', return_value=mock_reply)
 
         with pytest.raises(autosuspend.TemporaryCheckError):
@@ -967,9 +996,9 @@ class TestWakeupXPath(object):
 
     def test_multiple_min(self, mocker):
         mock_reply = mocker.MagicMock()
-        text_property = mocker.PropertyMock()
-        type(mock_reply).text = text_property
-        text_property.return_value = '''<root>
+        content_property = mocker.PropertyMock()
+        type(mock_reply).content = content_property
+        content_property.return_value = '''<root>
     <a value="40"></a>
     <a value="10"></a>
     <a value="20"></a>
@@ -996,9 +1025,9 @@ class TestWakeupXPathDelta(object):
     ])
     def test_smoke(self, mocker, unit, factor):
         mock_reply = mocker.MagicMock()
-        text_property = mocker.PropertyMock()
-        type(mock_reply).text = text_property
-        text_property.return_value = '<a value="42"></a>'
+        content_property = mocker.PropertyMock()
+        type(mock_reply).content = content_property
+        content_property.return_value = '<a value="42"></a>'
         mocker.patch('requests.get', return_value=mock_reply)
 
         url = 'nourl'
