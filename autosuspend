@@ -17,7 +17,14 @@ import re
 import socket
 import subprocess
 import time
-from typing import Callable, Iterable, List, Optional, Sequence, Type, TypeVar
+from typing import (Callable,
+                    Iterable,
+                    IO,
+                    List,
+                    Optional,
+                    Sequence,
+                    Type,
+                    TypeVar)
 
 import psutil
 
@@ -1070,7 +1077,7 @@ class Processor(object):
         self._sleep_fn = sleep_fn
         self._wakeup_fn = wakeup_fn
         self._all_activities = all_activities
-        self._idle_since = None  # type: Optional[float]
+        self._idle_since = None  # type: Optional[datetime.datetime]
 
     def _reset_state(self, reason: str) -> None:
         self._logger.info('%s. Resetting state', reason)
@@ -1258,10 +1265,12 @@ def parse_arguments(args: Optional[Sequence[str]]) -> argparse.Namespace:
                     'based on several criteria',
         formatter_class=argparse.ArgumentDefaultsHelpFormatter)
 
+    IO  # for making pyflakes happy
+    default_config = None  # type: Optional[IO[str]]
     try:
         default_config = open('/etc/autosuspend.conf', 'r')
     except (FileNotFoundError, IsADirectoryError, PermissionError):
-        default_config = None
+        pass
     parser.add_argument(
         '-c', '--config',
         dest='config_file',
