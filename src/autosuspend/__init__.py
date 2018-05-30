@@ -156,7 +156,8 @@ class Wakeup(Check):
 class WakeupFile(Wakeup):
     """Determines scheduled wake ups from the contents of a file on disk.
 
-    File contents are interpreted as a Unix timestamp in seconds UTC."""
+    File contents are interpreted as a Unix timestamp in seconds UTC.
+    """
 
     @classmethod
     def create(cls, name, config):
@@ -264,8 +265,7 @@ class XPathMixin(object):
 
 
 class WakeupXPath(XPathMixin, Wakeup):
-    """Determines wake up times by issuing a network request and parsing the
-    response using an XPath expression.
+    """Determine wake up times from a network resource using XPath expressions.
 
     The matched results are expected to represent timestamps in seconds UTC.
     """
@@ -343,9 +343,9 @@ class ActiveConnection(Activity):
                          for item in sublist]
         connected = [c.laddr[1]
                      for c in psutil.net_connections()
-                     if ((c.family, c.laddr[0]) in own_addresses
-                         and c.status == 'ESTABLISHED'
-                         and c.laddr[1] in self._ports)]
+                     if ((c.family, c.laddr[0]) in own_addresses and
+                         c.status == 'ESTABLISHED' and
+                         c.laddr[1] in self._ports)]
         if connected:
             return 'Ports {} are connected'.format(connected)
 
@@ -658,7 +658,7 @@ class Users(Activity):
 
 
 def _list_logind_sessions():
-    """Lists running logind sessions and their properties.
+    """List running logind sessions and their properties.
 
     Returns:
         list of (session_id, properties dict):
@@ -719,7 +719,7 @@ class XIdleTime(Activity):
         self._ignore_users_re = ignore_users_re
 
     def _list_sessions_sockets(self):
-        """Lists running X sessions by iterating the X sockets.
+        """List running X sessions by iterating the X sockets.
 
         This method assumes that X servers are run under the users using the
         server.
@@ -752,7 +752,7 @@ class XIdleTime(Activity):
         return results
 
     def _list_sessions_logind(self):
-        """Lists running X sessions using logind.
+        """List running X sessions using logind.
 
         This method assumes that a ``Display`` variable is set in the logind
         sessions.
@@ -875,7 +875,7 @@ class LogindSessionsIdle(Activity):
 
             if properties['IdleHint'] == 'no':
                 return 'Login session {} is not idle'.format(
-                           session_id, properties['IdleHint'])
+                    session_id, properties['IdleHint'])
 
         return None
 
@@ -912,7 +912,7 @@ def execute_suspend(command: str, wakeup_at: Optional[datetime.datetime]):
 def notify_suspend(command_wakeup_template: Optional[str],
                    command_no_wakeup: Optional[str],
                    wakeup_at: Optional[datetime.datetime]):
-    """Calls a command to notify on suspending.
+    """Call a command to notify on suspending.
 
     Args:
         command_no_wakeup_template:
@@ -1164,8 +1164,8 @@ def loop(processor: Processor,
     """
 
     start_time = datetime.datetime.now(datetime.timezone.utc)
-    while (run_for is None) or (datetime.datetime.now(datetime.timezone.utc)
-                                < (start_time + datetime.timedelta(
+    while (run_for is None) or (datetime.datetime.now(datetime.timezone.utc) <
+                                (start_time + datetime.timedelta(
                                     seconds=run_for))):
 
         just_woke_up = os.path.isfile(woke_up_file)
@@ -1246,7 +1246,8 @@ def parse_config(config_file: Iterable[str]):
             The file to parse
     """
     _logger.debug('Reading config file %s', config_file)
-    config = configparser.ConfigParser()
+    config = configparser.ConfigParser(
+        interpolation=configparser.ExtendedInterpolation())
     config.read_file(config_file)
     _logger.debug('Parsed config file: %s', config)
     return config
