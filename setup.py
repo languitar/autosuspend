@@ -33,6 +33,7 @@ setup(
         'Kodi': ['requests'],
         'XPath': ['lxml', 'requests'],
         'Logind': ['dbus-python'],
+        'ical': ['icalendar', 'python-dateutil', 'tzlocal'],
         'test': ['pytest', 'pytest-cov', 'pytest-mock'],
     },
 
