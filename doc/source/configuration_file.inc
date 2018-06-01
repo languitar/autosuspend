@@ -26,7 +26,7 @@ A simple configuration file could look like:
    terminal = .*
    host = [0-9].*
    
-   [wakeup.WakeupFile]
+   [wakeup.File]
    enabled = True
    path = /var/run/autosuspend/wakeup
 

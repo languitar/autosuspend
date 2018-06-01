@@ -5,7 +5,7 @@ from .util import CommandMixin, XPathMixin
 from .. import Check, ConfigurationError, TemporaryCheckError, Wakeup
 
 
-class WakeupFile(Wakeup):
+class File(Wakeup):
     """Determines scheduled wake ups from the contents of a file on disk.
 
     File contents are interpreted as a Unix timestamp in seconds UTC.
@@ -36,7 +36,7 @@ class WakeupFile(Wakeup):
             raise TemporaryCheckError(error)
 
 
-class WakeupCommand(CommandMixin, Wakeup):
+class Command(CommandMixin, Wakeup):
     """Determine wake up times based on an external command.
 
     The called command must return a timestamp in UTC or nothing in case no
@@ -62,7 +62,7 @@ class WakeupCommand(CommandMixin, Wakeup):
             raise TemporaryCheckError(error) from error
 
 
-class WakeupXPath(XPathMixin, Wakeup):
+class XPath(XPathMixin, Wakeup):
     """Determine wake up times from a network resource using XPath expressions.
 
     The matched results are expected to represent timestamps in seconds UTC.
@@ -89,7 +89,7 @@ class WakeupXPath(XPathMixin, Wakeup):
             raise TemporaryCheckError('Result cannot be parsed: ' + str(error))
 
 
-class WakeupXPathDelta(WakeupXPath):
+class XPathDelta(XPath):
 
     UNITS = ['days', 'seconds', 'microseconds', 'milliseconds',
              'minutes', 'hours', 'weeks']
@@ -97,7 +97,7 @@ class WakeupXPathDelta(WakeupXPath):
     @classmethod
     def create(cls, name, config):
         try:
-            return super(WakeupXPath, cls).create(
+            return super(XPath, cls).create(
                 name, config,
                 unit=config.get('unit', fallback='minutes'))
         except ValueError as error:
@@ -106,7 +106,7 @@ class WakeupXPathDelta(WakeupXPath):
     def __init__(self, name, url, xpath, timeout, unit='minutes'):
         if unit not in self.UNITS:
             raise ValueError('Unsupported unit')
-        WakeupXPath.__init__(self, name, url, xpath, timeout)
+        XPath.__init__(self, name, url, xpath, timeout)
         self._unit = unit
 
     def convert_result(self, result, timestamp):
