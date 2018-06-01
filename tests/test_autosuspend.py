@@ -8,24 +8,25 @@ import pytest
 import autosuspend
 
 
-def test_execute_suspend(mocker):
-    mock = mocker.patch('subprocess.check_call')
-    command = ['foo', 'bar']
-    autosuspend.execute_suspend(command, None)
-    mock.assert_called_once_with(command, shell=True)
+class TestExecuteSuspend(object):
 
+    def test_smoke(self, mocker):
+        mock = mocker.patch('subprocess.check_call')
+        command = ['foo', 'bar']
+        autosuspend.execute_suspend(command, None)
+        mock.assert_called_once_with(command, shell=True)
 
-def test_execute_suspend_call_exception(mocker):
-    mock = mocker.patch('subprocess.check_call')
-    command = ['foo', 'bar']
-    mock.side_effect = subprocess.CalledProcessError(2, command)
+    def test_call_exception(self, mocker):
+        mock = mocker.patch('subprocess.check_call')
+        command = ['foo', 'bar']
+        mock.side_effect = subprocess.CalledProcessError(2, command)
 
-    spy = mocker.spy(autosuspend._logger, 'warning')
+        spy = mocker.spy(autosuspend._logger, 'warning')
 
-    autosuspend.execute_suspend(command, None)
+        autosuspend.execute_suspend(command, None)
 
-    mock.assert_called_once_with(command, shell=True)
-    assert spy.call_count == 1
+        mock.assert_called_once_with(command, shell=True)
+        assert spy.call_count == 1
 
 
 class TestScheduleWakeup(object):
