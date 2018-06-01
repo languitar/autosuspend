@@ -4,8 +4,8 @@ Available wake up checks
 The following checks for wake up times are currently implemented.
 Each of the checks is described with its available configuration options and required optional dependencies.
 
-WakeupCommand
-~~~~~~~~~~~~~
+Command
+~~~~~~~
 
 .. program:: wakeup-command
 
@@ -23,8 +23,8 @@ Options
 
    The command to execute including all arguments
 
-WakeupFile
-~~~~~~~~~~
+File
+~~~~
 
 .. program:: wakeup-file
 
@@ -38,8 +38,8 @@ Options
 
    path of the file to read in case it is present
 
-WakeupXPath
-~~~~~~~~~~~
+XPath
+~~~~~
 
 .. program:: wakeup-xpath
 
@@ -64,12 +64,12 @@ Options
 
    Timeout for executed requests in seconds. Default: 5.
 
-WakeupXPathDelta
-~~~~~~~~~~~~~~~~
+XPathDelta
+~~~~~~~~~~
 
 .. program:: wakeup-xpath-delta
 
-Comparable to ``WakeupXPath``, but expects that the returned results represent the wake up time as a delta to the current time in a configurable unit.
+Comparable to ``XPath``, but expects that the returned results represent the wake up time as a delta to the current time in a configurable unit.
 
 This check can for instance be used for `tvheadend`_ with the following expression::
 

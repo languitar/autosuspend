@@ -65,7 +65,7 @@ intersphinx_mapping = {'python': ('https://docs.python.org/3.6', None)}
 html_theme = 'sphinx_rtd_theme'
 # html_theme_options = {}
 
-html_static_path = ['_static']
+# html_static_path = ['_static']
 
 html_sidebars = {
     '**': [

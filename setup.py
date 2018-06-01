@@ -1,7 +1,7 @@
 import os
 import os.path
 
-from setuptools import setup
+from setuptools import find_packages, setup
 
 name = 'autosuspend'
 
@@ -32,21 +32,25 @@ setup(
         'Mpd': ['python-mpd2'],
         'Kodi': ['requests'],
         'XPath': ['lxml', 'requests'],
-        'Logind support': ['dbus-python'],
+        'Logind': ['dbus-python'],
+        'test': ['pytest', 'pytest-cov', 'pytest-mock'],
     },
-    tests_require=[
-        'pytest',
-        'pytest-cov',
-        'pytest-mock',
-    ],
 
-    scripts=[
-        'autosuspend'
-    ],
+    package_dir={
+        '': 'src'
+    },
+    packages=find_packages('src'),
+
+    entry_points={
+        'console_scripts': [
+            'autosuspend = autosuspend:main',
+        ]
+    },
+
     data_files=[
-        ('etc', ['autosuspend.conf',
-                 'autosuspend-logging.conf']),
-        ('lib/systemd/system', ['autosuspend.service',
-                                'autosuspend-detect-suspend.service'])
+        ('etc', ['data/autosuspend.conf',
+                 'data/autosuspend-logging.conf']),
+        ('lib/systemd/system', ['data/autosuspend.service',
+                                'data/autosuspend-detect-suspend.service'])
     ],
 )

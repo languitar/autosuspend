@@ -26,7 +26,7 @@ A simple configuration file could look like:
    terminal = .*
    host = [0-9].*
    
-   [wakeup.WakeupFile]
+   [wakeup.File]
    enabled = True
    path = /var/run/autosuspend/wakeup
 
@@ -109,7 +109,9 @@ For each check, these generic options can be specified:
 .. option:: class
 
    Name of the class implementing the check.
-   If this is not specified, the section name must represent a valid check class (see list below).
+   If the name does not contain a dot (``.``), this is assumed to be one of the checks provided by |project| internally.
+   Otherwise, this can be used to pull in third-party checks.
+   If this option is not specified, the section name must represent a valid internal check class.
 
 .. option:: enabled
 
