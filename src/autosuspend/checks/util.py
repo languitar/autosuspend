@@ -1,3 +1,5 @@
+from typing import IO, Iterable, Tuple
+
 from .. import ConfigurationError, TemporaryCheckError
 
 
@@ -55,7 +57,7 @@ class XPathMixin(object):
             raise TemporaryCheckError(error)
 
 
-def list_logind_sessions():
+def list_logind_sessions() -> Iterable[Tuple[str, dict]]:
     """List running logind sessions and their properties.
 
     Returns:

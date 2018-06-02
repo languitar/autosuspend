@@ -8,7 +8,9 @@ import pytest
 from autosuspend.checks import (Activity,
                                 ConfigurationError,
                                 TemporaryCheckError)
-from autosuspend.checks.util import CommandMixin, XPathMixin
+from autosuspend.checks.util import (CommandMixin,
+                                     XPathMixin,
+                                     list_logind_sessions)
 
 
 class _CommandMixinSub(CommandMixin, Activity):
@@ -126,3 +128,9 @@ class TestXPathMixin(object):
             mock_method.side_effect = requests.exceptions.ReadTimeout()
 
             _XPathMixinSub('foo', '/a', 'asdf', 5).evaluate()
+
+
+def test_list_logind_sessions():
+    pytest.importorskip('dbus')
+
+    assert list_logind_sessions() is not None
