@@ -9,12 +9,13 @@ import time
 
 import psutil
 
-from .util import CommandMixin, XPathMixin, list_logind_sessions
 from . import (Activity,
                Check,
                ConfigurationError,
                SevereCheckError,
                TemporaryCheckError)
+from .util import CommandMixin, XPathMixin
+from ..util.systemd import list_logind_sessions
 
 
 class ActiveConnection(Activity):
@@ -547,7 +548,7 @@ class LogindSessionsIdle(Activity):
 
             if properties['IdleHint'] == 'no':
                 return 'Login session {} is not idle'.format(
-                    session_id, properties['IdleHint'])
+                    session_id)
 
         return None
 

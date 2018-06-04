@@ -8,10 +8,8 @@ import subprocess
 import sys
 
 import psutil
-
-import requests
-
 import pytest
+import requests
 
 from autosuspend.checks import (ConfigurationError,
                                 SevereCheckError,

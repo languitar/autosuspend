@@ -52,6 +52,6 @@ setup(
         ('etc', ['data/autosuspend.conf',
                  'data/autosuspend-logging.conf']),
         ('lib/systemd/system', ['data/autosuspend.service',
-                                'data/autosuspend-detect-suspend.service'])
+                                'data/autosuspend-detect-suspend.service']),
     ],
 )
