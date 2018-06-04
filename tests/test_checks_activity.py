@@ -256,7 +256,7 @@ class TestActiveConnection(object):
         parser.read_string('''[section]
                            ports = 10,20,30''')
         assert ActiveConnection.create(
-            'name', parser['section'])._ports == set([10, 20, 30])
+            'name', parser['section'])._ports == {10, 20, 30}
 
     def test_create_no_entry(self):
         parser = configparser.ConfigParser()
@@ -423,7 +423,7 @@ threshold_send = 200
 threshold_receive = 300
 ''')
         check = NetworkBandwidth.create('name', parser['section'])
-        assert set(check._interfaces) == set(['foo', 'baz'])
+        assert set(check._interfaces) == {'foo', 'baz'}
         assert check._threshold_send == 200
         assert check._threshold_receive == 300
 
@@ -434,7 +434,7 @@ threshold_receive = 300
 interfaces = foo, baz
 ''')
         check = NetworkBandwidth.create('name', parser['section'])
-        assert set(check._interfaces) == set(['foo', 'baz'])
+        assert set(check._interfaces) == {'foo', 'baz'}
         assert check._threshold_send == 100
         assert check._threshold_receive == 100
 

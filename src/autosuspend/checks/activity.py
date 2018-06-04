@@ -27,7 +27,7 @@ class ActiveConnection(Activity):
             ports = config['ports']
             ports = ports.split(',')
             ports = [p.strip() for p in ports]
-            ports = set([int(p) for p in ports])
+            ports = {int(p) for p in ports}
             return cls(name, ports)
         except KeyError:
             raise ConfigurationError('Missing option ports')

@@ -80,8 +80,8 @@ class XPath(XPathMixin, Wakeup):
         matches = self.evaluate()
         try:
             if matches:
-                return min([self.convert_result(m, timestamp)
-                            for m in matches])
+                return min(self.convert_result(m, timestamp)
+                           for m in matches)
         except TypeError as error:
             raise TemporaryCheckError(
                 'XPath returned a result that is not a string: ' + str(error))
