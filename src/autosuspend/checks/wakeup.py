@@ -97,9 +97,9 @@ class XPathDelta(XPath):
     @classmethod
     def create(cls, name, config):
         try:
-            return super(XPath, cls).create(
-                name, config,
-                unit=config.get('unit', fallback='minutes'))
+            args = XPath.collect_init_args(config)
+            args['unit'] = config.get('unit', fallback='minutes')
+            return cls(name, **args)
         except ValueError as error:
             raise ConfigurationError(str(error))
 

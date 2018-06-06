@@ -7,7 +7,7 @@ import requests
 from autosuspend.checks import (Activity,
                                 ConfigurationError,
                                 TemporaryCheckError)
-from autosuspend.checks.util import CommandMixin, XPathMixin
+from autosuspend.checks.util import CommandMixin, NetworkMixin, XPathMixin
 
 
 class _CommandMixinSub(CommandMixin, Activity):
@@ -33,6 +33,69 @@ class TestCommandMixin(object):
             _CommandMixinSub.create('name', parser['section'])
 
 
+class TestNetworkMixin(object):
+
+    def test_collect_missing_url(self):
+        with pytest.raises(ConfigurationError,
+                           match=r"^Lacks 'url'.*"):
+            parser = configparser.ConfigParser()
+            parser.read_string('[section]')
+            NetworkMixin.collect_init_args(parser['section'])
+
+    def test_collect_default_timeout(self):
+        parser = configparser.ConfigParser()
+        parser.read_string('''[section]
+                           url=nourl''')
+        args = NetworkMixin.collect_init_args(parser['section'])
+        assert args['timeout'] == 5
+
+    def test_collect_timeout(self):
+        parser = configparser.ConfigParser()
+        parser.read_string('''[section]
+                           url=nourl
+                           timeout=42''')
+        args = NetworkMixin.collect_init_args(parser['section'])
+        assert args['timeout'] == 42
+
+    def test_collect_invalid_timeout(self):
+        with pytest.raises(ConfigurationError,
+                           match=r"^Configuration error .*"):
+            parser = configparser.ConfigParser()
+            parser.read_string('''[section]
+                               url=nourl
+                               timeout=xx''')
+            NetworkMixin.collect_init_args(parser['section'])
+
+    @pytest.mark.parametrize('stub_server',
+                             [os.path.join(os.path.dirname(__file__),
+                                           'test_data')],
+                             indirect=True)
+    def test_request(self, stub_server):
+        address = 'http://localhost:{}/xml_with_encoding.xml'.format(
+            stub_server.server_address[1])
+        reply = NetworkMixin(address, 5).request()
+        assert reply is not None
+        assert reply.status_code == 200
+
+    def test_requests_exception(self, mocker):
+        with pytest.raises(TemporaryCheckError):
+            mock_method = mocker.patch('requests.get')
+            mock_method.side_effect = requests.exceptions.ReadTimeout()
+
+            NetworkMixin('url', timeout=5).request()
+
+    def test_smoke(self, stub_server):
+        response = NetworkMixin(stub_server.resource_address('data.txt'),
+                                timeout=5).request()
+        assert response is not None
+        assert response.text == 'iamhere\n'
+
+    def test_exception_404(self, stub_server):
+        with pytest.raises(TemporaryCheckError):
+            NetworkMixin(stub_server.resource_address('doesnotexist'),
+                         timeout=5).request()
+
+
 class _XPathMixinSub(XPathMixin, Activity):
 
     def __init__(self, name, url, xpath, timeout):
@@ -49,7 +112,9 @@ class TestXPathMixin(object):
     def test_smoke(self, stub_server):
         address = 'http://localhost:{}/xml_with_encoding.xml'.format(
             stub_server.server_address[1])
-        _XPathMixinSub('foo', '/b', address, 5).evaluate()
+        result = _XPathMixinSub('foo', '/b', address, 5).evaluate()
+        assert result is not None
+        assert len(result) == 0
 
     def test_broken_xml(self, mocker):
         with pytest.raises(TemporaryCheckError):
@@ -84,44 +149,10 @@ class TestXPathMixin(object):
     @pytest.mark.parametrize('entry,', ['xpath', 'url'])
     def test_missing_config_entry(self, entry):
         with pytest.raises(ConfigurationError,
-                           match=r"^No '" + entry + "'.*"):
+                           match=r"^Lacks '" + entry + "'.*"):
             parser = configparser.ConfigParser()
             parser.read_string('''[section]
                                xpath=/valid
                                url=nourl''')
             del parser['section'][entry]
             _XPathMixinSub.create('name', parser['section'])
-
-    def test_create_default_timeout(self):
-        parser = configparser.ConfigParser()
-        parser.read_string('''[section]
-                           xpath=/valid
-                           url=nourl''')
-        check = _XPathMixinSub.create('name', parser['section'])
-        assert check._timeout == 5
-
-    def test_create_timeout(self):
-        parser = configparser.ConfigParser()
-        parser.read_string('''[section]
-                           xpath=/valid
-                           url=nourl
-                           timeout=42''')
-        check = _XPathMixinSub.create('name', parser['section'])
-        assert check._timeout == 42
-
-    def test_create_invalid_timeout(self):
-        with pytest.raises(ConfigurationError,
-                           match=r"^Configuration error .*"):
-            parser = configparser.ConfigParser()
-            parser.read_string('''[section]
-                               xpath=/valid
-                               url=nourl
-                               timeout=xx''')
-            _XPathMixinSub.create('name', parser['section'])
-
-    def test_requests_exception(self, mocker):
-        with pytest.raises(TemporaryCheckError):
-            mock_method = mocker.patch('requests.get')
-            mock_method.side_effect = requests.exceptions.ReadTimeout()
-
-            _XPathMixinSub('foo', '/a', 'asdf', 5).evaluate()

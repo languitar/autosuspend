@@ -1,3 +1,6 @@
+import configparser
+from typing import Any, Dict, Iterable
+
 from .. import ConfigurationError, TemporaryCheckError
 
 
@@ -15,38 +18,78 @@ class CommandMixin(object):
         self._command = command
 
 
-class XPathMixin(object):
+class NetworkMixin(object):
+    import requests
 
     @classmethod
-    def create(cls, name, config, **kwargs):
-        from lxml import etree
+    def collect_init_args(
+            cls, config: configparser.SectionProxy) -> Dict[str, Any]:
         try:
-            xpath = config['xpath'].strip()
-            # validate the expression
-            try:
-                etree.fromstring('<a></a>').xpath(xpath)
-            except etree.XPathEvalError:
-                raise ConfigurationError('Invalid xpath expression: ' + xpath)
-            timeout = config.getint('timeout', fallback=5)
-            return cls(name, xpath, config['url'], timeout, **kwargs)
+            args = {}  # type: Dict[str, Any]
+            args['timeout'] = config.getint('timeout', fallback=5)
+            args['url'] = config['url']
+            return args
         except ValueError as error:
             raise ConfigurationError('Configuration error ' + str(error))
         except KeyError as error:
-            raise ConfigurationError('No ' + str(error) +
-                                     ' entry defined for the XPath check')
+            raise ConfigurationError('Lacks ' + str(error) + ' config entry')
 
-    def __init__(self, xpath, url, timeout):
-        self._xpath = xpath
+    @classmethod
+    def create(cls, name: str, config: configparser.SectionProxy):
+        return cls(name, **cls.collect_init_args(config))  # type: ignore
+
+    def __init__(self, url: str, timeout: int) -> None:
         self._url = url
         self._timeout = timeout
 
-    def evaluate(self):
+    def request(self) -> requests.Response:
+        import requests
+        import requests.exceptions
+
+        try:
+            reply = requests.get(self._url, timeout=self._timeout)
+            reply.raise_for_status()
+            return reply
+        except requests.exceptions.RequestException as error:
+            raise TemporaryCheckError(error)
+
+
+class XPathMixin(NetworkMixin):
+
+    @classmethod
+    def collect_init_args(cls, config) -> Dict[str, Any]:
+        from lxml import etree
+        try:
+            args = NetworkMixin.collect_init_args(config)
+            args['xpath'] = config['xpath'].strip()
+            # validate the expression
+            try:
+                etree.fromstring('<a></a>').xpath(args['xpath'])
+            except etree.XPathEvalError:
+                raise ConfigurationError(
+                    'Invalid xpath expression: ' + args['xpath'])
+            return args
+        except ValueError as error:
+            raise ConfigurationError('Configuration error ' + str(error))
+        except KeyError as error:
+            raise ConfigurationError(
+                'Lacks ' + str(error) + ' config entry')
+
+    @classmethod
+    def create(cls, name: str, config: configparser.SectionProxy):
+        return cls(name, **cls.collect_init_args(config))
+
+    def __init__(self, xpath: str, url: str, timeout: int) -> None:
+        NetworkMixin.__init__(self, url, timeout)
+        self._xpath = xpath
+
+    def evaluate(self) -> Iterable[Any]:
         import requests
         import requests.exceptions
         from lxml import etree
 
         try:
-            reply = requests.get(self._url, timeout=self._timeout).content
+            reply = self.request().content
             root = etree.fromstring(reply)
             return root.xpath(self._xpath)
         except requests.exceptions.RequestException as error:
