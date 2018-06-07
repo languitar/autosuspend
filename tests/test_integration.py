@@ -2,7 +2,12 @@ import datetime
 import os
 import os.path
 
+import pytest
+
 import autosuspend
+
+
+pytestmark = pytest.mark.integration
 
 
 ROOT = os.path.dirname(os.path.realpath(__file__))
