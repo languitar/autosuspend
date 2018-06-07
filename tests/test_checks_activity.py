@@ -1,3 +1,4 @@
+from collections import namedtuple
 import configparser
 import os
 import os.path
@@ -28,6 +29,9 @@ from autosuspend.checks.activity import (ActiveCalendarEvent,
                                          Users,
                                          XIdleTime,
                                          XPath)
+
+
+snic = namedtuple('snic', ['family', 'address', 'netmask', 'broadcast', 'ptp'])
 
 
 class TestSmb(object):
@@ -207,7 +211,7 @@ class TestActiveConnection(object):
     def test_connected(self, monkeypatch):
 
         def addresses():
-            return {'dummy': [psutil._common.snic(
+            return {'dummy': [snic(
                 socket.AF_INET, self.MY_ADDRESS, '255.255.255.0',
                 None, None)]}
 
@@ -252,7 +256,7 @@ class TestActiveConnection(object):
     def test_not_connected(self, monkeypatch, connection):
 
         def addresses():
-            return {'dummy': [psutil._common.snic(
+            return {'dummy': [snic(
                 socket.AF_INET, self.MY_ADDRESS, '255.255.255.0',
                 None, None)]}
 
