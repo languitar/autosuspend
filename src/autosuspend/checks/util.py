@@ -8,13 +8,13 @@ class CommandMixin(object):
     """Mixin for configuring checks based on external commands."""
 
     @classmethod
-    def create(cls, name, config):
+    def create(cls, name: str, config: configparser.SectionProxy):
         try:
-            return cls(name, config['command'].strip())
+            return cls(name, config['command'].strip())  # type: ignore
         except KeyError:
             raise ConfigurationError('Missing command specification')
 
-    def __init__(self, command):
+    def __init__(self, command: str) -> None:
         self._command = command
 
 

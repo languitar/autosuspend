@@ -51,6 +51,10 @@ rst_epilog = '''
 .. _tvheadend: https://tvheadend.org/
 .. _XPath: https://www.w3.org/TR/xpath/
 .. _logind: https://www.freedesktop.org/wiki/Software/systemd/logind/
+.. _iCalendar: https://tools.ietf.org/html/rfc5545
+.. _dateutil: https://dateutil.readthedocs.io
+.. _python-icalendar: https://icalendar.readthedocs.io
+.. _tzlocal: https://pypi.org/project/tzlocal/
 
 .. |project| replace:: {project}
 .. |project_bold| replace:: **{project}**

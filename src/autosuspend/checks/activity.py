@@ -1,5 +1,7 @@
 import copy
+from datetime import datetime, timedelta, timezone
 import glob
+from io import BytesIO
 import os
 import pwd
 import re
@@ -14,8 +16,27 @@ from . import (Activity,
                ConfigurationError,
                SevereCheckError,
                TemporaryCheckError)
-from .util import CommandMixin, XPathMixin
+from .util import CommandMixin, NetworkMixin, XPathMixin
 from ..util.systemd import list_logind_sessions
+
+
+class ActiveCalendarEvent(NetworkMixin, Activity):
+    """Determines activity by checking against events in an icalendar file."""
+
+    def __init__(self, name, url, timeout):
+        NetworkMixin.__init__(self, url, timeout)
+        Activity.__init__(self, name)
+
+    def check(self):
+        from ..util.ical import list_calendar_events
+        response = self.request()
+        start = datetime.now(timezone.utc)
+        end = start + timedelta(minutes=1)
+        events = list_calendar_events(BytesIO(response.content), start, end)
+        if events:
+            return 'Calendar event {} is active'.format(events[0])
+        else:
+            return None
 
 
 class ActiveConnection(Activity):

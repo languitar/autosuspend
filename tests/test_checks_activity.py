@@ -14,7 +14,8 @@ import requests
 from autosuspend.checks import (ConfigurationError,
                                 SevereCheckError,
                                 TemporaryCheckError)
-from autosuspend.checks.activity import (ActiveConnection,
+from autosuspend.checks.activity import (ActiveCalendarEvent,
+                                         ActiveConnection,
                                          ExternalCommand,
                                          Kodi,
                                          Load,
@@ -180,6 +181,19 @@ class TestProcesses(object):
         parser.read_string('''[section]''')
         with pytest.raises(ConfigurationError):
             Processes.create('name', parser['section'])
+
+
+class TestActiveCalendarEvent(object):
+
+    def test_smoke(self, stub_server):
+        address = stub_server.resource_address('long-event.ics')
+        result = ActiveCalendarEvent('test', address, 3).check()
+        assert result is not None
+        assert 'long-event' in result
+
+    def test_no_event(self, stub_server):
+        address = stub_server.resource_address('old-event.ics')
+        assert ActiveCalendarEvent('test', address, 3).check() is None
 
 
 class TestActiveConnection(object):
