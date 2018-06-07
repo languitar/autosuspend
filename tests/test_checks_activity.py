@@ -8,15 +8,14 @@ import subprocess
 import sys
 
 import psutil
-
-import requests
-
 import pytest
+import requests
 
 from autosuspend.checks import (ConfigurationError,
                                 SevereCheckError,
                                 TemporaryCheckError)
-from autosuspend.checks.activity import (ActiveConnection,
+from autosuspend.checks.activity import (ActiveCalendarEvent,
+                                         ActiveConnection,
                                          ExternalCommand,
                                          Kodi,
                                          Load,
@@ -184,6 +183,19 @@ class TestProcesses(object):
             Processes.create('name', parser['section'])
 
 
+class TestActiveCalendarEvent(object):
+
+    def test_smoke(self, stub_server):
+        address = stub_server.resource_address('long-event.ics')
+        result = ActiveCalendarEvent('test', address, 3).check()
+        assert result is not None
+        assert 'long-event' in result
+
+    def test_no_event(self, stub_server):
+        address = stub_server.resource_address('old-event.ics')
+        assert ActiveCalendarEvent('test', address, 3).check() is None
+
+
 class TestActiveConnection(object):
 
     MY_PORT = 22
@@ -258,7 +270,7 @@ class TestActiveConnection(object):
         parser.read_string('''[section]
                            ports = 10,20,30''')
         assert ActiveConnection.create(
-            'name', parser['section'])._ports == set([10, 20, 30])
+            'name', parser['section'])._ports == {10, 20, 30}
 
     def test_create_no_entry(self):
         parser = configparser.ConfigParser()
@@ -407,8 +419,7 @@ class TestNetworkBandwidth(object):
         check = NetworkBandwidth(
             'name', psutil.net_if_addrs().keys(), 0, 0)
         # make some traffic
-        requests.get('http://localhost:{}/'.format(
-            stub_server.server_address[1]))
+        requests.get(stub_server.resource_address(''))
         assert check.check() is not None
 
     @pytest.fixture
@@ -425,7 +436,7 @@ threshold_send = 200
 threshold_receive = 300
 ''')
         check = NetworkBandwidth.create('name', parser['section'])
-        assert set(check._interfaces) == set(['foo', 'baz'])
+        assert set(check._interfaces) == {'foo', 'baz'}
         assert check._threshold_send == 200
         assert check._threshold_receive == 300
 
@@ -436,7 +447,7 @@ threshold_receive = 300
 interfaces = foo, baz
 ''')
         check = NetworkBandwidth.create('name', parser['section'])
-        assert set(check._interfaces) == set(['foo', 'baz'])
+        assert set(check._interfaces) == {'foo', 'baz'}
         assert check._threshold_send == 100
         assert check._threshold_receive == 100
 
@@ -485,8 +496,7 @@ threshold_receive = xxx
             'name', psutil.net_if_addrs().keys(),
             send_threshold, receive_threshold)
         # make some traffic
-        requests.get('http://localhost:{}/'.format(
-            stub_server.server_address[1]))
+        requests.get(stub_server.resource_address(''))
         res = check.check()
         assert res is not None
         assert match in res
@@ -496,8 +506,7 @@ threshold_receive = xxx
             'name', psutil.net_if_addrs().keys(),
             sys.float_info.max, sys.float_info.max)
         # make some traffic
-        requests.get('http://localhost:{}/'.format(
-            stub_server.server_address[1]))
+        requests.get(stub_server.resource_address(''))
         assert check.check() is None
 
 

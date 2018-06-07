@@ -33,6 +33,7 @@ setup(
         'Kodi': ['requests'],
         'XPath': ['lxml', 'requests'],
         'Logind': ['dbus-python'],
+        'ical': ['requests', 'icalendar', 'python-dateutil', 'tzlocal'],
         'test': ['pytest', 'pytest-cov', 'pytest-mock'],
     },
 
@@ -51,6 +52,6 @@ setup(
         ('etc', ['data/autosuspend.conf',
                  'data/autosuspend-logging.conf']),
         ('lib/systemd/system', ['data/autosuspend.service',
-                                'data/autosuspend-detect-suspend.service'])
+                                'data/autosuspend-detect-suspend.service']),
     ],
 )

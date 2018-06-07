@@ -80,8 +80,8 @@ class XPath(XPathMixin, Wakeup):
         matches = self.evaluate()
         try:
             if matches:
-                return min([self.convert_result(m, timestamp)
-                            for m in matches])
+                return min(self.convert_result(m, timestamp)
+                           for m in matches)
         except TypeError as error:
             raise TemporaryCheckError(
                 'XPath returned a result that is not a string: ' + str(error))
@@ -97,9 +97,9 @@ class XPathDelta(XPath):
     @classmethod
     def create(cls, name, config):
         try:
-            return super(XPath, cls).create(
-                name, config,
-                unit=config.get('unit', fallback='minutes'))
+            args = XPath.collect_init_args(config)
+            args['unit'] = config.get('unit', fallback='minutes')
+            return cls(name, **args)
         except ValueError as error:
             raise ConfigurationError(str(error))
 

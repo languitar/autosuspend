@@ -340,6 +340,7 @@ def test_notify_and_suspend(mocker):
 
 class _StubCheck(autosuspend.Activity):
 
+    @classmethod
     def create(cls, name, config):
         pass
 

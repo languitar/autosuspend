@@ -12,8 +12,8 @@ import os.path
 import subprocess
 import time
 from typing import (Callable,
-                    Iterable,
                     IO,
+                    Iterable,
                     List,
                     Optional,
                     Sequence,

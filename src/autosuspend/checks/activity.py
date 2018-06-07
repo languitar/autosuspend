@@ -1,5 +1,7 @@
 import copy
+from datetime import datetime, timedelta, timezone
 import glob
+from io import BytesIO
 import os
 import pwd
 import re
@@ -9,12 +11,32 @@ import time
 
 import psutil
 
-from .util import CommandMixin, XPathMixin, list_logind_sessions
 from . import (Activity,
                Check,
                ConfigurationError,
                SevereCheckError,
                TemporaryCheckError)
+from .util import CommandMixin, NetworkMixin, XPathMixin
+from ..util.systemd import list_logind_sessions
+
+
+class ActiveCalendarEvent(NetworkMixin, Activity):
+    """Determines activity by checking against events in an icalendar file."""
+
+    def __init__(self, name, url, timeout):
+        NetworkMixin.__init__(self, url, timeout)
+        Activity.__init__(self, name)
+
+    def check(self):
+        from ..util.ical import list_calendar_events
+        response = self.request()
+        start = datetime.now(timezone.utc)
+        end = start + timedelta(minutes=1)
+        events = list_calendar_events(BytesIO(response.content), start, end)
+        if events:
+            return 'Calendar event {} is active'.format(events[0])
+        else:
+            return None
 
 
 class ActiveConnection(Activity):
@@ -26,7 +48,7 @@ class ActiveConnection(Activity):
             ports = config['ports']
             ports = ports.split(',')
             ports = [p.strip() for p in ports]
-            ports = set([int(p) for p in ports])
+            ports = {int(p) for p in ports}
             return cls(name, ports)
         except KeyError:
             raise ConfigurationError('Missing option ports')
@@ -547,7 +569,7 @@ class LogindSessionsIdle(Activity):
 
             if properties['IdleHint'] == 'no':
                 return 'Login session {} is not idle'.format(
-                    session_id, properties['IdleHint'])
+                    session_id)
 
         return None
 

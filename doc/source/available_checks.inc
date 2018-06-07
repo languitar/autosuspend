@@ -4,6 +4,35 @@ Available activity checks
 The following checks for activity are currently implemented.
 Each of the is described with its available configuration options and required optional dependencies.
 
+ActiveCalendarEvent
+~~~~~~~~~~~~~~~~~~~
+
+.. program:: check-active-calendar-event
+
+Checks an online `iCalendar`_ file for events that are currently running.
+If so, this indicates activity and prevents suspending the system.
+Thus, a calendar can be provided with times at which the system should not go to sleep.
+If this calendar resides on an online service like a groupware it might even be possible to invite the system.
+
+Options
+^^^^^^^
+
+.. option:: url
+
+   The URL to query for the iCalendar file
+
+.. option:: timeout
+
+   Timeout for executed requests in seconds. Default: 5.
+
+Requirements
+^^^^^^^^^^^^
+
+* `requests`_
+* `icalendar <python-icalendar_>`_
+* `dateutil`_
+* `tzlocal`_
+
 ActiveConnection
 ~~~~~~~~~~~~~~~~
 
