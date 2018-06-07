@@ -34,7 +34,7 @@ setup(
         'XPath': ['lxml', 'requests'],
         'Logind': ['dbus-python'],
         'ical': ['requests', 'icalendar', 'python-dateutil', 'tzlocal'],
-        'test': ['pytest', 'pytest-cov', 'pytest-mock'],
+        'test': ['pytest', 'pytest-cov', 'pytest-mock', 'freezegun'],
     },
 
     package_dir={
