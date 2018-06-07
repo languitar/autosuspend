@@ -2,6 +2,7 @@ import datetime
 import os
 import os.path
 
+from freezegun import freeze_time
 import pytest
 
 import autosuspend
@@ -27,7 +28,16 @@ def configure_config(config, tmpdir):
     return out_path
 
 
-def test_no_suspend_if_matching(tmpdir):
+@pytest.fixture
+def rapid_sleep(mocker):
+    with freeze_time() as frozen_time:
+        sleep_mock = mocker.patch('time.sleep')
+        sleep_mock.side_effect = lambda seconds: frozen_time.tick(
+            datetime.timedelta(seconds=seconds))
+        yield frozen_time
+
+
+def test_no_suspend_if_matching(tmpdir, rapid_sleep):
     autosuspend.main([
         '-c',
         configure_config('dont_suspend.conf', tmpdir).strpath,
@@ -38,7 +48,7 @@ def test_no_suspend_if_matching(tmpdir):
     assert not tmpdir.join(SUSPENSION_FILE).check()
 
 
-def test_suspend(tmpdir):
+def test_suspend(tmpdir, rapid_sleep):
     autosuspend.main([
         '-c',
         configure_config('would_suspend.conf', tmpdir).strpath,
@@ -49,7 +59,7 @@ def test_suspend(tmpdir):
     assert tmpdir.join(SUSPENSION_FILE).check()
 
 
-def test_wakeup_scheduled(tmpdir):
+def test_wakeup_scheduled(tmpdir, rapid_sleep):
     # configure when to wake up
     now = datetime.datetime.now(datetime.timezone.utc)
     wakeup_at = now + datetime.timedelta(hours=4)
@@ -69,7 +79,7 @@ def test_wakeup_scheduled(tmpdir):
         round((wakeup_at - datetime.timedelta(seconds=30)).timestamp()))
 
 
-def test_woke_up_file_removed(tmpdir):
+def test_woke_up_file_removed(tmpdir, rapid_sleep):
     tmpdir.join(WOKE_UP_FILE).ensure()
     autosuspend.main([
         '-c',
@@ -80,7 +90,7 @@ def test_woke_up_file_removed(tmpdir):
     assert not tmpdir.join(WOKE_UP_FILE).check()
 
 
-def test_notify_call(tmpdir):
+def test_notify_call(tmpdir, rapid_sleep):
     autosuspend.main([
         '-c',
         configure_config('notify.conf', tmpdir).strpath,
@@ -93,7 +103,7 @@ def test_notify_call(tmpdir):
     assert len(tmpdir.join(NOTIFY_FILE).read()) == 0
 
 
-def test_notify_call_wakeup(tmpdir):
+def test_notify_call_wakeup(tmpdir, rapid_sleep):
     # configure when to wake up
     now = datetime.datetime.now(datetime.timezone.utc)
     wakeup_at = now + datetime.timedelta(hours=4)
