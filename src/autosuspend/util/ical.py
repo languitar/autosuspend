@@ -66,7 +66,7 @@ def _expand_rrule(rrule: str,
     # expand the rrule
     dates = []
     for rule in rules.between(start_at, end_at):
-        localized = orig_tz.localize(rule)  # noqa: false-positive of mypy
+        localized = orig_tz.localize(rule)  # type: ignore
         dates.append(localized)
     return dates
 
