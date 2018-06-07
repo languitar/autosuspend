@@ -405,8 +405,7 @@ class TestNetworkBandwidth(object):
         check = NetworkBandwidth(
             'name', psutil.net_if_addrs().keys(), 0, 0)
         # make some traffic
-        requests.get('http://localhost:{}/'.format(
-            stub_server.server_address[1]))
+        requests.get(stub_server.resource_address(''))
         assert check.check() is not None
 
     @pytest.fixture
@@ -483,8 +482,7 @@ threshold_receive = xxx
             'name', psutil.net_if_addrs().keys(),
             send_threshold, receive_threshold)
         # make some traffic
-        requests.get('http://localhost:{}/'.format(
-            stub_server.server_address[1]))
+        requests.get(stub_server.resource_address(''))
         res = check.check()
         assert res is not None
         assert match in res
@@ -494,8 +492,7 @@ threshold_receive = xxx
             'name', psutil.net_if_addrs().keys(),
             sys.float_info.max, sys.float_info.max)
         # make some traffic
-        requests.get('http://localhost:{}/'.format(
-            stub_server.server_address[1]))
+        requests.get(stub_server.resource_address(''))
         assert check.check() is None
 
 

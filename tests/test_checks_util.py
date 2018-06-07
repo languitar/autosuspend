@@ -1,5 +1,4 @@
 import configparser
-import os.path
 
 import pytest
 import requests
@@ -66,13 +65,8 @@ class TestNetworkMixin(object):
                                timeout=xx''')
             NetworkMixin.collect_init_args(parser['section'])
 
-    @pytest.mark.parametrize('stub_server',
-                             [os.path.join(os.path.dirname(__file__),
-                                           'test_data')],
-                             indirect=True)
     def test_request(self, stub_server):
-        address = 'http://localhost:{}/xml_with_encoding.xml'.format(
-            stub_server.server_address[1])
+        address = stub_server.resource_address('xml_with_encoding.xml')
         reply = NetworkMixin(address, 5).request()
         assert reply is not None
         assert reply.status_code == 200
@@ -105,13 +99,8 @@ class _XPathMixinSub(XPathMixin, Activity):
 
 class TestXPathMixin(object):
 
-    @pytest.mark.parametrize('stub_server',
-                             [os.path.join(os.path.dirname(__file__),
-                                           'test_data')],
-                             indirect=True)
     def test_smoke(self, stub_server):
-        address = 'http://localhost:{}/xml_with_encoding.xml'.format(
-            stub_server.server_address[1])
+        address = stub_server.resource_address('xml_with_encoding.xml')
         result = _XPathMixinSub('foo', '/b', address, 5).evaluate()
         assert result is not None
         assert len(result) == 0
