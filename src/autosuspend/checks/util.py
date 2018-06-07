@@ -19,7 +19,6 @@ class CommandMixin(object):
 
 
 class NetworkMixin(object):
-    import requests
 
     @classmethod
     def collect_init_args(
@@ -42,7 +41,7 @@ class NetworkMixin(object):
         self._url = url
         self._timeout = timeout
 
-    def request(self) -> requests.Response:
+    def request(self):
         import requests
         import requests.exceptions
 
