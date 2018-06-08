@@ -89,6 +89,15 @@ class TestNetworkMixin(object):
             NetworkMixin(stub_server.resource_address('doesnotexist'),
                          timeout=5).request()
 
+    def test_authentication(self, stub_auth_server):
+        NetworkMixin(stub_auth_server.resource_address('data.txt'),
+                     5, username='user', password='pass').request()
+
+    def test_invalid_authentication(self, stub_auth_server):
+        with pytest.raises(TemporaryCheckError):
+            NetworkMixin(stub_auth_server.resource_address('data.txt'),
+                         5, username='userx', password='pass').request()
+
 
 class _XPathMixinSub(XPathMixin, Activity):
 

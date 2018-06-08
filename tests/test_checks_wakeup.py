@@ -150,6 +150,15 @@ class TestXPath(object):
                 datetime.now(timezone.utc)) == datetime.fromtimestamp(
                     10, timezone.utc)
 
+    def test_create(self):
+        parser = configparser.ConfigParser()
+        parser.read_string('''[section]
+                           xpath=/valid
+                           url=nourl
+                           timeout=20''')
+        check = XPath.create('name', parser['section'])
+        assert check._xpath == '/valid'
+
 
 class TestXPathDelta(object):
 

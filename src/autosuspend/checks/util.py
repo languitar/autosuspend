@@ -1,7 +1,7 @@
 import configparser
-from typing import Any, Dict, Iterable
+from typing import Any, Dict, Iterable, Optional
 
-from .. import ConfigurationError, TemporaryCheckError
+from . import ConfigurationError, SevereCheckError, TemporaryCheckError
 
 
 class CommandMixin(object):
@@ -27,6 +27,10 @@ class NetworkMixin(object):
             args = {}  # type: Dict[str, Any]
             args['timeout'] = config.getint('timeout', fallback=5)
             args['url'] = config['url']
+            args['username'] = config.get('username')
+            args['password'] = config.get('password')
+            if (args['username'] is None) != (args['password'] is None):
+                raise ConfigurationError('Username and password must be set')
             return args
         except ValueError as error:
             raise ConfigurationError('Configuration error ' + str(error))
@@ -37,16 +41,40 @@ class NetworkMixin(object):
     def create(cls, name: str, config: configparser.SectionProxy):
         return cls(name, **cls.collect_init_args(config))  # type: ignore
 
-    def __init__(self, url: str, timeout: int) -> None:
+    def __init__(self, url: str, timeout: int,
+                 username: Optional[str] = None,
+                 password: Optional[str] = None) -> None:
         self._url = url
         self._timeout = timeout
+        self._username = username
+        self._password = password
 
     def request(self):
         import requests
+        from requests.auth import HTTPBasicAuth, HTTPDigestAuth
         import requests.exceptions
+
+        auth_map = {
+            'basic': HTTPBasicAuth,
+            'digest': HTTPDigestAuth,
+        }
 
         try:
             reply = requests.get(self._url, timeout=self._timeout)
+
+            # replace reply with an authenticated version if credentials are
+            # available and the server has requested authentication
+            if self._username and self._password and reply.status_code == 401:
+                auth_scheme = reply.headers[
+                    'WWW-Authenticate'].split(' ')[0].lower()
+                if auth_scheme not in auth_map:
+                    raise SevereCheckError(
+                        'Unsupported authentication scheme {}'.format(
+                            auth_scheme))
+                auth = auth_map[auth_scheme](self._username, self._password)
+                reply = requests.get(
+                    self._url, timeout=self._timeout, auth=auth)
+
             reply.raise_for_status()
             return reply
         except requests.exceptions.RequestException as error:
@@ -78,8 +106,8 @@ class XPathMixin(NetworkMixin):
     def create(cls, name: str, config: configparser.SectionProxy):
         return cls(name, **cls.collect_init_args(config))
 
-    def __init__(self, xpath: str, url: str, timeout: int) -> None:
-        NetworkMixin.__init__(self, url, timeout)
+    def __init__(self, xpath: str, url: str, timeout: int, **kwargs) -> None:
+        NetworkMixin.__init__(self, url, timeout, **kwargs)
         self._xpath = xpath
 
     def evaluate(self) -> Iterable[Any]:
