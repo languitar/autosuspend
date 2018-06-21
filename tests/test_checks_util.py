@@ -104,9 +104,9 @@ class TestNetworkMixin(object):
 
 class _XPathMixinSub(XPathMixin, Activity):
 
-    def __init__(self, name, url, xpath, timeout):
+    def __init__(self, name, **kwargs):
         Activity.__init__(self, name)
-        XPathMixin.__init__(self, url, xpath, timeout)
+        XPathMixin.__init__(self, **kwargs)
 
     def check(self):
         pass
@@ -116,7 +116,8 @@ class TestXPathMixin(object):
 
     def test_smoke(self, stub_server):
         address = stub_server.resource_address('xml_with_encoding.xml')
-        result = _XPathMixinSub('foo', '/b', address, 5).evaluate()
+        result = _XPathMixinSub(
+            'foo', xpath='/b', url=address, timeout=5).evaluate()
         assert result is not None
         assert len(result) == 0
 
@@ -128,7 +129,8 @@ class TestXPathMixin(object):
             content_property.return_value = b"//broken"
             mocker.patch('requests.get', return_value=mock_reply)
 
-            _XPathMixinSub('foo', '/b', 'nourl', 5).evaluate()
+            _XPathMixinSub(
+                'foo', xpath='/b', url='nourl', timeout=5).evaluate()
 
     def test_xml_with_encoding(self, mocker):
         mock_reply = mocker.MagicMock()
@@ -139,7 +141,7 @@ class TestXPathMixin(object):
 <root></root>"""
         mocker.patch('requests.get', return_value=mock_reply)
 
-        _XPathMixinSub('foo', '/b', 'nourl', 5).evaluate()
+        _XPathMixinSub('foo', xpath='/b', url='nourl', timeout=5).evaluate()
 
     def test_xpath_prevalidation(self):
         with pytest.raises(ConfigurationError,

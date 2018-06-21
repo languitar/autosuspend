@@ -94,7 +94,7 @@ class TestXPath(object):
 
         url = 'nourl'
         assert XPath(
-            'foo', '/a/@value', url, 5).check(
+            'foo', xpath='/a/@value', url=url, timeout=5).check(
                 datetime.now(timezone.utc)) == datetime.fromtimestamp(
                     42.3, timezone.utc)
 
@@ -108,7 +108,7 @@ class TestXPath(object):
         content_property.return_value = "<a></a>"
         mocker.patch('requests.get', return_value=mock_reply)
 
-        assert XPath('foo', '/b', 'nourl', 5).check(
+        assert XPath('foo', xpath='/b', url='nourl', timeout=5).check(
             datetime.now(timezone.utc)) is None
 
     def test_not_a_string(self, mocker):
@@ -119,7 +119,7 @@ class TestXPath(object):
         mocker.patch('requests.get', return_value=mock_reply)
 
         with pytest.raises(TemporaryCheckError):
-            XPath('foo', '/a', 'nourl', 5).check(
+            XPath('foo', xpath='/a', url='nourl', timeout=5).check(
                 datetime.now(timezone.utc))
 
     def test_not_a_number(self, mocker):
@@ -130,7 +130,7 @@ class TestXPath(object):
         mocker.patch('requests.get', return_value=mock_reply)
 
         with pytest.raises(TemporaryCheckError):
-            XPath('foo', '/a/@value', 'nourl', 5).check(
+            XPath('foo', xpath='/a/@value', url='nourl', timeout=5).check(
                 datetime.now(timezone.utc))
 
     def test_multiple_min(self, mocker):
@@ -146,7 +146,7 @@ class TestXPath(object):
         mocker.patch('requests.get', return_value=mock_reply)
 
         assert XPath(
-            'foo', '//a/@value', 'nourl', 5).check(
+            'foo', xpath='//a/@value', url='nourl', timeout=5).check(
                 datetime.now(timezone.utc)) == datetime.fromtimestamp(
                     10, timezone.utc)
 
@@ -181,7 +181,7 @@ class TestXPathDelta(object):
         url = 'nourl'
         now = datetime.now(timezone.utc)
         result = XPathDelta(
-            'foo', '/a/@value', url, 5, unit).check(now)
+            'foo', xpath='/a/@value', url=url, timeout=5, unit=unit).check(now)
         assert result == now + timedelta(seconds=42) * factor
 
     def test_create(self):
@@ -196,4 +196,5 @@ class TestXPathDelta(object):
 
     def test_init_wrong_unit(self):
         with pytest.raises(ValueError):
-            XPathDelta('name', 'url', '/a', 5, 'unknownunit')
+            XPathDelta('name', url='url', xpath='/a', timeout=5,
+                       unit='unknownunit')

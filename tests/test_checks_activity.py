@@ -192,13 +192,27 @@ class TestActiveCalendarEvent(object):
 
     def test_smoke(self, stub_server):
         address = stub_server.resource_address('long-event.ics')
-        result = ActiveCalendarEvent('test', address, 3).check()
+        result = ActiveCalendarEvent('test', url=address, timeout=3).check()
         assert result is not None
         assert 'long-event' in result
 
     def test_no_event(self, stub_server):
         address = stub_server.resource_address('old-event.ics')
-        assert ActiveCalendarEvent('test', address, 3).check() is None
+        assert ActiveCalendarEvent(
+            'test', url=address, timeout=3).check() is None
+
+    def test_create(self):
+        parser = configparser.ConfigParser()
+        parser.read_string('''[section]
+                           url = foobar
+                           username = user
+                           password = pass
+                           timeout = 3''')
+        check = ActiveCalendarEvent.create('name', parser['section'])
+        assert check._url == 'foobar'
+        assert check._username == 'user'
+        assert check._password == 'pass'
+        assert check._timeout == 3
 
 
 class TestActiveConnection(object):
@@ -818,7 +832,7 @@ class TestXPath(object):
         mock_method = mocker.patch('requests.get', return_value=mock_reply)
 
         url = 'nourl'
-        assert XPath('foo', '/a', url, 5).check() is not None
+        assert XPath('foo', xpath='/a', url=url, timeout=5).check() is not None
 
         mock_method.assert_called_once_with(url, timeout=5)
         content_property.assert_called_once_with()
@@ -830,7 +844,22 @@ class TestXPath(object):
         content_property.return_value = "<a></a>"
         mocker.patch('requests.get', return_value=mock_reply)
 
-        assert XPath('foo', '/b', 'nourl', 5).check() is None
+        assert XPath('foo', xpath='/b', url='nourl', timeout=5).check() is None
+
+    def test_create(self):
+        parser = configparser.ConfigParser()
+        parser.read_string('''[section]
+                           url = url
+                           xpath = /xpath
+                           username = user
+                           password = pass
+                           timeout = 42''')
+        check = XPath.create('name', parser['section'])
+        assert check._xpath == '/xpath'
+        assert check._url == 'url'
+        assert check._username == 'user'
+        assert check._password == 'pass'
+        assert check._timeout == 42
 
 
 class TestLogindSessionsIdle(object):

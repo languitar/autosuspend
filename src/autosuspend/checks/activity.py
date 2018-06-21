@@ -23,8 +23,8 @@ from ..util.systemd import list_logind_sessions
 class ActiveCalendarEvent(NetworkMixin, Activity):
     """Determines activity by checking against events in an icalendar file."""
 
-    def __init__(self, name, url, timeout):
-        NetworkMixin.__init__(self, url, timeout)
+    def __init__(self, name: str, **kwargs) -> None:
+        NetworkMixin.__init__(self, **kwargs)
         Activity.__init__(self, name)
 
     def check(self):
@@ -617,9 +617,9 @@ class LogindSessionsIdle(Activity):
 
 class XPath(XPathMixin, Activity):
 
-    def __init__(self, name, url, xpath, timeout):
+    def __init__(self, name, **kwargs):
         Activity.__init__(self, name)
-        XPathMixin.__init__(self, url, xpath, timeout)
+        XPathMixin.__init__(self, **kwargs)
 
     def check(self):
         if self.evaluate():

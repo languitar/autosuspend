@@ -106,8 +106,8 @@ class XPathMixin(NetworkMixin):
     def create(cls, name: str, config: configparser.SectionProxy):
         return cls(name, **cls.collect_init_args(config))
 
-    def __init__(self, xpath: str, url: str, timeout: int, **kwargs) -> None:
-        NetworkMixin.__init__(self, url, timeout, **kwargs)
+    def __init__(self, xpath: str, **kwargs) -> None:
+        NetworkMixin.__init__(self, **kwargs)
         self._xpath = xpath
 
     def evaluate(self) -> Iterable[Any]:

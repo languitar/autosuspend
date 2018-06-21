@@ -68,9 +68,9 @@ class XPath(XPathMixin, Wakeup):
     The matched results are expected to represent timestamps in seconds UTC.
     """
 
-    def __init__(self, name, xpath, url, timeout, **kwargs):
+    def __init__(self, name, **kwargs):
         Wakeup.__init__(self, name)
-        XPathMixin.__init__(self, xpath, url, timeout, **kwargs)
+        XPathMixin.__init__(self, **kwargs)
 
     def convert_result(self, result, timestamp):
         return datetime.datetime.fromtimestamp(float(result),
@@ -103,10 +103,10 @@ class XPathDelta(XPath):
         except ValueError as error:
             raise ConfigurationError(str(error))
 
-    def __init__(self, name, url, xpath, timeout, unit='minutes', **kwargs):
+    def __init__(self, name, unit, **kwargs):
         if unit not in self.UNITS:
             raise ValueError('Unsupported unit')
-        XPath.__init__(self, name, url, xpath, timeout, **kwargs)
+        XPath.__init__(self, name, **kwargs)
         self._unit = unit
 
     def convert_result(self, result, timestamp):
