@@ -127,7 +127,8 @@ class TestXPath(object):
         content_property = mocker.PropertyMock()
         type(mock_reply).content = content_property
         content_property.return_value = '<a value="42.3"></a>'
-        mock_method = mocker.patch('requests.get', return_value=mock_reply)
+        mock_method = mocker.patch('requests.Session.get',
+                                   return_value=mock_reply)
 
         url = 'nourl'
         assert XPath(
@@ -143,7 +144,7 @@ class TestXPath(object):
         content_property = mocker.PropertyMock()
         type(mock_reply).content = content_property
         content_property.return_value = "<a></a>"
-        mocker.patch('requests.get', return_value=mock_reply)
+        mocker.patch('requests.Session.get', return_value=mock_reply)
 
         assert XPath('foo', xpath='/b', url='nourl', timeout=5).check(
             datetime.now(timezone.utc)) is None
@@ -153,7 +154,7 @@ class TestXPath(object):
         content_property = mocker.PropertyMock()
         type(mock_reply).content = content_property
         content_property.return_value = "<a></a>"
-        mocker.patch('requests.get', return_value=mock_reply)
+        mocker.patch('requests.Session.get', return_value=mock_reply)
 
         with pytest.raises(TemporaryCheckError):
             XPath('foo', xpath='/a', url='nourl', timeout=5).check(
@@ -164,7 +165,7 @@ class TestXPath(object):
         content_property = mocker.PropertyMock()
         type(mock_reply).content = content_property
         content_property.return_value = '<a value="narf"></a>'
-        mocker.patch('requests.get', return_value=mock_reply)
+        mocker.patch('requests.Session.get', return_value=mock_reply)
 
         with pytest.raises(TemporaryCheckError):
             XPath('foo', xpath='/a/@value', url='nourl', timeout=5).check(
@@ -180,7 +181,7 @@ class TestXPath(object):
     <a value="20"></a>
 </root>
 '''
-        mocker.patch('requests.get', return_value=mock_reply)
+        mocker.patch('requests.Session.get', return_value=mock_reply)
 
         assert XPath(
             'foo', xpath='//a/@value', url='nourl', timeout=5).check(
@@ -213,7 +214,7 @@ class TestXPathDelta(object):
         content_property = mocker.PropertyMock()
         type(mock_reply).content = content_property
         content_property.return_value = '<a value="42"></a>'
-        mocker.patch('requests.get', return_value=mock_reply)
+        mocker.patch('requests.Session.get', return_value=mock_reply)
 
         url = 'nourl'
         now = datetime.now(timezone.utc)

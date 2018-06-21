@@ -55,6 +55,7 @@ rst_epilog = '''
 .. _dateutil: https://dateutil.readthedocs.io
 .. _python-icalendar: https://icalendar.readthedocs.io
 .. _tzlocal: https://pypi.org/project/tzlocal/
+.. _requests-file: https://github.com/dashea/requests-file
 
 .. |project| replace:: {project}
 .. |project_bold| replace:: **{project}**

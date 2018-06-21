@@ -76,7 +76,7 @@ class TestNetworkMixin(object):
 
     def test_requests_exception(self, mocker):
         with pytest.raises(TemporaryCheckError):
-            mock_method = mocker.patch('requests.get')
+            mock_method = mocker.patch('requests.Session.get')
             mock_method.side_effect = requests.exceptions.ReadTimeout()
 
             NetworkMixin('url', timeout=5).request()
@@ -100,6 +100,9 @@ class TestNetworkMixin(object):
         with pytest.raises(TemporaryCheckError):
             NetworkMixin(stub_auth_server.resource_address('data.txt'),
                          5, username='userx', password='pass').request()
+
+    def test_file_url(self):
+        NetworkMixin('file://' + __file__, 5).request()
 
 
 class _XPathMixinSub(XPathMixin, Activity):
@@ -127,7 +130,7 @@ class TestXPathMixin(object):
             content_property = mocker.PropertyMock()
             type(mock_reply).content = content_property
             content_property.return_value = b"//broken"
-            mocker.patch('requests.get', return_value=mock_reply)
+            mocker.patch('requests.Session.get', return_value=mock_reply)
 
             _XPathMixinSub(
                 'foo', xpath='/b', url='nourl', timeout=5).evaluate()
@@ -139,7 +142,7 @@ class TestXPathMixin(object):
         content_property.return_value = \
             b"""<?xml version="1.0" encoding="ISO-8859-1" ?>
 <root></root>"""
-        mocker.patch('requests.get', return_value=mock_reply)
+        mocker.patch('requests.Session.get', return_value=mock_reply)
 
         _XPathMixinSub('foo', xpath='/b', url='nourl', timeout=5).evaluate()
 

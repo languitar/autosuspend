@@ -59,8 +59,15 @@ class NetworkMixin(object):
             'digest': HTTPDigestAuth,
         }
 
+        session = requests.Session()
         try:
-            reply = requests.get(self._url, timeout=self._timeout)
+            from requests_file import FileAdapter
+            session.mount('file://', FileAdapter())
+        except ImportError:
+            pass
+
+        try:
+            reply = session.get(self._url, timeout=self._timeout)
 
             # replace reply with an authenticated version if credentials are
             # available and the server has requested authentication
@@ -72,7 +79,7 @@ class NetworkMixin(object):
                         'Unsupported authentication scheme {}'.format(
                             auth_scheme))
                 auth = auth_map[auth_scheme](self._username, self._password)
-                reply = requests.get(
+                reply = session.get(
                     self._url, timeout=self._timeout, auth=auth)
 
             reply.raise_for_status()

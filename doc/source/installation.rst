@@ -6,16 +6,15 @@ Installation instructions
 Requirements
 ------------
 
+The minimal requirements are.
+
 * `Python 3`_
 * `psutil`_
 
-Additionally, the some checks need the following dependencies to function properly:
+Additionally, the some checks need further dependencies to function properly.
+Please refer to :ref:`available-checks` for individual requirements.
 
-* `python-mpd2`_
-* `requests`_
-* `lxml`_
-
-Please refer to :ref:`available-checks` for further details on these checks in which check requires which optional dependency.
+If checks using URLs to load data should support ``file://`` URLs, `requests-file`_ is needed.
 
 Binary packages
 ---------------

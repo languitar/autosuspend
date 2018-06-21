@@ -829,7 +829,8 @@ class TestXPath(object):
         content_property = mocker.PropertyMock()
         type(mock_reply).content = content_property
         content_property.return_value = "<a></a>"
-        mock_method = mocker.patch('requests.get', return_value=mock_reply)
+        mock_method = mocker.patch('requests.Session.get',
+                                   return_value=mock_reply)
 
         url = 'nourl'
         assert XPath('foo', xpath='/a', url=url, timeout=5).check() is not None
@@ -842,7 +843,7 @@ class TestXPath(object):
         content_property = mocker.PropertyMock()
         type(mock_reply).content = content_property
         content_property.return_value = "<a></a>"
-        mocker.patch('requests.get', return_value=mock_reply)
+        mocker.patch('requests.Session.get', return_value=mock_reply)
 
         assert XPath('foo', xpath='/b', url='nourl', timeout=5).check() is None
 

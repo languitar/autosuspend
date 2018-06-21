@@ -34,6 +34,7 @@ setup(
         'XPath': ['lxml', 'requests'],
         'Logind': ['dbus-python'],
         'ical': ['requests', 'icalendar', 'python-dateutil', 'tzlocal'],
+        'localfiles': ['requests-file'],
         'test': ['pytest', 'pytest-cov', 'pytest-mock', 'freezegun'],
     },
 
