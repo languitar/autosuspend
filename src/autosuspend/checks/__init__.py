@@ -32,7 +32,7 @@ class SevereCheckError(RuntimeError):
     pass
 
 
-class Check(object):
+class Check(abc.ABC):
     """Base class for all kinds of checks.
 
     Subclasses must call this class' ``__init__`` method.

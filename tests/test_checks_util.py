@@ -15,6 +15,9 @@ class _CommandMixinSub(CommandMixin, Activity):
         Activity.__init__(self, name)
         CommandMixin.__init__(self, command)
 
+    def check(self):
+        pass
+
 
 class TestCommandMixin(object):
 
@@ -104,6 +107,9 @@ class _XPathMixinSub(XPathMixin, Activity):
     def __init__(self, name, url, xpath, timeout):
         Activity.__init__(self, name)
         XPathMixin.__init__(self, url, xpath, timeout)
+
+    def check(self):
+        pass
 
 
 class TestXPathMixin(object):
