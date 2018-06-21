@@ -4,6 +4,52 @@ Available wake up checks
 The following checks for wake up times are currently implemented.
 Each of the checks is described with its available configuration options and required optional dependencies.
 
+Calendar
+~~~~~~~~
+
+.. program:: wakeup-calendar
+
+Determines next wake up time from an `iCalendar`_ file.
+The next event that starts after the current time is chosen as the next wake up time.
+
+Remember that updates to the calendar can only be reflected in case the system currently running.
+Changes to the calendar made while the system is sleeping will obviously not trigger an earlier wake up.
+
+Options
+^^^^^^^
+
+.. option:: url
+
+   The URL to query for the XML reply.
+
+.. option:: username
+
+   Optional user name to use for authenticating at a server requiring authentication.
+   If used, also a password must be provided.
+
+.. option:: password
+
+   Optional password to use for authenticating at a server requiring authentication.
+   If used, also a user name must be provided.
+
+.. option:: xpath
+
+   The XPath query to execute.
+   Must always return number strings or nothing.
+
+.. option:: timeout
+
+   Timeout for executed requests in seconds. Default: 5.
+
+
+Requirements
+^^^^^^^^^^^^
+
+* `requests`_
+* `icalendar <python-icalendar_>`_
+* `dateutil`_
+* `tzlocal`_
+
 Command
 ~~~~~~~
 

@@ -2,13 +2,50 @@ import configparser
 from datetime import datetime, timedelta, timezone
 import subprocess
 
+import dateutil.parser
 import pytest
 
 from autosuspend.checks import ConfigurationError, TemporaryCheckError
-from autosuspend.checks.wakeup import (Command,
+from autosuspend.checks.wakeup import (Calendar,
+                                       Command,
                                        File,
                                        XPath,
                                        XPathDelta)
+
+
+class TestCalendar(object):
+
+    def test_create(self):
+        parser = configparser.ConfigParser()
+        parser.read_string('''[section]
+                              url = url
+                              username = user
+                              password = pass
+                              timeout = 42''')
+        check = Calendar.create('name', parser['section'])
+        assert check._url == 'url'
+        assert check._username == 'user'
+        assert check._password == 'pass'
+        assert check._timeout == 42
+
+    def test_empty(self, stub_server):
+        address = stub_server.resource_address('old-event.ics')
+        timestamp = dateutil.parser.parse('20050605T130000Z')
+        assert Calendar(
+            'test', url=address, timeout=3).check(timestamp) is None
+
+    def test_smoke(self, stub_server):
+        address = stub_server.resource_address('old-event.ics')
+        timestamp = dateutil.parser.parse('20040605T090000Z')
+        desired_start = dateutil.parser.parse('20040605T110000Z')
+        assert Calendar(
+            'test', url=address, timeout=3).check(timestamp) == desired_start
+
+    def test_ignore_running(self, stub_server):
+        address = stub_server.resource_address('old-event.ics')
+        timestamp = dateutil.parser.parse('20040605T120000Z')
+        assert Calendar(
+            'test', url=address, timeout=3).check(timestamp) is None
 
 
 class TestFile(object):

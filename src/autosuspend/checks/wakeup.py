@@ -1,8 +1,31 @@
 import datetime
+from io import BytesIO
 import subprocess
 
-from .util import CommandMixin, XPathMixin
-from .. import Check, ConfigurationError, TemporaryCheckError, Wakeup
+from .util import CommandMixin, NetworkMixin, XPathMixin
+from .. import ConfigurationError, TemporaryCheckError, Wakeup
+
+
+class Calendar(NetworkMixin, Wakeup):
+    """Uses an ical calendar to wake up on the next scheduled event."""
+
+    def __init__(self, name: str, **kwargs) -> None:
+        NetworkMixin.__init__(self, **kwargs)
+        Wakeup.__init__(self, name)
+
+    def check(self, timestamp):
+        from ..util.ical import list_calendar_events
+
+        response = self.request()
+
+        end = timestamp + datetime.timedelta(weeks=6 * 4)
+        events = list_calendar_events(BytesIO(response.content),
+                                      timestamp, end)
+        # Filter out currently active events. They are not our business.
+        events = [e for e in events if e.start >= timestamp]
+
+        if events:
+            return events[0].start
 
 
 class File(Wakeup):
@@ -20,7 +43,7 @@ class File(Wakeup):
             raise ConfigurationError('Missing option path')
 
     def __init__(self, name, path):
-        Check.__init__(self, name)
+        Wakeup.__init__(self, name)
         self._path = path
 
     def check(self, timestamp):
