@@ -105,6 +105,37 @@ Requirements
 
 -  `requests`_
 
+KodiIdleTime
+~~~~~~~~~~~~
+
+.. program:: check-kodi-idle-time
+
+Checks whether there has been interaction with the Kodi user interface recently.
+This prevents suspending the system in case someone is currently browsing collections etc.
+This check is redundant to ``XIdleTime`` on systems using an X server, but might be necessary in case Kodi is used standalone.
+It does not replace the ``Kodi`` check, as the idle time is not updated when media is playing.
+
+Options
+^^^^^^^
+
+.. option:: idle_time
+
+   Marks the system active in case a user interaction has appeared within the this amount of seconds until now.
+   Default: ``120``
+
+.. option:: url
+
+   Base URL of the JSON RPC API of the Kodi instance, default: ``http://localhost:8080/jsonrpc``
+
+.. option:: timeout
+
+   Request timeout in seconds, default: ``5``
+
+Requirements
+^^^^^^^^^^^^
+
+-  `requests`_
+
 Load
 ~~~~
 

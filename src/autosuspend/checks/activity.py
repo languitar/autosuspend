@@ -123,6 +123,47 @@ class Kodi(Activity):
             raise TemporaryCheckError(error)
 
 
+class KodiIdleTime(Activity):
+
+    @classmethod
+    def create(cls, name, config):
+        try:
+            url = config.get('url', fallback='http://localhost:8080/jsonrpc')
+            timeout = config.getint('timeout', fallback=5)
+            idle_time = config.getint('idle_time', fallback=120)
+            return cls(name, url, timeout, idle_time)
+        except ValueError as error:
+            raise ConfigurationError(
+                'Url or timeout configuration wrong: {}'.format(error))
+
+    def __init__(self, name, url, timeout, idle_time):
+        Check.__init__(self, name)
+        self._url = url
+        self._timeout = timeout
+        self._idle_time = idle_time
+
+    def check(self):
+        import requests
+        import requests.exceptions
+
+        try:
+            reply = requests.get(
+                self._url + '?request={{"jsonrpc": "2.0", '
+                '"id": 1, '
+                '"method": "XMBC.GetInfoBool"}},'
+                '"params": {{"booleans": ["System.IdleTime({})"]}}'.format(
+                    self._idle_time),
+                timeout=self._timeout).json()
+            if reply['result']["System.IdleTime({})".format(self._idle_time)]:
+                return 'Someone interacts with Kodi'
+            else:
+                return None
+        except (KeyError, TypeError) as error:
+            raise TemporaryCheckError(error)
+        except requests.exceptions.RequestException as error:
+            raise TemporaryCheckError(error)
+
+
 class Load(Activity):
 
     @classmethod

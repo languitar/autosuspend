@@ -19,6 +19,7 @@ from autosuspend.checks.activity import (ActiveCalendarEvent,
                                          ActiveConnection,
                                          ExternalCommand,
                                          Kodi,
+                                         KodiIdleTime,
                                          Load,
                                          LogindSessionsIdle,
                                          Mpd,
@@ -571,6 +572,100 @@ class TestKodi(object):
 
         with pytest.raises(ConfigurationError):
             Kodi.create('name', parser['section'])
+
+
+class TestKodiIdleTime(object):
+
+    def test_create(self):
+        parser = configparser.ConfigParser()
+        parser.read_string('''[section]
+                           url = anurl
+                           timeout = 12
+                           idle_time = 42''')
+
+        check = KodiIdleTime.create('name', parser['section'])
+
+        assert check._url == 'anurl'
+        assert check._timeout == 12
+        assert check._idle_time == 42
+
+    def test_create_timeout_no_number(self):
+        parser = configparser.ConfigParser()
+        parser.read_string('''[section]
+                           url = anurl
+                           timeout = string''')
+
+        with pytest.raises(ConfigurationError):
+            KodiIdleTime.create('name', parser['section'])
+
+    def test_create_idle_time_no_number(self):
+        parser = configparser.ConfigParser()
+        parser.read_string('''[section]
+                           url = anurl
+                           idle_time = string''')
+
+        with pytest.raises(ConfigurationError):
+            KodiIdleTime.create('name', parser['section'])
+
+    def test_no_result(self, mocker):
+        mock_reply = mocker.MagicMock()
+        mock_reply.json.return_value = {"id": 1, "jsonrpc": "2.0"}
+        mocker.patch('requests.get', return_value=mock_reply)
+
+        with pytest.raises(TemporaryCheckError):
+            KodiIdleTime('foo', 'url', 10, 42).check()
+
+    def test_result_is_list(self, mocker):
+        mock_reply = mocker.MagicMock()
+        mock_reply.json.return_value = {"id": 1, "jsonrpc": "2.0",
+                                        "result": []}
+        mocker.patch('requests.get', return_value=mock_reply)
+
+        with pytest.raises(TemporaryCheckError):
+            KodiIdleTime('foo', 'url', 10, 42).check()
+
+    def test_result_no_entry(self, mocker):
+        mock_reply = mocker.MagicMock()
+        mock_reply.json.return_value = {"id": 1, "jsonrpc": "2.0",
+                                        "result": {}}
+        mocker.patch('requests.get', return_value=mock_reply)
+
+        with pytest.raises(TemporaryCheckError):
+            KodiIdleTime('foo', 'url', 10, 42).check()
+
+    def test_result_wrong_entry(self, mocker):
+        mock_reply = mocker.MagicMock()
+        mock_reply.json.return_value = {"id": 1, "jsonrpc": "2.0",
+                                        "result": {"narf": True}}
+        mocker.patch('requests.get', return_value=mock_reply)
+
+        with pytest.raises(TemporaryCheckError):
+            KodiIdleTime('foo', 'url', 10, 42).check()
+
+    def test_active(self, mocker):
+        mock_reply = mocker.MagicMock()
+        mock_reply.json.return_value = {"id": 1, "jsonrpc": "2.0",
+                                        "result": {
+                                            "System.IdleTime(42)": True}}
+        mocker.patch('requests.get', return_value=mock_reply)
+
+        assert KodiIdleTime('foo', 'url', 10, 42).check() is not None
+
+    def test_inactive(self, mocker):
+        mock_reply = mocker.MagicMock()
+        mock_reply.json.return_value = {"id": 1, "jsonrpc": "2.0",
+                                        "result": {
+                                            "System.IdleTime(42)": False}}
+        mocker.patch('requests.get', return_value=mock_reply)
+
+        assert KodiIdleTime('foo', 'url', 10, 42).check() is None
+
+    def test_request_error(self, mocker):
+        mocker.patch('requests.get',
+                     side_effect=requests.exceptions.RequestException())
+
+        with pytest.raises(TemporaryCheckError):
+            KodiIdleTime('foo', 'url', 10, 42).check()
 
 
 class TestPing(object):
