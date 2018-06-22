@@ -61,11 +61,11 @@ def _serve(request, handler):
     os.chdir(previous_cwd)
 
 
-@pytest.fixture
+@pytest.fixture(scope='session')
 def stub_server(request):
     yield from _serve(request, http.server.SimpleHTTPRequestHandler)
 
 
-@pytest.fixture
+@pytest.fixture(scope='session')
 def stub_auth_server(request):
     yield from _serve(request, AuthHandler)
