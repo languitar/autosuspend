@@ -85,6 +85,28 @@ class Command(CommandMixin, Wakeup):
             raise TemporaryCheckError(error) from error
 
 
+class Periodic(Wakeup):
+    """Always indicates a wake up after a specified delta of time from now on.
+
+    Use this to periodically wake up a system.
+    """
+
+    @classmethod
+    def create(cls, name, config):
+        try:
+            kwargs = {}
+            kwargs[config['unit']] = float(config['value'])
+            return cls(name, datetime.timedelta(**kwargs))
+        except (ValueError, KeyError, TypeError) as error:
+            raise ConfigurationError(str(error))
+
+    def __init__(self, name: str, delta: datetime.timedelta) -> None:
+        self._delta = delta
+
+    def check(self, timestamp):
+        return timestamp + self._delta
+
+
 class XPath(XPathMixin, Wakeup):
     """Determine wake up times from a network resource using XPath expressions.
 

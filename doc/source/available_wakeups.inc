@@ -84,6 +84,27 @@ Options
 
    path of the file to read in case it is present
 
+
+Periodic
+~~~~~~~~
+
+.. program:: wakeup-periodic
+
+Always schedules a wake up at a specified delta from now on.
+Can be used to let the system wake up every once in a while, for instance, to refresh the calendar used in the ``Calendar`` check.
+
+Options
+^^^^^^^
+
+.. option:: unit
+
+   A string indicating in which unit the delta is specified.
+   Valid options are: ``microseconds``, ``milliseconds``, ``seconds``, ``minutes``, ``hours``, ``days``, ``weeks``.
+
+.. option:: value
+
+   The value of the delta as an int.
+
 XPath
 ~~~~~
 

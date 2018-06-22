@@ -9,6 +9,7 @@ from autosuspend.checks import ConfigurationError, TemporaryCheckError
 from autosuspend.checks.wakeup import (Calendar,
                                        Command,
                                        File,
+                                       Periodic,
                                        XPath,
                                        XPathDelta)
 
@@ -118,6 +119,46 @@ class TestCommand(object):
         check = Command('test', 'echo bla')
         with pytest.raises(TemporaryCheckError):
             check.check(datetime.now(timezone.utc))
+
+
+class TestPeriodic(object):
+
+    def test_create(self):
+        parser = configparser.ConfigParser()
+        parser.read_string('''[section]
+                           unit=seconds
+                           value=13''')
+        check = Periodic.create('name', parser['section'])
+        assert check._delta == timedelta(seconds=13)
+
+    def test_create_wrong_unit(self):
+        parser = configparser.ConfigParser()
+        parser.read_string('''[section]
+                           unit=asdfasdf
+                           value=13''')
+        with pytest.raises(ConfigurationError):
+            Periodic.create('name', parser['section'])
+
+    def test_create_not_numeric(self):
+        parser = configparser.ConfigParser()
+        parser.read_string('''[section]
+                           unit=seconds
+                           value=asdfasd''')
+        with pytest.raises(ConfigurationError):
+            Periodic.create('name', parser['section'])
+
+    def test_create_float(self):
+        parser = configparser.ConfigParser()
+        parser.read_string('''[section]
+                           unit=seconds
+                           value=21312.12''')
+        Periodic.create('name', parser['section'])
+
+    def test_check(self):
+        delta = timedelta(seconds=10, minutes=42)
+        check = Periodic('test', delta)
+        now = datetime.now(timezone.utc)
+        assert check.check(now) == now + delta
 
 
 class TestXPath(object):
