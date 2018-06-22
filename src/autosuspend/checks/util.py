@@ -124,6 +124,8 @@ class XPathMixin(NetworkMixin):
 
         try:
             reply = self.request().content
+            self.logger.info('Applying XPath %s against this document:\n%s',
+                             self._xpath, reply)
             root = etree.fromstring(reply)
             return root.xpath(self._xpath)
         except requests.exceptions.RequestException as error:
