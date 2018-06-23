@@ -25,10 +25,11 @@ from .checks import (Activity,
                      ConfigurationError,
                      TemporaryCheckError,
                      Wakeup)
+from .util import logger_by_class_instance
 
 
 # pylint: disable=invalid-name
-_logger = logging.getLogger()
+_logger = logging.getLogger('autosuspend')
 # pylint: enable=invalid-name
 
 
@@ -209,7 +210,7 @@ class Processor(object):
                  sleep_fn: Callable,
                  wakeup_fn: Callable[[datetime.datetime], None],
                  all_activities: bool) -> None:
-        self._logger = logging.getLogger('Processor')
+        self._logger = logger_by_class_instance(self)
         self._activities = activities
         self._wakeups = wakeups
         self._idle_time = idle_time

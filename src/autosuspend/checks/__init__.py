@@ -3,8 +3,9 @@
 import abc
 import configparser
 import datetime
-import logging
 from typing import Optional
+
+from autosuspend.util import logger_by_class_instance
 
 
 class ConfigurationError(RuntimeError):
@@ -65,8 +66,7 @@ class Check(abc.ABC):
             self.name = name
         else:
             self.name = self.__class__.__name__
-        self.logger = logging.getLogger(
-            'check.{}'.format(self.name))
+        self.logger = logger_by_class_instance(self, name)
 
     def __str__(self):
         return '{name}[class={clazz}]'.format(name=self.name,
