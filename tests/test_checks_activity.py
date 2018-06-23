@@ -862,6 +862,13 @@ class TestXPath(object):
         assert check._password == 'pass'
         assert check._timeout == 42
 
+    def test_network_errors_are_passed(self, stub_auth_server):
+        with pytest.raises(TemporaryCheckError):
+            XPath(name='name',
+                  url=stub_auth_server.resource_address('data.txt'),
+                  timeout=5, username='userx', password='pass',
+                  xpath='/b').request()
+
 
 class TestLogindSessionsIdle(object):
 

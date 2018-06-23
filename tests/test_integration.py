@@ -1,4 +1,5 @@
 import datetime
+import logging
 import os
 import os.path
 
@@ -121,3 +122,19 @@ def test_notify_call_wakeup(tmpdir, rapid_sleep):
     assert tmpdir.join(NOTIFY_FILE).check()
     assert int(tmpdir.join(NOTIFY_FILE).read()) == int(
         round((wakeup_at - datetime.timedelta(seconds=10)).timestamp()))
+
+
+def test_temporary_errors_logged(tmpdir, rapid_sleep, caplog):
+    autosuspend.main([
+        '-c',
+        configure_config('temporary_error.conf', tmpdir).strpath,
+        '-r',
+        '10',
+        '-l'])
+
+    warnings = [r for r in caplog.record_tuples
+                if r[1] == logging.WARNING and
+                'XPath' in r[2] and
+                'failed' in r[2]]
+
+    assert len(warnings) > 0
