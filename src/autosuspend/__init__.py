@@ -172,7 +172,7 @@ def execute_wakeups(wakeups: Iterable[Wakeup],
     return wakeup_at
 
 
-class Processor(object):
+class Processor:
     """Implements the logic for triggering suspension.
 
     Args:
@@ -378,7 +378,7 @@ def set_up_checks(config: configparser.ConfigParser,
         except AttributeError as error:
             raise ConfigurationError(
                 'Cannot create built-in check named {}: '
-                'Class does not exist'.format(class_name))
+                'Class does not exist'.format(class_name)) from error
 
         check = klass.create(name, config[section])
         if not isinstance(check, target_class):
@@ -495,7 +495,7 @@ def configure_logging(file_or_flag):
     else:
         try:
             logging.config.fileConfig(file_or_flag)
-        except Exception as error:
+        except Exception:
             # at least configure warnings
             logging.basicConfig(level=logging.WARNING)
             _logger.warning('Unable to configure logging from file %s. '

@@ -19,7 +19,7 @@ class _CommandMixinSub(CommandMixin, Activity):
         pass
 
 
-class TestCommandMixin(object):
+class TestCommandMixin:
 
     def test_create(self):
         parser = configparser.ConfigParser()
@@ -35,7 +35,7 @@ class TestCommandMixin(object):
             _CommandMixinSub.create('name', parser['section'])
 
 
-class TestNetworkMixin(object):
+class TestNetworkMixin:
 
     def test_collect_missing_url(self):
         with pytest.raises(ConfigurationError,
@@ -115,7 +115,7 @@ class _XPathMixinSub(XPathMixin, Activity):
         pass
 
 
-class TestXPathMixin(object):
+class TestXPathMixin:
 
     def test_smoke(self, stub_server):
         address = stub_server.resource_address('xml_with_encoding.xml')

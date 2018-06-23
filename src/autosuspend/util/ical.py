@@ -8,7 +8,7 @@ import pytz
 import tzlocal
 
 
-class CalendarEvent(object):
+class CalendarEvent:
 
     def __init__(self, summary: str, start: datetime, end: datetime) -> None:
         self.summary = summary

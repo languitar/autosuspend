@@ -8,7 +8,7 @@ import pytest
 import autosuspend
 
 
-class TestExecuteSuspend(object):
+class TestExecuteSuspend:
 
     def test_smoke(self, mocker):
         mock = mocker.patch('subprocess.check_call')
@@ -29,7 +29,7 @@ class TestExecuteSuspend(object):
         assert spy.call_count == 1
 
 
-class TestScheduleWakeup(object):
+class TestScheduleWakeup:
 
     def test_smoke(self, mocker):
         mock = mocker.patch('subprocess.check_call')
@@ -50,7 +50,7 @@ class TestScheduleWakeup(object):
         assert spy.call_count == 1
 
 
-class TestConfigureLogging(object):
+class TestConfigureLogging:
 
     def test_debug(self, mocker):
         mock = mocker.patch('logging.basicConfig')
@@ -86,7 +86,7 @@ class TestConfigureLogging(object):
         mock_basic.assert_called_once_with(level=logging.WARNING)
 
 
-class TestSetUpChecks(object):
+class TestSetUpChecks:
 
     def test_smoke(self, mocker):
         mock_class = mocker.patch('autosuspend.checks.activity.Mpd')
@@ -160,7 +160,7 @@ class TestSetUpChecks(object):
         mock_class.create.assert_called_once_with('Foo', parser['check.Foo'])
 
 
-class TestExecuteChecks(object):
+class TestExecuteChecks:
 
     def test_no_checks(self, mocker):
         assert autosuspend.execute_checks(
@@ -224,7 +224,7 @@ class TestExecuteChecks(object):
         second_check.check.assert_called_once_with()
 
 
-class TestExecuteWakeups(object):
+class TestExecuteWakeups:
 
     def test_no_wakeups(self, mocker):
         assert autosuspend.execute_wakeups(
@@ -290,7 +290,7 @@ class TestExecuteWakeups(object):
             [wakeup], now + timedelta(seconds=1), mocker.MagicMock()) is None
 
 
-class TestNotifySuspend(object):
+class TestNotifySuspend:
 
     def test_date(self, mocker):
         mock = mocker.patch('subprocess.check_call')
@@ -355,7 +355,7 @@ class _StubCheck(autosuspend.Activity):
 @pytest.fixture
 def sleep_fn():
 
-    class Func(object):
+    class Func:
 
         def __init__(self):
             self.called = False
@@ -375,7 +375,7 @@ def sleep_fn():
 @pytest.fixture
 def wakeup_fn():
 
-    class Func(object):
+    class Func:
 
         def __init__(self):
             self.call_arg = None
@@ -389,7 +389,7 @@ def wakeup_fn():
     return Func()
 
 
-class TestProcessor(object):
+class TestProcessor:
 
     def test_smoke(self, sleep_fn, wakeup_fn):
         processor = autosuspend.Processor([_StubCheck('stub', None)],

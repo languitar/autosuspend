@@ -1,7 +1,7 @@
 from autosuspend.checks import Check
 
 
-class TestCheck(object):
+class TestCheck:
 
     class DummyCheck(Check):
 

@@ -4,21 +4,22 @@ from typing import Any, Dict, Iterable, Optional
 from . import ConfigurationError, SevereCheckError, TemporaryCheckError
 
 
-class CommandMixin(object):
+class CommandMixin:
     """Mixin for configuring checks based on external commands."""
 
     @classmethod
     def create(cls, name: str, config: configparser.SectionProxy):
         try:
             return cls(name, config['command'].strip())  # type: ignore
-        except KeyError:
-            raise ConfigurationError('Missing command specification')
+        except KeyError as error:
+            raise ConfigurationError(
+                'Missing command specification') from error
 
     def __init__(self, command: str) -> None:
         self._command = command
 
 
-class NetworkMixin(object):
+class NetworkMixin:
 
     @classmethod
     def collect_init_args(
@@ -33,9 +34,11 @@ class NetworkMixin(object):
                 raise ConfigurationError('Username and password must be set')
             return args
         except ValueError as error:
-            raise ConfigurationError('Configuration error ' + str(error))
+            raise ConfigurationError(
+                'Configuration error ' + str(error)) from error
         except KeyError as error:
-            raise ConfigurationError('Lacks ' + str(error) + ' config entry')
+            raise ConfigurationError(
+                'Lacks ' + str(error) + ' config entry') from error
 
     @classmethod
     def create(cls, name: str, config: configparser.SectionProxy):
@@ -85,7 +88,7 @@ class NetworkMixin(object):
             reply.raise_for_status()
             return reply
         except requests.exceptions.RequestException as error:
-            raise TemporaryCheckError(error)
+            raise TemporaryCheckError(error) from error
 
 
 class XPathMixin(NetworkMixin):
@@ -99,15 +102,16 @@ class XPathMixin(NetworkMixin):
             # validate the expression
             try:
                 etree.fromstring('<a></a>').xpath(args['xpath'])
-            except etree.XPathEvalError:
+            except etree.XPathEvalError as error:
                 raise ConfigurationError(
-                    'Invalid xpath expression: ' + args['xpath'])
+                    'Invalid xpath expression: ' + args['xpath']) from error
             return args
         except ValueError as error:
-            raise ConfigurationError('Configuration error ' + str(error))
+            raise ConfigurationError(
+                'Configuration error ' + str(error)) from error
         except KeyError as error:
             raise ConfigurationError(
-                'Lacks ' + str(error) + ' config entry')
+                'Lacks ' + str(error) + ' config entry') from error
 
     @classmethod
     def create(cls, name: str, config: configparser.SectionProxy):
@@ -127,6 +131,6 @@ class XPathMixin(NetworkMixin):
             root = etree.fromstring(reply)
             return root.xpath(self._xpath)
         except requests.exceptions.RequestException as error:
-            raise TemporaryCheckError(error)
+            raise TemporaryCheckError(error) from error
         except etree.XMLSyntaxError as error:
-            raise TemporaryCheckError(error)
+            raise TemporaryCheckError(error) from error

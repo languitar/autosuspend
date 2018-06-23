@@ -50,10 +50,10 @@ class ActiveConnection(Activity):
             ports = [p.strip() for p in ports]
             ports = {int(p) for p in ports}
             return cls(name, ports)
-        except KeyError:
-            raise ConfigurationError('Missing option ports')
-        except ValueError:
-            raise ConfigurationError('Ports must be integers')
+        except KeyError as error:
+            raise ConfigurationError('Missing option ports') from error
+        except ValueError as error:
+            raise ConfigurationError('Ports must be integers') from error
 
     def __init__(self, name, ports):
         Activity.__init__(self, name)
@@ -96,7 +96,8 @@ class Kodi(Activity):
             return cls(name, url, timeout)
         except ValueError as error:
             raise ConfigurationError(
-                'Url or timeout configuration wrong: {}'.format(error))
+                'URL or timeout configuration wrong: {}'.format(
+                    error)) from error
 
     def __init__(self, name, url, timeout):
         Check.__init__(self, name)
@@ -120,7 +121,7 @@ class Kodi(Activity):
             else:
                 return None
         except requests.exceptions.RequestException as error:
-            raise TemporaryCheckError(error)
+            raise TemporaryCheckError(error) from error
 
 
 class KodiIdleTime(Activity):
@@ -134,7 +135,8 @@ class KodiIdleTime(Activity):
             return cls(name, url, timeout, idle_time)
         except ValueError as error:
             raise ConfigurationError(
-                'Url or timeout configuration wrong: {}'.format(error))
+                'Url or timeout configuration wrong: {}'.format(
+                    error)) from error
 
     def __init__(self, name, url, timeout, idle_time):
         Check.__init__(self, name)
@@ -159,9 +161,9 @@ class KodiIdleTime(Activity):
             else:
                 return None
         except (KeyError, TypeError) as error:
-            raise TemporaryCheckError(error)
+            raise TemporaryCheckError(error) from error
         except requests.exceptions.RequestException as error:
-            raise TemporaryCheckError(error)
+            raise TemporaryCheckError(error) from error
 
 
 class Load(Activity):
@@ -173,7 +175,8 @@ class Load(Activity):
                        config.getfloat('threshold', fallback=2.5))
         except ValueError as error:
             raise ConfigurationError(
-                'Unable to parse threshold as float: {}'.format(error))
+                'Unable to parse threshold as float: {}'.format(
+                    error)) from error
 
     def __init__(self, name, threshold):
         Check.__init__(self, name)
@@ -200,7 +203,8 @@ class Mpd(Activity):
             return cls(name, host, port, timeout)
         except ValueError as error:
             raise ConfigurationError(
-                'Host port or timeout configuration wrong: {}'.format(error))
+                'Host port or timeout configuration wrong: {}'.format(
+                    error)) from error
 
     def __init__(self, name, host, port, timeout):
         Check.__init__(self, name)
@@ -229,7 +233,7 @@ class Mpd(Activity):
                 ConnectionRefusedError,
                 socket.timeout,
                 socket.gaierror) as error:
-            raise TemporaryCheckError(error)
+            raise TemporaryCheckError(error) from error
 
 
 class NetworkBandwidth(Activity):
@@ -255,10 +259,10 @@ class NetworkBandwidth(Activity):
             return cls(name, interfaces, threshold_send, threshold_receive)
         except KeyError as error:
             raise ConfigurationError(
-                'Missing configuration key: {}'.format(error))
+                'Missing configuration key: {}'.format(error)) from error
         except ValueError as error:
             raise ConfigurationError(
-                'Threshold in wrong format: {}'.format(error))
+                'Threshold in wrong format: {}'.format(error)) from error
 
     def __init__(self, name, interfaces, threshold_send, threshold_receive):
         Check.__init__(self, name)
@@ -306,7 +310,8 @@ class Ping(Activity):
             return cls(name, hosts)
         except KeyError as error:
             raise ConfigurationError(
-                'Unable to determine hosts to ping: {}'.format(error))
+                'Unable to determine hosts to ping: {}'.format(
+                    error)) from error
 
     def __init__(self, name, hosts):
         Check.__init__(self, name)
@@ -331,8 +336,9 @@ class Processes(Activity):
             processes = config['processes'].split(',')
             processes = [p.strip() for p in processes]
             return cls(name, processes)
-        except KeyError:
-            raise ConfigurationError('No processes to check specified')
+        except KeyError as error:
+            raise ConfigurationError(
+                'No processes to check specified') from error
 
     def __init__(self, name, processes):
         Check.__init__(self, name)
@@ -361,7 +367,7 @@ class Smb(Activity):
             status_output = subprocess.check_output(
                 ['smbstatus', '-b']).decode('utf-8')
         except subprocess.CalledProcessError as error:
-            raise SevereCheckError(error)
+            raise SevereCheckError(error) from error
 
         self.logger.debug('Received status output:\n%s',
                           status_output)
@@ -396,7 +402,7 @@ class Users(Activity):
             return cls(name, user_regex, terminal_regex, host_regex)
         except re.error as error:
             raise ConfigurationError(
-                'Regular expression is invalid: {}'.format(error))
+                'Regular expression is invalid: {}'.format(error)) from error
 
     def __init__(self, name, user_regex, terminal_regex, host_regex):
         Activity.__init__(self, name)
@@ -434,10 +440,10 @@ class XIdleTime(Activity):
                                              fallback=r'a^')))
         except re.error as error:
             raise ConfigurationError(
-                'Regular expression is invalid: {}'.format(error))
+                'Regular expression is invalid: {}'.format(error)) from error
         except ValueError as error:
             raise ConfigurationError(
-                'Unable to parse configuration: {}'.format(error))
+                'Unable to parse configuration: {}'.format(error)) from error
 
     def __init__(self, name, timeout, method,
                  ignore_process_re, ignore_users_re):
@@ -561,7 +567,7 @@ class XIdleTime(Activity):
                 self.logger.warning(
                     'Unable to determine the idle time for display %s.',
                     display, exc_info=True)
-                raise TemporaryCheckError(error)
+                raise TemporaryCheckError(error) from error
 
             self.logger.debug(
                 'Idle time for display %s of user %s is %s seconds.',

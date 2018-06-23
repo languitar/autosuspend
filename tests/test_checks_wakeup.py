@@ -14,7 +14,7 @@ from autosuspend.checks.wakeup import (Calendar,
                                        XPathDelta)
 
 
-class TestCalendar(object):
+class TestCalendar:
 
     def test_create(self):
         parser = configparser.ConfigParser()
@@ -49,7 +49,7 @@ class TestCalendar(object):
             'test', url=address, timeout=3).check(timestamp) is None
 
 
-class TestFile(object):
+class TestFile:
 
     def test_create(self):
         parser = configparser.ConfigParser()
@@ -82,7 +82,7 @@ class TestFile(object):
             File('name', str(file)).check(datetime.now(timezone.utc))
 
 
-class TestCommand(object):
+class TestCommand:
 
     def test_smoke(self):
         check = Command('test', 'echo 1234')
@@ -121,7 +121,7 @@ class TestCommand(object):
             check.check(datetime.now(timezone.utc))
 
 
-class TestPeriodic(object):
+class TestPeriodic:
 
     def test_create(self):
         parser = configparser.ConfigParser()
@@ -161,7 +161,7 @@ class TestPeriodic(object):
         assert check.check(now) == now + delta
 
 
-class TestXPath(object):
+class TestXPath:
 
     def test_matching(self, mocker):
         mock_reply = mocker.MagicMock()
@@ -239,7 +239,7 @@ class TestXPath(object):
         assert check._xpath == '/valid'
 
 
-class TestXPathDelta(object):
+class TestXPathDelta:
 
     @pytest.mark.parametrize("unit,factor", [
         ('microseconds', 0.000001),

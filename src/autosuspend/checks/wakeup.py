@@ -39,8 +39,8 @@ class File(Wakeup):
         try:
             path = config['path']
             return cls(name, path)
-        except KeyError:
-            raise ConfigurationError('Missing option path')
+        except KeyError as error:
+            raise ConfigurationError('Missing option path') from error
 
     def __init__(self, name, path):
         Wakeup.__init__(self, name)
@@ -56,7 +56,7 @@ class File(Wakeup):
             # this is ok
             pass
         except (ValueError, PermissionError, IOError) as error:
-            raise TemporaryCheckError(error)
+            raise TemporaryCheckError(error) from error
 
 
 class Command(CommandMixin, Wakeup):

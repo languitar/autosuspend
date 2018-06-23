@@ -7,7 +7,7 @@ from dateutil.tz import tzlocal
 from autosuspend.util.ical import CalendarEvent, list_calendar_events
 
 
-class TestCalendarEvent(object):
+class TestCalendarEvent:
 
     def test_str(self):
         start = parser.parse("2018-06-11 02:00:00 UTC")
@@ -17,7 +17,7 @@ class TestCalendarEvent(object):
         assert 'summary' in str(event)
 
 
-class TestListCalendarEvents(object):
+class TestListCalendarEvents:
 
     def test_simple_recurring(self):
         """Tests for basic recurrence.

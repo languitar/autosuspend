@@ -35,7 +35,7 @@ from autosuspend.checks.activity import (ActiveCalendarEvent,
 snic = namedtuple('snic', ['family', 'address', 'netmask', 'broadcast', 'ptp'])
 
 
-class TestSmb(object):
+class TestSmb:
 
     def test_no_connections(self, monkeypatch):
         def return_data(*args, **kwargs):
@@ -67,7 +67,7 @@ class TestSmb(object):
         assert isinstance(Smb.create('name', None), Smb)
 
 
-class TestUsers(object):
+class TestUsers:
 
     @staticmethod
     def create_suser(name, terminal, host, started, pid):
@@ -132,9 +132,9 @@ class TestUsers(object):
             Users.create('name', parser['section'])
 
 
-class TestProcesses(object):
+class TestProcesses:
 
-    class StubProcess(object):
+    class StubProcess:
 
         def __init__(self, name):
             self._name = name
@@ -142,7 +142,7 @@ class TestProcesses(object):
         def name(self):
             return self._name
 
-    class RaisingProcess(object):
+    class RaisingProcess:
 
         def name(self):
             raise psutil.NoSuchProcess(42)
@@ -188,7 +188,7 @@ class TestProcesses(object):
             Processes.create('name', parser['section'])
 
 
-class TestActiveCalendarEvent(object):
+class TestActiveCalendarEvent:
 
     def test_smoke(self, stub_server):
         address = stub_server.resource_address('long-event.ics')
@@ -215,7 +215,7 @@ class TestActiveCalendarEvent(object):
         assert check._timeout == 3
 
 
-class TestActiveConnection(object):
+class TestActiveConnection:
 
     MY_PORT = 22
     MY_ADDRESS = '123.456.123.456'
@@ -305,7 +305,7 @@ class TestActiveConnection(object):
             ActiveConnection.create('name', parser['section'])
 
 
-class TestLoad(object):
+class TestLoad:
 
     def test_below(self, monkeypatch):
 
@@ -342,7 +342,7 @@ class TestLoad(object):
             Load.create('name', parser['section'])
 
 
-class TestMpd(object):
+class TestMpd:
 
     def test_playing(self, monkeypatch):
 
@@ -432,7 +432,7 @@ class TestMpd(object):
             Mpd.create('name', parser['section'])
 
 
-class TestNetworkBandwidth(object):
+class TestNetworkBandwidth:
 
     def test_smoke(self, stub_server):
         check = NetworkBandwidth(
@@ -529,7 +529,7 @@ threshold_receive = xxx
         assert check.check() is None
 
 
-class TestKodi(object):
+class TestKodi:
 
     def test_playing(self, mocker):
         mock_reply = mocker.MagicMock()
@@ -588,7 +588,7 @@ class TestKodi(object):
             Kodi.create('name', parser['section'])
 
 
-class TestKodiIdleTime(object):
+class TestKodiIdleTime:
 
     def test_create(self):
         parser = configparser.ConfigParser()
@@ -682,7 +682,7 @@ class TestKodiIdleTime(object):
             KodiIdleTime('foo', 'url', 10, 42).check()
 
 
-class TestPing(object):
+class TestPing:
 
     def test_smoke(self, mocker):
         mock = mocker.patch('subprocess.call')
@@ -715,7 +715,7 @@ class TestPing(object):
         assert ping._hosts == ['a', 'b', 'c']
 
 
-class TestXIdleTime(object):
+class TestXIdleTime:
 
     def test_create_default(self):
         parser = configparser.ConfigParser()
@@ -800,7 +800,7 @@ class TestXIdleTime(object):
                                                   (42, this_user.pw_name)]
 
 
-class TestExternalCommand(object):
+class TestExternalCommand:
 
     def test_check(self, mocker):
         mock = mocker.patch('subprocess.check_call')
@@ -822,7 +822,7 @@ class TestExternalCommand(object):
         mock.assert_called_once_with('foo bar', shell=True)
 
 
-class TestXPath(object):
+class TestXPath:
 
     def test_matching(self, mocker):
         mock_reply = mocker.MagicMock()
@@ -870,7 +870,7 @@ class TestXPath(object):
                   xpath='/b').request()
 
 
-class TestLogindSessionsIdle(object):
+class TestLogindSessionsIdle:
 
     def test_smoke(self):
         check = LogindSessionsIdle(
