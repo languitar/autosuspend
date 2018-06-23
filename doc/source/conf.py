@@ -56,6 +56,7 @@ rst_epilog = '''
 .. _python-icalendar: https://icalendar.readthedocs.io
 .. _tzlocal: https://pypi.org/project/tzlocal/
 .. _requests-file: https://github.com/dashea/requests-file
+.. _Plex: https://www.plex.tv/
 
 .. |project| replace:: {project}
 .. |project_bold| replace:: **{project}**

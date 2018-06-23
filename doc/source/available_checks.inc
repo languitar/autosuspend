@@ -375,12 +375,29 @@ XPath
 A generic check which queries a configured URL and expects the reply to contain XML data.
 The returned XML document is checked against a configured `XPath`_ expression and in case the expression matches, the system is assumed to be active.
 
-This can for instance be used with the TV streaming server `tvheadend`_, which provides its current status via an XML reply.
-In case you want to prevent suspending in case there are active subscriptions or recordings, use the following XPath::
+Some common applications and their respective configuration are:
 
-    /currentload/subscriptions[number(.) > 0] | /currentload/recordings/recording/start
+`tvheadend`_
+    The required URL for `tvheadend`_ is (if running on the same host)::
 
-If you have a permantently running subscriber like `Kodi`_, increase the ``0`` to ``1``.
+        http://127.0.0.1:9981/status.xml
+
+    In case you want to prevent suspending in case there are active subscriptions or recordings, use the following XPath::
+
+        /currentload/subscriptions[number(.) > 0] | /currentload/recordings/recording/start
+
+    If you have a permantently running subscriber like `Kodi`_, increase the ``0`` to ``1``.
+
+`Plex`_
+    For `Plex`_, use the following URL (if running on the same host)::
+
+        http://127.0.0.1:32400/status/sessions/?X-Plex-Token={TOKEN}
+
+    Where acquiring the token is `documented here <https://support.plex.tv/articles/204059436-finding-an-authentication-token-x-plex-token/>`_.
+
+    If suspending should be prevented in case of any activity, this simple `XPath`_ expression will suffice::
+
+        /MediaContainer[@size > 2]
 
 Options
 ^^^^^^^
