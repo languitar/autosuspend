@@ -30,12 +30,16 @@ from autosuspend.checks.activity import (ActiveCalendarEvent,
                                          Users,
                                          XIdleTime,
                                          XPath)
+from . import CheckTest
 
 
 snic = namedtuple('snic', ['family', 'address', 'netmask', 'broadcast', 'ptp'])
 
 
-class TestSmb:
+class TestSmb(CheckTest):
+
+    def create_instance(self, name):
+        return Smb(name)
 
     def test_no_connections(self, monkeypatch):
         def return_data(*args, **kwargs):
@@ -67,7 +71,11 @@ class TestSmb:
         assert isinstance(Smb.create('name', None), Smb)
 
 
-class TestUsers:
+class TestUsers(CheckTest):
+
+    def create_instance(self, name):
+        return Users(name, re.compile('.*'), re.compile('.*'),
+                     re.compile('.*'))
 
     @staticmethod
     def create_suser(name, terminal, host, started, pid):
@@ -132,7 +140,10 @@ class TestUsers:
             Users.create('name', parser['section'])
 
 
-class TestProcesses:
+class TestProcesses(CheckTest):
+
+    def create_instance(self, name):
+        return Processes(name, ['foo'])
 
     class StubProcess:
 
@@ -188,7 +199,10 @@ class TestProcesses:
             Processes.create('name', parser['section'])
 
 
-class TestActiveCalendarEvent:
+class TestActiveCalendarEvent(CheckTest):
+
+    def create_instance(self, name):
+        return ActiveCalendarEvent(name, url='asdfasdf', timeout=5)
 
     def test_smoke(self, stub_server):
         address = stub_server.resource_address('long-event.ics')
@@ -215,10 +229,13 @@ class TestActiveCalendarEvent:
         assert check._timeout == 3
 
 
-class TestActiveConnection:
+class TestActiveConnection(CheckTest):
 
     MY_PORT = 22
     MY_ADDRESS = '123.456.123.456'
+
+    def create_instance(self, name):
+        return ActiveConnection(name, [10])
 
     def test_smoke(self):
         ActiveConnection('foo', [22]).check()
@@ -305,7 +322,10 @@ class TestActiveConnection:
             ActiveConnection.create('name', parser['section'])
 
 
-class TestLoad:
+class TestLoad(CheckTest):
+
+    def create_instance(self, name):
+        return Load(name, 0.4)
 
     def test_below(self, monkeypatch):
 
@@ -342,7 +362,10 @@ class TestLoad:
             Load.create('name', parser['section'])
 
 
-class TestMpd:
+class TestMpd(CheckTest):
+
+    def create_instance(self, name):
+        return Mpd(name, None, None, None)
 
     def test_playing(self, monkeypatch):
 
@@ -432,7 +455,10 @@ class TestMpd:
             Mpd.create('name', parser['section'])
 
 
-class TestNetworkBandwidth:
+class TestNetworkBandwidth(CheckTest):
+
+    def create_instance(self, name):
+        return NetworkBandwidth(name, psutil.net_if_addrs().keys(), 0, 0)
 
     def test_smoke(self, stub_server):
         check = NetworkBandwidth(
@@ -529,7 +555,10 @@ threshold_receive = xxx
         assert check.check() is None
 
 
-class TestKodi:
+class TestKodi(CheckTest):
+
+    def create_instance(self, name):
+        return Kodi(name, 'url', 10)
 
     def test_playing(self, mocker):
         mock_reply = mocker.MagicMock()
@@ -588,7 +617,10 @@ class TestKodi:
             Kodi.create('name', parser['section'])
 
 
-class TestKodiIdleTime:
+class TestKodiIdleTime(CheckTest):
+
+    def create_instance(self, name):
+        return KodiIdleTime(name, 'url', timeout=10, idle_time=10)
 
     def test_create(self):
         parser = configparser.ConfigParser()
@@ -682,7 +714,10 @@ class TestKodiIdleTime:
             KodiIdleTime('foo', 'url', 10, 42).check()
 
 
-class TestPing:
+class TestPing(CheckTest):
+
+    def create_instance(self, name):
+        return Ping(name, '8.8.8.8')
 
     def test_smoke(self, mocker):
         mock = mocker.patch('subprocess.call')
@@ -715,7 +750,10 @@ class TestPing:
         assert ping._hosts == ['a', 'b', 'c']
 
 
-class TestXIdleTime:
+class TestXIdleTime(CheckTest):
+
+    def create_instance(self, name):
+        return XIdleTime(name, 10, 'sockets', None, None)
 
     def test_create_default(self):
         parser = configparser.ConfigParser()
@@ -800,7 +838,10 @@ class TestXIdleTime:
                                                   (42, this_user.pw_name)]
 
 
-class TestExternalCommand:
+class TestExternalCommand(CheckTest):
+
+    def create_instance(self, name):
+        return ExternalCommand(name, 'asdfasdf')
 
     def test_check(self, mocker):
         mock = mocker.patch('subprocess.check_call')
@@ -822,7 +863,12 @@ class TestExternalCommand:
         mock.assert_called_once_with('foo bar', shell=True)
 
 
-class TestXPath:
+class TestXPath(CheckTest):
+
+    def create_instance(self, name):
+        return XPath(name=name, url='url', timeout=5,
+                     username='userx', password='pass',
+                     xpath='/b')
 
     def test_matching(self, mocker):
         mock_reply = mocker.MagicMock()
@@ -870,7 +916,11 @@ class TestXPath:
                   xpath='/b').request()
 
 
-class TestLogindSessionsIdle:
+class TestLogindSessionsIdle(CheckTest):
+
+    def create_instance(self, name):
+        return LogindSessionsIdle(
+            name, ['tty', 'x11', 'wayland'], ['active', 'online'])
 
     def test_smoke(self):
         check = LogindSessionsIdle(

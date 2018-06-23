@@ -12,9 +12,13 @@ from autosuspend.checks.wakeup import (Calendar,
                                        Periodic,
                                        XPath,
                                        XPathDelta)
+from . import CheckTest
 
 
-class TestCalendar:
+class TestCalendar(CheckTest):
+
+    def create_instance(self, name):
+        return Calendar(name, url='file:///asdf', timeout=3)
 
     def test_create(self):
         parser = configparser.ConfigParser()
@@ -49,7 +53,10 @@ class TestCalendar:
             'test', url=address, timeout=3).check(timestamp) is None
 
 
-class TestFile:
+class TestFile(CheckTest):
+
+    def create_instance(self, name):
+        return File(name, 'asdf')
 
     def test_create(self):
         parser = configparser.ConfigParser()
@@ -82,7 +89,10 @@ class TestFile:
             File('name', str(file)).check(datetime.now(timezone.utc))
 
 
-class TestCommand:
+class TestCommand(CheckTest):
+
+    def create_instance(self, name):
+        return Command(name, 'asdf')
 
     def test_smoke(self):
         check = Command('test', 'echo 1234')
@@ -121,7 +131,11 @@ class TestCommand:
             check.check(datetime.now(timezone.utc))
 
 
-class TestPeriodic:
+class TestPeriodic(CheckTest):
+
+    def create_instance(self, name):
+        delta = timedelta(seconds=10, minutes=42)
+        return Periodic(name, delta)
 
     def test_create(self):
         parser = configparser.ConfigParser()
@@ -161,7 +175,10 @@ class TestPeriodic:
         assert check.check(now) == now + delta
 
 
-class TestXPath:
+class TestXPath(CheckTest):
+
+    def create_instance(self, name):
+        return XPath(name, xpath='/a', url='nourl', timeout=5)
 
     def test_matching(self, mocker):
         mock_reply = mocker.MagicMock()
@@ -239,7 +256,11 @@ class TestXPath:
         assert check._xpath == '/valid'
 
 
-class TestXPathDelta:
+class TestXPathDelta(CheckTest):
+
+    def create_instance(self, name):
+        return XPathDelta(name, xpath='/a', url='nourl', timeout=5,
+                          unit='days')
 
     @pytest.mark.parametrize("unit,factor", [
         ('microseconds', 0.000001),

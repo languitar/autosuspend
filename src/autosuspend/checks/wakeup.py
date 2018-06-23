@@ -101,6 +101,7 @@ class Periodic(Wakeup):
             raise ConfigurationError(str(error))
 
     def __init__(self, name: str, delta: datetime.timedelta) -> None:
+        Wakeup.__init__(self, name)
         self._delta = delta
 
     def check(self, timestamp):
