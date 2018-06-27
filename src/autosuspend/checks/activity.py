@@ -33,6 +33,9 @@ class ActiveCalendarEvent(NetworkMixin, Activity):
         start = datetime.now(timezone.utc)
         end = start + timedelta(minutes=1)
         events = list_calendar_events(BytesIO(response.content), start, end)
+        self.logger.debug(
+            'Listing active events between %s and %s returned %s events',
+            start, end, len(events))
         if events:
             return 'Calendar event {} is active'.format(events[0])
         else:
