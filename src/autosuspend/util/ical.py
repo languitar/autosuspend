@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import date, datetime, timedelta
 from typing import Dict, IO, Iterable, List, Mapping
 
 from dateutil.rrule import rruleset, rrulestr
@@ -20,8 +20,40 @@ class CalendarEvent:
             self.summary, self.start, self.end)
 
 
+def _expand_rrule_all_day(rrule: str,
+                          start: date,
+                          exclusions: Iterable,
+                          start_at: datetime,
+                          end_at: datetime) -> Iterable[date]:
+    """Expand an rrule for all-day events.
+
+    To my mind, these events cannot have changes, just exclusions, because
+    changes only affect the time, which doesn't exist for all-day events.
+    """
+
+    rules = rruleset()
+    rules.rrule(rrulestr(rrule, dtstart=start, ignoretz=True))
+
+    # add exclusions
+    if exclusions:
+        for xdate in exclusions:
+            rules.exdate(datetime.combine(
+                xdate.dts[0].dt, datetime.min.time()))
+
+    dates = []
+    # reduce start and end to datetimes without timezone that just represent a
+    # date at midnight.
+    for candidate in rules.between(
+            datetime.combine(start_at.date(), datetime.min.time()),
+            datetime.combine(end_at.date(), datetime.min.time()),
+            inc=True):
+        dates.append(candidate.date())
+    return dates
+
+
 def _expand_rrule(rrule: str,
                   start: datetime,
+                  instance_duration: timedelta,
                   exclusions: Iterable,
                   changes: Iterable[icalendar.cal.Event],
                   start_at: datetime,
@@ -47,8 +79,6 @@ def _expand_rrule(rrule: str,
 
     # add exclusions
     if exclusions:
-        if not isinstance(exclusions, list):
-            exclusions = [exclusions]
         for xdate in exclusions:
             try:
                 # also in this case, unify and strip the timezone
@@ -65,8 +95,9 @@ def _expand_rrule(rrule: str,
 
     # expand the rrule
     dates = []
-    for rule in rules.between(start_at, end_at):
-        localized = orig_tz.localize(rule)  # type: ignore
+    for candidate in rules.between(start_at - instance_duration, end_at,
+                                   inc=True):
+        localized = orig_tz.localize(candidate)  # type: ignore
         dates.append(localized)
     return dates
 
@@ -98,8 +129,7 @@ def list_calendar_events(data: IO[bytes],
         start_at:
             include events overlapping with this time (inclusive)
         end_at:
-            do not include events that appear after this time or that start
-            exactly at this time
+            do not include events that start after or exactly at this time
     """
 
     def is_aware(dt: datetime) -> bool:
@@ -124,6 +154,8 @@ def list_calendar_events(data: IO[bytes],
         start = component.get('dtstart').dt
         end = component.get('dtend').dt
         exclusions = component.get('exdate')
+        if exclusions and not isinstance(exclusions, list):
+            exclusions = [exclusions]
 
         # Check whether dates are floating and localize with local time if so.
         # Only works in case of non-all-day events, which are dates, not
@@ -141,16 +173,33 @@ def list_calendar_events(data: IO[bytes],
             changes = []  # type: Iterable[icalendar.cal.Event]
             if component.get('uid') in recurring_changes:
                 changes = recurring_changes[component.get('uid')]
-            for local_start in _expand_rrule(
-                    rrule,
-                    start,
-                    exclusions,
-                    changes,
-                    start_at,
-                    end_at):
-                local_end = local_start + length
-                events.append(CalendarEvent(summary, local_start, local_end))
+
+            if isinstance(start, datetime):
+                # complex processing in case of normal events
+                for local_start in _expand_rrule(
+                        rrule,
+                        start,
+                        length,
+                        exclusions,
+                        changes,
+                        start_at,
+                        end_at):
+                    local_end = local_start + length
+                    events.append(CalendarEvent(
+                        summary, local_start, local_end))
+            else:
+                # simplified processing for all-day events
+                for local_start in _expand_rrule_all_day(
+                        rrule,
+                        start,
+                        exclusions,
+                        start_at,
+                        end_at):
+                    local_end = local_start + timedelta(days=1)
+                    events.append(CalendarEvent(
+                        summary, local_start, local_end))
         else:
+            # same distinction here as above
             if isinstance(start, datetime):
                 # single events
                 if end > start_at and start < end_at:

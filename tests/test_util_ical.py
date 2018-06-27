@@ -203,3 +203,121 @@ class TestListCalendarEvents:
             ]
 
             assert expected_start_times == [e.start for e in events]
+
+    def test_recurring_start_and_end_inclusive(self):
+        with open(os.path.join(os.path.dirname(__file__), 'test_data',
+                               'issue-41.ics'), 'rb') as f:
+            start = parser.parse("2018-06-26 15:13:51 UTC")
+            end = start + timedelta(weeks=1)
+            events = list_calendar_events(f, start, end)
+
+            expected_start_times = [
+                parser.parse("2018-06-26 15:00:00 UTC"),
+                parser.parse("2018-06-27 15:00:00 UTC"),
+                parser.parse("2018-06-28 15:00:00 UTC"),
+                parser.parse("2018-06-29 15:00:00 UTC"),
+                parser.parse("2018-06-30 15:00:00 UTC"),
+                parser.parse("2018-07-01 15:00:00 UTC"),
+                parser.parse("2018-07-02 15:00:00 UTC"),
+                parser.parse("2018-07-03 15:00:00 UTC"),
+            ]
+
+            assert expected_start_times == [e.start for e in events]
+
+    def test_single_start_end_inclusive(self):
+        with open(os.path.join(os.path.dirname(__file__), 'test_data',
+                               'old-event.ics'), 'rb') as f:
+            start = parser.parse("2004-06-05 11:15:00 UTC")
+            end = start + timedelta(hours=1)
+            events = list_calendar_events(f, start, end)
+
+            expected_start_times = [
+                parser.parse("2004-06-05 11:00:00 UTC"),
+            ]
+
+            assert expected_start_times == [e.start for e in events]
+
+    def test_single_all_day_start_end_inclusive(self):
+        with open(os.path.join(os.path.dirname(__file__), 'test_data',
+                               'all-day-starts.ics'), 'rb') as f:
+            start = parser.parse("2018-06-25 10:00:00 UTC")
+            end = start + timedelta(hours=2)
+            events = list_calendar_events(f, start, end)
+
+            expected_start_times = [
+                parser.parse("2018-06-25 02:00:00 UTC").date(),
+            ]
+
+            assert expected_start_times == [e.start for e in events]
+
+    def test_longer_single_all_day_start_end_inclusive(self):
+        with open(os.path.join(os.path.dirname(__file__), 'test_data',
+                               'all-day-starts.ics'), 'rb') as f:
+            start = parser.parse("2018-06-29 10:00:00 UTC")
+            end = start + timedelta(hours=2)
+            events = list_calendar_events(f, start, end)
+
+            expected_start_times = [
+                parser.parse("2018-06-28 02:00:00 UTC").date(),
+            ]
+
+            assert expected_start_times == [e.start for e in events]
+
+    def test_recurring_all_day_start_end_inclusive(self):
+        with open(os.path.join(os.path.dirname(__file__), 'test_data',
+                               'all-day-recurring.ics'), 'rb') as f:
+            start = parser.parse("2018-06-29 10:00:00 UTC")
+            end = start + timedelta(hours=2)
+            events = list_calendar_events(f, start, end)
+
+            expected_start_times = [
+                parser.parse("2018-06-29 02:00:00 UTC").date(),
+            ]
+
+            assert expected_start_times == [e.start for e in events]
+
+    def test_recurring_all_day_start_in_between(self):
+        with open(os.path.join(os.path.dirname(__file__), 'test_data',
+                               'all-day-recurring.ics'), 'rb') as f:
+            start = parser.parse("2018-06-29 00:00:00 UTC")
+            end = start + timedelta(days=1)
+            events = list_calendar_events(f, start, end)
+
+            expected_start_times = [
+                parser.parse("2018-06-29 00:00:00 UTC").date(),
+                parser.parse("2018-06-30 00:00:00 UTC").date(),
+            ]
+
+            assert expected_start_times == [e.start for e in events]
+
+    def test_recurring_all_day_exclusions(self):
+        with open(os.path.join(os.path.dirname(__file__), 'test_data',
+                               'all-day-recurring-exclusions.ics'), 'rb') as f:
+            start = parser.parse("2018-06-27 00:00:00 UTC")
+            end = start + timedelta(days=4)
+            events = list_calendar_events(f, start, end)
+
+            expected_start_times = [
+                parser.parse("2018-06-27 00:00:00 UTC").date(),
+                parser.parse("2018-06-28 00:00:00 UTC").date(),
+                parser.parse("2018-06-29 00:00:00 UTC").date(),
+                parser.parse("2018-07-01 00:00:00 UTC").date(),
+            ]
+
+            assert expected_start_times == [e.start for e in events]
+
+    def test_recurring_all_day_exclusions_end(self):
+        with open(os.path.join(os.path.dirname(__file__), 'test_data',
+                               'all-day-recurring-exclusions.ics'), 'rb') as f:
+            start = parser.parse("2018-06-26 00:00:00 UTC")
+            end = start + timedelta(days=4)
+            events = list_calendar_events(f, start, end)
+
+            expected_start_times = [
+                parser.parse("2018-06-26 00:00:00 UTC").date(),
+                parser.parse("2018-06-27 00:00:00 UTC").date(),
+                parser.parse("2018-06-28 00:00:00 UTC").date(),
+                parser.parse("2018-06-29 00:00:00 UTC").date(),
+            ]
+
+            assert expected_start_times == [e.start for e in events]
