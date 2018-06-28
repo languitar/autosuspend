@@ -3,7 +3,7 @@
 import abc
 import configparser
 import datetime
-from typing import Optional
+from typing import Any, Mapping, Optional
 
 from autosuspend.util import logger_by_class_instance
 
@@ -67,6 +67,14 @@ class Check(abc.ABC):
         else:
             self.name = self.__class__.__name__
         self.logger = logger_by_class_instance(self, name)
+
+    def options(self) -> Mapping[str, Any]:
+        """Return the configured options as a mapping.
+
+        This is used for debugging purposes only.
+        """
+        return {k: v for k, v in self.__dict__.items()
+                if not callable(v) and k != 'logger'}
 
     def __str__(self):
         return '{name}[class={clazz}]'.format(name=self.name,

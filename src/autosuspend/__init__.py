@@ -370,8 +370,10 @@ def set_up_checks(config: configparser.ConfigParser,
             import_module = 'autosuspend.checks.{}'.format(internal_module)
             import_class = class_name
         _logger.info(
-            'Configuring check {} with class {} from module {}'.format(
-                name, import_class, import_module))
+            'Configuring check {} with class {} from module {} '
+            'using config section items {}'.format(
+                name, import_class, import_module,
+                dict(config[section].items())))
         try:
             klass = getattr(__import__(import_module, fromlist=[import_class]),
                             import_class)
@@ -385,7 +387,8 @@ def set_up_checks(config: configparser.ConfigParser,
             raise ConfigurationError(
                 'Check {} is not a correct {} instance'.format(
                     check, target_class.__name__))
-        _logger.debug('Created check instance {}'.format(check))
+        _logger.debug('Created check instance {} with options {}'.format(
+            check, check.options()))
         configured_checks.append(check)
 
     if not configured_checks and error_none:
