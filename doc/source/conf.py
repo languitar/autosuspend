@@ -6,7 +6,7 @@ import os.path
 
 # needs_sphinx = '1.0'
 
-extensions = ['sphinx.ext.intersphinx']
+extensions = ['sphinx.ext.intersphinx', 'sphinx_issues']
 
 templates_path = ['_templates']
 source_suffix = '.rst'
@@ -94,3 +94,6 @@ man_pages = [
      [author],
      5),
 ]
+
+# issues
+issues_github_path = 'languitar/autosuspend'

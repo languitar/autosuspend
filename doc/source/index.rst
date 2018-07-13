@@ -15,6 +15,7 @@
    wakeup
    debugging
    manpages
+   changelog
    support
 
 Indices and tables
