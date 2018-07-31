@@ -7,9 +7,11 @@ Even though it is possible to run |project_program| manually (cf. :ref:`the manp
 For this purpose, the package ships with `service definition files <systemd service files>`_ for `systemd`_, so that you should be able to manage |project_program| via `systemd`_.
 These files need to be installed in the appropriate locations for such service files, which depend on the Linux distribution.
 Some common locations are:
+
 * :file:`/usr/lib/systemd/system` (e.g. Archlinux packaged service files)
 * :file:`/lib/systemd/system` (e.g. Debian packaged service files)
 * :file:`/etc/systemd/system` (e.g. Archlinux manually added service files)
+
 Binary installation packages for Linux distributions should have installed the service files at the appropriate locations already.
 
 To start |project_program| via `systemd`_, execute:
