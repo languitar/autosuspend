@@ -31,9 +31,11 @@ Archlinux (AUR)
 
 |project| is available as an `Archlinux AUR package <https://aur.archlinux.org/packages/autosuspend/>`_.
 
-Installation via :program:`pacaur`::
+Installation via :program:`aurman`::
 
-    pacaur -S autosuspend
+    aurman -S autosuspend
+
+Other `AUR helpers <https://wiki.archlinux.org/index.php/AUR_helpers>`_ may be used, too.
 
 Gentoo
 ~~~~~~
