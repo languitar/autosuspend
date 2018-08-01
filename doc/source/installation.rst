@@ -35,6 +35,16 @@ Installation via :program:`pacaur`::
 
     pacaur -S autosuspend
 
+Gentoo
+~~~~~~
+
+Patrick Holthaus has provided an ebuild for Gentoo in `his overlay <https://github.com/pholthau/pholthaus-overlay>`_.
+You can use it as follows::
+
+    eselect repository enable pholthaus-overlay
+    emaint sync -r pholthaus-overlay
+    emerge sys-apps/autosuspend
+
 Other distributions
 ~~~~~~~~~~~~~~~~~~~
 
