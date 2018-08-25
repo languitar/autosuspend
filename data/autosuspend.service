@@ -4,7 +4,7 @@ Documentation=https://autosuspend.readthedocs.io/en/latest/systemd_integration.h
 After=network.target
 
 [Service]
-ExecStart=/usr/bin/autosuspend -l /etc/autosuspend-logging.conf
+ExecStart=/usr/bin/autosuspend -l /etc/autosuspend-logging.conf daemon
 
 [Install]
 WantedBy=multi-user.target
