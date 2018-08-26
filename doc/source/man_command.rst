@@ -42,6 +42,8 @@ Options
 Subcommand ``daemon``
 ~~~~~~~~~~~~~~~~~~~~~
 
+Starts the continuously running daemon.
+
 .. program:: autosuspend daemon
 
 .. option:: -a, --allchecks
@@ -55,6 +57,15 @@ Subcommand ``daemon``
    If specified, do not run endlessly.
    Instead, operate only for the specified amount of seconds, then exit.
    Useful mostly for debugging purposes.
+
+Subcommand ``presuspend``
+~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Should be called by the system before suspending.
+
+.. program:: autosuspend presuspend
+
+No options
 
 Bugs
 ----
