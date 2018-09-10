@@ -11,9 +11,6 @@ matrix:
   include:
   - python: 3.6
     env: TASK=checks
-  exclude:
-  - python: nightly
-    env: TASK=integration
 install:
   - pip install tox-travis
 script:
