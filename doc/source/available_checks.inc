@@ -100,6 +100,16 @@ Options
 
    Request timeout in seconds, default: ``5``
 
+.. option:: username
+
+   Optional user name to use for authenticating at a server requiring authentication.
+   If used, also a password must be provided.
+
+.. option:: password
+
+   Optional password to use for authenticating at a server requiring authentication.
+   If used, also a user name must be provided.
+
 Requirements
 ^^^^^^^^^^^^
 
@@ -130,6 +140,16 @@ Options
 .. option:: timeout
 
    Request timeout in seconds, default: ``5``
+
+.. option:: username
+
+   Optional user name to use for authenticating at a server requiring authentication.
+   If used, also a password must be provided.
+
+.. option:: password
+
+   Optional password to use for authenticating at a server requiring authentication.
+   If used, also a user name must be provided.
 
 Requirements
 ^^^^^^^^^^^^

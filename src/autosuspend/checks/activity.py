@@ -1,3 +1,4 @@
+import configparser
 import copy
 from datetime import datetime, timedelta, timezone
 import glob
@@ -9,6 +10,7 @@ import re
 import socket
 import subprocess
 import time
+from typing import Any, Dict
 
 import psutil
 
@@ -90,84 +92,62 @@ class ExternalCommand(CommandMixin, Activity):
             return None
 
 
-class Kodi(Activity):
+class Kodi(NetworkMixin, Activity):
 
-    @classmethod
-    def create(cls, name, config):
-        try:
-            url = config.get('url', fallback='http://localhost:8080/jsonrpc')
-            timeout = config.getint('timeout', fallback=5)
-            return cls(name, url, timeout)
-        except ValueError as error:
-            raise ConfigurationError(
-                'URL or timeout configuration wrong: {}'.format(
-                    error)) from error
+    QUERY = '?request={"jsonrpc": "2.0", "id": 1, ' \
+            '"method": "Player.GetActivePlayers"}'
 
-    def __init__(self, name, url, timeout):
-        Check.__init__(self, name)
-        self._url = url
-        self._timeout = timeout
+    def __init__(self, name: str, url, **kwargs) -> None:
+        NetworkMixin.__init__(self, url=url + self.QUERY, **kwargs)
+        Activity.__init__(self, name)
 
     def check(self):
-        import requests
-        import requests.exceptions
-
         try:
-            reply = requests.get(self._url +
-                                 '?request={"jsonrpc": "2.0", '
-                                 '"id": 1, '
-                                 '"method": "Player.GetActivePlayers"}',
-                                 timeout=self._timeout).json()
+            reply = self.request().json()
             if 'result' not in reply:
                 raise TemporaryCheckError('No result array in reply')
             if reply['result']:
                 return "Kodi currently playing"
             else:
                 return None
-        except (requests.exceptions.RequestException,
-                json.JSONDecodeError) as error:
+        except json.JSONDecodeError as error:
             raise TemporaryCheckError(error) from error
 
 
-class KodiIdleTime(Activity):
+class KodiIdleTime(NetworkMixin, Activity):
 
     @classmethod
-    def create(cls, name, config):
+    def collect_init_args(cls, config) -> Dict[str, Any]:
         try:
-            url = config.get('url', fallback='http://localhost:8080/jsonrpc')
-            timeout = config.getint('timeout', fallback=5)
-            idle_time = config.getint('idle_time', fallback=120)
-            return cls(name, url, timeout, idle_time)
+            args = NetworkMixin.collect_init_args(config)
+            args['idle_time'] = config.getint('idle_time', fallback=120)
+            return args
         except ValueError as error:
             raise ConfigurationError(
-                'Url or timeout configuration wrong: {}'.format(
-                    error)) from error
+                'Configuration error ' + str(error)) from error
 
-    def __init__(self, name, url, timeout, idle_time):
-        Check.__init__(self, name)
-        self._url = url
-        self._timeout = timeout
+    @classmethod
+    def create(cls, name: str, config: configparser.SectionProxy):
+        return cls(name, **cls.collect_init_args(config))
+
+    def __init__(self, name: str, url: str, idle_time: int, **kwargs) -> None:
+        request = url + \
+            '?request={{"jsonrpc": "2.0", "id": 1, ' \
+            '"method": "XMBC.GetInfoBool"}},' \
+            '"params": {{"booleans": ["System.IdleTime({})"]}}'.format(
+                idle_time)
+        NetworkMixin.__init__(self, url=request, **kwargs)
+        Activity.__init__(self, name)
         self._idle_time = idle_time
 
     def check(self):
-        import requests
-        import requests.exceptions
-
         try:
-            reply = requests.get(
-                self._url + '?request={{"jsonrpc": "2.0", '
-                '"id": 1, '
-                '"method": "XMBC.GetInfoBool"}},'
-                '"params": {{"booleans": ["System.IdleTime({})"]}}'.format(
-                    self._idle_time),
-                timeout=self._timeout).json()
+            reply = self.request().json()
             if reply['result']["System.IdleTime({})".format(self._idle_time)]:
                 return 'Someone interacts with Kodi'
             else:
                 return None
-        except (KeyError, TypeError) as error:
-            raise TemporaryCheckError(error) from error
-        except requests.exceptions.RequestException as error:
+        except (KeyError, TypeError, json.JSONDecodeError) as error:
             raise TemporaryCheckError(error) from error
 
 

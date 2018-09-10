@@ -555,16 +555,16 @@ threshold_receive = xxx
 class TestKodi(CheckTest):
 
     def create_instance(self, name):
-        return Kodi(name, 'url', 10)
+        return Kodi(name, url='url', timeout=10)
 
     def test_playing(self, mocker):
         mock_reply = mocker.MagicMock()
         mock_reply.json.return_value = {
             "id": 1, "jsonrpc": "2.0",
             "result": [{"playerid": 0, "type": "audio"}]}
-        mocker.patch('requests.get', return_value=mock_reply)
+        mocker.patch('requests.Session.get', return_value=mock_reply)
 
-        assert Kodi('foo', 'url', 10).check() is not None
+        assert Kodi('foo', url='url', timeout=10).check() is not None
 
         mock_reply.json.assert_called_once_with()
 
@@ -572,34 +572,34 @@ class TestKodi(CheckTest):
         mock_reply = mocker.MagicMock()
         mock_reply.json.return_value = {
             "id": 1, "jsonrpc": "2.0", "result": []}
-        mocker.patch('requests.get', return_value=mock_reply)
+        mocker.patch('requests.Session.get', return_value=mock_reply)
 
-        assert Kodi('foo', 'url', 10).check() is None
+        assert Kodi('foo', url='url', timeout=10).check() is None
 
         mock_reply.json.assert_called_once_with()
 
     def test_assertion_no_result(self, mocker):
         mock_reply = mocker.MagicMock()
         mock_reply.json.return_value = {"id": 1, "jsonrpc": "2.0"}
-        mocker.patch('requests.get', return_value=mock_reply)
+        mocker.patch('requests.Session.get', return_value=mock_reply)
 
         with pytest.raises(TemporaryCheckError):
-            Kodi('foo', 'url', 10).check()
+            Kodi('foo', url='url', timeout=10).check()
 
     def test_request_error(self, mocker):
-        mocker.patch('requests.get',
+        mocker.patch('requests.Session.get',
                      side_effect=requests.exceptions.RequestException())
 
         with pytest.raises(TemporaryCheckError):
-            Kodi('foo', 'url', 10).check()
+            Kodi('foo', url='url', timeout=10).check()
 
     def test_json_error(self, mocker):
         mock_reply = mocker.MagicMock()
         mock_reply.json.side_effect = json.JSONDecodeError('test', 'test', 42)
-        mocker.patch('requests.get', return_value=mock_reply)
+        mocker.patch('requests.Session.get', return_value=mock_reply)
 
         with pytest.raises(TemporaryCheckError):
-            Kodi('foo', 'url', 10).check()
+            Kodi('foo', url='url', timeout=10).check()
 
     def test_create(self):
         parser = configparser.ConfigParser()
@@ -609,7 +609,7 @@ class TestKodi(CheckTest):
 
         check = Kodi.create('name', parser['section'])
 
-        assert check._url == 'anurl'
+        assert check._url.startswith('anurl')
         assert check._timeout == 12
 
     def test_create_timeout_no_number(self):
@@ -625,7 +625,7 @@ class TestKodi(CheckTest):
 class TestKodiIdleTime(CheckTest):
 
     def create_instance(self, name):
-        return KodiIdleTime(name, 'url', timeout=10, idle_time=10)
+        return KodiIdleTime(name, url='url', timeout=10, idle_time=10)
 
     def test_create(self):
         parser = configparser.ConfigParser()
@@ -636,7 +636,7 @@ class TestKodiIdleTime(CheckTest):
 
         check = KodiIdleTime.create('name', parser['section'])
 
-        assert check._url == 'anurl'
+        assert check._url.startswith('anurl')
         assert check._timeout == 12
         assert check._idle_time == 42
 
@@ -661,62 +661,64 @@ class TestKodiIdleTime(CheckTest):
     def test_no_result(self, mocker):
         mock_reply = mocker.MagicMock()
         mock_reply.json.return_value = {"id": 1, "jsonrpc": "2.0"}
-        mocker.patch('requests.get', return_value=mock_reply)
+        mocker.patch('requests.Session.get', return_value=mock_reply)
 
         with pytest.raises(TemporaryCheckError):
-            KodiIdleTime('foo', 'url', 10, 42).check()
+            KodiIdleTime('foo', url='url', timeout=10, idle_time=42).check()
 
     def test_result_is_list(self, mocker):
         mock_reply = mocker.MagicMock()
         mock_reply.json.return_value = {"id": 1, "jsonrpc": "2.0",
                                         "result": []}
-        mocker.patch('requests.get', return_value=mock_reply)
+        mocker.patch('requests.Session.get', return_value=mock_reply)
 
         with pytest.raises(TemporaryCheckError):
-            KodiIdleTime('foo', 'url', 10, 42).check()
+            KodiIdleTime('foo', url='url', timeout=10, idle_time=42).check()
 
     def test_result_no_entry(self, mocker):
         mock_reply = mocker.MagicMock()
         mock_reply.json.return_value = {"id": 1, "jsonrpc": "2.0",
                                         "result": {}}
-        mocker.patch('requests.get', return_value=mock_reply)
+        mocker.patch('requests.Session.get', return_value=mock_reply)
 
         with pytest.raises(TemporaryCheckError):
-            KodiIdleTime('foo', 'url', 10, 42).check()
+            KodiIdleTime('foo', url='url', timeout=10, idle_time=42).check()
 
     def test_result_wrong_entry(self, mocker):
         mock_reply = mocker.MagicMock()
         mock_reply.json.return_value = {"id": 1, "jsonrpc": "2.0",
                                         "result": {"narf": True}}
-        mocker.patch('requests.get', return_value=mock_reply)
+        mocker.patch('requests.Session.get', return_value=mock_reply)
 
         with pytest.raises(TemporaryCheckError):
-            KodiIdleTime('foo', 'url', 10, 42).check()
+            KodiIdleTime('foo', url='url', timeout=10, idle_time=42).check()
 
     def test_active(self, mocker):
         mock_reply = mocker.MagicMock()
         mock_reply.json.return_value = {"id": 1, "jsonrpc": "2.0",
                                         "result": {
                                             "System.IdleTime(42)": True}}
-        mocker.patch('requests.get', return_value=mock_reply)
+        mocker.patch('requests.Session.get', return_value=mock_reply)
 
-        assert KodiIdleTime('foo', 'url', 10, 42).check() is not None
+        assert KodiIdleTime('foo', url='url',
+                            timeout=10, idle_time=42).check() is not None
 
     def test_inactive(self, mocker):
         mock_reply = mocker.MagicMock()
         mock_reply.json.return_value = {"id": 1, "jsonrpc": "2.0",
                                         "result": {
                                             "System.IdleTime(42)": False}}
-        mocker.patch('requests.get', return_value=mock_reply)
+        mocker.patch('requests.Session.get', return_value=mock_reply)
 
-        assert KodiIdleTime('foo', 'url', 10, 42).check() is None
+        assert KodiIdleTime('foo', url='url',
+                            timeout=10, idle_time=42).check() is None
 
     def test_request_error(self, mocker):
-        mocker.patch('requests.get',
+        mocker.patch('requests.Session.get',
                      side_effect=requests.exceptions.RequestException())
 
         with pytest.raises(TemporaryCheckError):
-            KodiIdleTime('foo', 'url', 10, 42).check()
+            KodiIdleTime('foo', url='url', timeout=10, idle_time=42).check()
 
 
 class TestPing(CheckTest):
