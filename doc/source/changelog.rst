@@ -1,6 +1,17 @@
 Changelog
 =========
 
+2.0.2
+-----
+
+This is a minor bug fix release.
+
+Fixes bugs
+~~~~~~~~~~
+
+* ``Kodi`` and ``KodiIdleTime`` checks now catch ``JSONDecodeErrors`` (:issue:`45`)
+* ``Kodi`` and ``KodiIdleTime`` checks now support authentication (:issue:`47`)
+
 2.0
 ---
 
