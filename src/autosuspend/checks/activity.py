@@ -397,11 +397,11 @@ class Users(Activity):
     def create(cls, name, config):
         try:
             user_regex = re.compile(
-                config.get('name', fallback='.*'))
+                config.get('name', fallback=r'.*'))
             terminal_regex = re.compile(
-                config.get('terminal', fallback='.*'))
+                config.get('terminal', fallback=r'.*'))
             host_regex = re.compile(
-                config.get('host', fallback='.*'))
+                config.get('host', fallback=r'.*'))
             return cls(name, user_regex, terminal_regex, host_regex)
         except re.error as error:
             raise ConfigurationError(
@@ -508,8 +508,8 @@ class XIdleTime(Activity):
                     results.append(
                         (int(properties['Display'].replace(':', '')),
                          str(properties['Name'])))
-                except ValueError as e:
-                    self.logger.warn(
+                except ValueError:
+                    self.logger.warning(
                         'Unable to parse display from session properties %s',
                         properties, exc_info=True)
             else:
