@@ -2,6 +2,7 @@ import copy
 from datetime import datetime, timedelta, timezone
 import glob
 from io import BytesIO
+import json
 import os
 import pwd
 import re
@@ -123,7 +124,8 @@ class Kodi(Activity):
                 return "Kodi currently playing"
             else:
                 return None
-        except requests.exceptions.RequestException as error:
+        except (requests.exceptions.RequestException,
+                json.JSONDecodeError) as error:
             raise TemporaryCheckError(error) from error
 
 
