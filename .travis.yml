@@ -1,7 +1,6 @@
 language: python
 sudo: false
 python:
-  - 3.5
   - 3.6
   - nightly
 env:
@@ -11,9 +10,6 @@ matrix:
   include:
   - python: 3.6
     env: TASK=checks
-  exclude:
-  - python: nightly
-    env: TASK=integration
 install:
   - pip install tox-travis
 script:
