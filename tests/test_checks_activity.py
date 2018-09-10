@@ -1,5 +1,6 @@
 from collections import namedtuple
 import configparser
+import json
 import os
 import os.path
 import pwd
@@ -588,6 +589,14 @@ class TestKodi(CheckTest):
     def test_request_error(self, mocker):
         mocker.patch('requests.get',
                      side_effect=requests.exceptions.RequestException())
+
+        with pytest.raises(TemporaryCheckError):
+            Kodi('foo', 'url', 10).check()
+
+    def test_json_error(self, mocker):
+        mock_reply = mocker.MagicMock()
+        mock_reply.json.side_effect = json.JSONDecodeError('test', 'test', 42)
+        mocker.patch('requests.get', return_value=mock_reply)
 
         with pytest.raises(TemporaryCheckError):
             Kodi('foo', 'url', 10).check()
