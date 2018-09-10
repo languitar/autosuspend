@@ -79,11 +79,7 @@ class TestUsers(CheckTest):
 
     @staticmethod
     def create_suser(name, terminal, host, started, pid):
-        try:
-            return psutil._common.suser(name, terminal, host, started, pid)
-        except TypeError:
-            # psutil 5.0
-            return psutil._common.suser(name, terminal, host, started)
+        return psutil._common.suser(name, terminal, host, started, pid)
 
     def test_no_users(self, monkeypatch):
 
