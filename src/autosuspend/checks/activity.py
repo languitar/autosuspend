@@ -258,8 +258,16 @@ class NetworkBandwidth(Activity):
         self._previous_time = time.time()
 
     def check(self):
+        # acquire the previous state and preserve it
+        old_values = self._previous_values
+        old_time = self._previous_time
+
+        # read new values and store them for the next iteration
         new_values = psutil.net_io_counters(pernic=True)
+        self._previous_values = new_values
         new_time = time.time()
+        self._previous_time = new_time
+
         for interface in self._interfaces:
             if interface not in new_values or \
                     interface not in self._previous_values:
@@ -268,16 +276,17 @@ class NetworkBandwidth(Activity):
 
             # send direction
             delta_send = new_values[interface].bytes_sent - \
-                self._previous_values[interface].bytes_sent
-            rate_send = delta_send / (new_time - self._previous_time)
+                old_values[interface].bytes_sent
+            rate_send = delta_send / (new_time - old_time)
             if rate_send > self._threshold_send:
                 return 'Interface {} sending rate {} byte/s '\
                     'higher than threshold {}'.format(
                         interface, rate_send, self._threshold_send)
 
+            # receive direction
             delta_receive = new_values[interface].bytes_recv - \
-                self._previous_values[interface].bytes_recv
-            rate_receive = delta_receive / (new_time - self._previous_time)
+                old_values[interface].bytes_recv
+            rate_receive = delta_receive / (new_time - old_time)
             if rate_receive > self._threshold_receive:
                 return 'Interface {} receive rate {} byte/s '\
                     'higher than threshold {}'.format(

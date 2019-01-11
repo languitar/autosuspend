@@ -555,6 +555,16 @@ threshold_receive = xxx
         requests.get(stub_server.resource_address(''))
         assert check.check() is None
 
+    def test_internal_state_updated(self, stub_server):
+        check = NetworkBandwidth(
+            'name', psutil.net_if_addrs().keys(),
+            sys.float_info.max, sys.float_info.max)
+        check.check()
+        old_state = check._previous_values
+        requests.get(stub_server.resource_address(''))
+        check.check()
+        assert old_state != check._previous_values
+
 
 class TestKodi(CheckTest):
 
