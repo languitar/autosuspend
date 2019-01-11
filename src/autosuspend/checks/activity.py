@@ -88,7 +88,7 @@ class ExternalCommand(CommandMixin, Activity):
         try:
             subprocess.check_call(self._command, shell=True)
             return 'Command {} succeeded'.format(self._command)
-        except subprocess.CalledProcessError as error:
+        except subprocess.CalledProcessError:
             return None
 
 
@@ -458,7 +458,7 @@ class XIdleTime(Activity):
             # determine the number of the X display
             try:
                 display = int(sock[len('/tmp/.X11-unix/X'):])
-            except ValueError as error:
+            except ValueError:
                 self.logger.warning(
                     'Cannot parse display number from socket %s. Skipping.',
                     sock, exc_info=True)
@@ -467,7 +467,7 @@ class XIdleTime(Activity):
             # determine the user of the display
             try:
                 user = pwd.getpwuid(os.stat(sock).st_uid).pw_name
-            except (FileNotFoundError, KeyError) as error:
+            except (FileNotFoundError, KeyError):
                 self.logger.warning(
                     'Cannot get the owning user from socket %s. Skipping.',
                     sock, exc_info=True)
@@ -490,7 +490,7 @@ class XIdleTime(Activity):
                     results.append(
                         (int(properties['Display'].replace(':', '')),
                          str(properties['Name'])))
-                except ValueError as e:
+                except ValueError:
                     self.logger.warn(
                         'Unable to parse display from session properties %s',
                         properties, exc_info=True)
