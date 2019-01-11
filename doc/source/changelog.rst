@@ -1,12 +1,22 @@
 Changelog
 =========
 
+2.0.3
+-----
+
+This is a minor bug fix release.
+
+Fixed bugs
+~~~~~~~~~~
+
+* ``NetworkBandwidth`` did not update its internal state and therefore did not work as documented (:issue:`49`)
+
 2.0.2
 -----
 
 This is a minor bug fix release.
 
-Fixes bugs
+Fixed bugs
 ~~~~~~~~~~
 
 * ``Kodi`` and ``KodiIdleTime`` checks now catch ``JSONDecodeErrors`` (:issue:`45`)
