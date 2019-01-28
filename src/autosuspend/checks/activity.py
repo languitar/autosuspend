@@ -66,7 +66,7 @@ class ActiveConnection(Activity):
         self._ports = ports
 
     def check(self):
-        own_addresses = [(item.family, item.address)
+        own_addresses = [(item.family, item.address.split('%')[0])
                          for sublist in psutil.net_if_addrs().values()
                          for item in sublist]
         connected = [c.laddr[1]

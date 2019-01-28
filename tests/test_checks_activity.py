@@ -230,6 +230,10 @@ class TestActiveConnection(CheckTest):
 
     MY_PORT = 22
     MY_ADDRESS = '123.456.123.456'
+    MY_ADDRESS_IPV6 = 'fe80::5193:518c:5c69:aedb'
+    # this might sometimes happen:
+    # https://superuser.com/a/99753/227177
+    MY_ADDRESS_IPV6_SCOPED = 'fe80::5193:518c:5c69:cccc%eth0'
 
     def create_instance(self, name):
         return ActiveConnection(name, [10])
@@ -237,18 +241,48 @@ class TestActiveConnection(CheckTest):
     def test_smoke(self):
         ActiveConnection('foo', [22]).check()
 
-    def test_connected(self, monkeypatch):
+    @pytest.mark.parametrize("connection", [
+        # ipv4
+        psutil._common.sconn(-1,
+                             socket.AF_INET, socket.SOCK_STREAM,
+                             (MY_ADDRESS, MY_PORT),
+                             ('42.42.42.42', 42),
+                             'ESTABLISHED', None),
+        # ipv6
+        psutil._common.sconn(-1,
+                             socket.AF_INET6, socket.SOCK_STREAM,
+                             (MY_ADDRESS_IPV6, MY_PORT),
+                             ('42.42.42.42', 42),
+                             'ESTABLISHED', None),
+        # ipv6 where local address has scope
+        psutil._common.sconn(-1,
+                             socket.AF_INET6, socket.SOCK_STREAM,
+                             (MY_ADDRESS_IPV6_SCOPED.split('%')[0], MY_PORT),
+                             ('42.42.42.42', 42),
+                             'ESTABLISHED', None),
+    ])
+    def test_connected(self, monkeypatch, connection):
 
         def addresses():
-            return {'dummy': [snic(
-                socket.AF_INET, self.MY_ADDRESS, '255.255.255.0',
-                None, None)]}
+            return {
+                'dummy': [
+                    snic(socket.AF_INET,
+                         self.MY_ADDRESS,
+                         '255.255.255.0',
+                         None, None),
+                    snic(socket.AF_INET6,
+                         self.MY_ADDRESS_IPV6,
+                         'ffff:ffff:ffff:ffff::',
+                         None, None),
+                    snic(socket.AF_INET6,
+                         self.MY_ADDRESS_IPV6_SCOPED,
+                         'ffff:ffff:ffff:ffff::',
+                         None, None),
+                ]
+            }
 
         def connections():
-            return [psutil._common.sconn(
-                -1, socket.AF_INET, socket.SOCK_STREAM,
-                (self.MY_ADDRESS, self.MY_PORT),
-                ('42.42.42.42', 42), 'ESTABLISHED', None)]
+            return [connection]
 
         monkeypatch.setattr(psutil, 'net_if_addrs', addresses)
         monkeypatch.setattr(psutil, 'net_connections', connections)
@@ -269,7 +303,7 @@ class TestActiveConnection(CheckTest):
                              ('33.33.33.33', MY_PORT),
                              ('42.42.42.42', 42),
                              'ESTABLISHED', None),
-        # not my established
+        # not established
         psutil._common.sconn(-1,
                              socket.AF_INET, socket.SOCK_STREAM,
                              (MY_ADDRESS, MY_PORT),
