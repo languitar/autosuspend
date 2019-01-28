@@ -1,6 +1,16 @@
 Changelog
 =========
 
+2.0.4
+-----
+
+This is a minor bug fix release.
+
+Fixed bugs
+~~~~~~~~~~
+
+* ``ActiveConnection`` did not handle local IPv6 addresses with scope such as ``fe80::5193:518c:5c69:aedb%enp3s0`` (:issue:`50`)
+
 2.0.3
 -----
 
