@@ -105,7 +105,7 @@ def _expand_rrule(rrule: str,
 ChangeMapping = Mapping[str, Iterable[icalendar.cal.Event]]
 
 
-def _collect_recurrence_changes(calendar: icalendar.Calendar)-> ChangeMapping:
+def _collect_recurrence_changes(calendar: icalendar.Calendar) -> ChangeMapping:
     ConcreteChangeMapping = Dict[str, List[icalendar.cal.Event]]  # noqa
     recurring_changes = {}  # type: ConcreteChangeMapping
     for component in calendar.walk():

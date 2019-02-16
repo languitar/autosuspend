@@ -13,6 +13,7 @@
    available_wakeups
    systemd_integration
    wakeup
+   usecases
    debugging
    manpages
    changelog
