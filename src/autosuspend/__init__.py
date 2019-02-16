@@ -333,7 +333,11 @@ def loop(processor: Processor,
                 just_woke_up = os.path.isfile(woke_up_file)
                 if just_woke_up:
                     _logger.debug('Removing woke up file at %s', woke_up_file)
-                    os.remove(woke_up_file)
+                    try:
+                        os.remove(woke_up_file)
+                    except FileNotFoundError:
+                        _logger.warning('Just woke up file disappeared',
+                                        exc_info=True)
 
                 processor.iteration(
                     datetime.datetime.now(datetime.timezone.utc),
