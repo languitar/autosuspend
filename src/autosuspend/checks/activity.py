@@ -143,7 +143,7 @@ class KodiIdleTime(NetworkMixin, Activity):
     def check(self):
         try:
             reply = self.request().json()
-            if reply['result']["System.IdleTime({})".format(self._idle_time)]:
+            if not reply['result']["System.IdleTime({})".format(self._idle_time)]:
                 return 'Someone interacts with Kodi'
             else:
                 return None
