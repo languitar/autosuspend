@@ -745,7 +745,7 @@ class TestKodiIdleTime(CheckTest):
         mock_reply = mocker.MagicMock()
         mock_reply.json.return_value = {"id": 1, "jsonrpc": "2.0",
                                         "result": {
-                                            "System.IdleTime(42)": True}}
+                                            "System.IdleTime(42)": False}}
         mocker.patch('requests.Session.get', return_value=mock_reply)
 
         assert KodiIdleTime('foo', url='url',
@@ -755,7 +755,7 @@ class TestKodiIdleTime(CheckTest):
         mock_reply = mocker.MagicMock()
         mock_reply.json.return_value = {"id": 1, "jsonrpc": "2.0",
                                         "result": {
-                                            "System.IdleTime(42)": False}}
+                                            "System.IdleTime(42)": True}}
         mocker.patch('requests.Session.get', return_value=mock_reply)
 
         assert KodiIdleTime('foo', url='url',
