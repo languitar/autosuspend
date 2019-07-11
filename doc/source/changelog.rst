@@ -1,6 +1,20 @@
 Changelog
 =========
 
+2.0.6
+-----
+
+Missing changelog for 2.0.5.
+
+2.0.5
+-----
+
+Fixes bugs
+~~~~~~~~~~
+
+* The ``KodiIdleTime`` checks has been fixed (:issue:`54`)
+* The default command for scheduling a wakeup was extended to clear a potential previous wake up time to avoid errors (:issue:`57`)
+
 2.0.4
 -----
 
