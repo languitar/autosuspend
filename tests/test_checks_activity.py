@@ -681,6 +681,14 @@ class TestKodi(CheckTest):
         assert check._timeout == 12
         assert not check._suspend_while_paused
 
+    def test_create_default_url(self):
+        parser = configparser.ConfigParser()
+        parser.read_string('''[section]''')
+
+        check = Kodi.create('name', parser['section'])
+
+        assert check._url.split('?')[0] == 'http://localhost:8080/jsonrpc'
+
     def test_create_timeout_no_number(self):
         parser = configparser.ConfigParser()
         parser.read_string('''[section]
@@ -719,6 +727,14 @@ class TestKodiIdleTime(CheckTest):
         assert check._url.startswith('anurl')
         assert check._timeout == 12
         assert check._idle_time == 42
+
+    def test_create_default_url(self):
+        parser = configparser.ConfigParser()
+        parser.read_string('''[section]''')
+
+        check = KodiIdleTime.create('name', parser['section'])
+
+        assert check._url.split('?')[0] == 'http://localhost:8080/jsonrpc'
 
     def test_create_timeout_no_number(self):
         parser = configparser.ConfigParser()
