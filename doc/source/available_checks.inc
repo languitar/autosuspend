@@ -110,6 +110,12 @@ Options
    Optional password to use for authenticating at a server requiring authentication.
    If used, also a user name must be provided.
 
+.. option:: suspend_while_paused
+
+   Also suspend the system when media playback is paused instead of only suspending
+   when playback is stopped.
+   Default: ``false``
+
 Requirements
 ^^^^^^^^^^^^
 
