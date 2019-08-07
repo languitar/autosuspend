@@ -622,6 +622,30 @@ class TestKodi(CheckTest):
 
         mock_reply.json.assert_called_once_with()
 
+    def test_playing_suspend_while_paused(self, mocker):
+        mock_reply = mocker.MagicMock()
+        mock_reply.json.return_value = {
+            "id": 1, "jsonrpc": "2.0",
+            "result": {"Player.Playing": True}}
+        mocker.patch('requests.Session.get', return_value=mock_reply)
+
+        assert Kodi('foo', url='url', timeout=10,
+                    suspend_while_paused=True).check() is not None
+
+        mock_reply.json.assert_called_once_with()
+
+    def test_not_playing_suspend_while_paused(self, mocker):
+        mock_reply = mocker.MagicMock()
+        mock_reply.json.return_value = {
+            "id": 1, "jsonrpc": "2.0",
+            "result": {"Player.Playing": False}}
+        mocker.patch('requests.Session.get', return_value=mock_reply)
+
+        assert Kodi('foo', url='url', timeout=10,
+                    suspend_while_paused=True).check() is None
+
+        mock_reply.json.assert_called_once_with()
+
     def test_assertion_no_result(self, mocker):
         mock_reply = mocker.MagicMock()
         mock_reply.json.return_value = {"id": 1, "jsonrpc": "2.0"}
@@ -655,6 +679,7 @@ class TestKodi(CheckTest):
 
         assert check._url.startswith('anurl')
         assert check._timeout == 12
+        assert not check._suspend_while_paused
 
     def test_create_timeout_no_number(self):
         parser = configparser.ConfigParser()
@@ -664,6 +689,17 @@ class TestKodi(CheckTest):
 
         with pytest.raises(ConfigurationError):
             Kodi.create('name', parser['section'])
+
+    def test_create_suspend_while_paused(self):
+        parser = configparser.ConfigParser()
+        parser.read_string('''[section]
+                           url = anurl
+                           suspend_while_paused = True''')
+
+        check = Kodi.create('name', parser['section'])
+
+        assert check._url.startswith('anurl')
+        assert check._suspend_while_paused
 
 
 class TestKodiIdleTime(CheckTest):

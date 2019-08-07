@@ -94,23 +94,47 @@ class ExternalCommand(CommandMixin, Activity):
 
 class Kodi(NetworkMixin, Activity):
 
-    QUERY = '?request={"jsonrpc": "2.0", "id": 1, ' \
-            '"method": "Player.GetActivePlayers"}'
+    @classmethod
+    def collect_init_args(cls, config) -> Dict[str, Any]:
+        try:
+            args = NetworkMixin.collect_init_args(config)
+            args['suspend_while_paused'] = config.getboolean(
+                'suspend_while_paused', fallback=False)
+            return args
+        except ValueError as error:
+            raise ConfigurationError(
+                'Configuration error {}'.format(error)) from error
 
-    def __init__(self, name: str, url, **kwargs) -> None:
-        NetworkMixin.__init__(self, url=url + self.QUERY, **kwargs)
+    @classmethod
+    def create(cls, name: str, config: configparser.SectionProxy):
+        return cls(name, **cls.collect_init_args(config))
+
+    def __init__(self, name: str, url: str, suspend_while_paused=False,
+                 **kwargs) -> None:
+        self._suspend_while_paused = suspend_while_paused
+        if self._suspend_while_paused:
+            request = url + \
+                '?request={"jsonrpc": "2.0", "id": 1, ' \
+                '"method": "XBMC.GetInfoBooleans",' \
+                '"params": {"booleans": ["Player.Playing"]} }'
+        else:
+            request = url + \
+                '?request={"jsonrpc": "2.0", "id": 1, ' \
+                '"method": "Player.GetActivePlayers"}'
+        NetworkMixin.__init__(self, url=request, **kwargs)
         Activity.__init__(self, name)
 
     def check(self):
         try:
             reply = self.request().json()
-            if 'result' not in reply:
-                raise TemporaryCheckError('No result array in reply')
-            if reply['result']:
-                return "Kodi currently playing"
+            if self._suspend_while_paused:
+                if reply['result']['Player.Playing']:
+                    return 'Kodi actively playing media'
             else:
-                return None
-        except json.JSONDecodeError as error:
+                if reply['result']:
+                    return "Kodi currently playing"
+            return None
+        except (KeyError, TypeError, json.JSONDecodeError) as error:
             raise TemporaryCheckError(error) from error
 
 
