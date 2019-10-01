@@ -42,7 +42,7 @@ class TestSmb(CheckTest):
     def create_instance(self, name):
         return Smb(name)
 
-    def test_no_connections(self, monkeypatch):
+    def test_no_connections(self, monkeypatch) -> None:
         def return_data(*args, **kwargs):
             with open(os.path.join(os.path.dirname(__file__), 'test_data',
                                    'smbstatus_no_connections'), 'rb') as f:
@@ -51,24 +51,25 @@ class TestSmb(CheckTest):
 
         assert Smb('foo').check() is None
 
-    def test_with_connections(self, monkeypatch):
+    def test_with_connections(self, monkeypatch) -> None:
         def return_data(*args, **kwargs):
             with open(os.path.join(os.path.dirname(__file__), 'test_data',
                                    'smbstatus_with_connections'), 'rb') as f:
                 return f.read()
         monkeypatch.setattr(subprocess, 'check_output', return_data)
 
-        assert Smb('foo').check() is not None
-        assert len(Smb('foo').check().splitlines()) == 3
+        res = Smb('foo').check()
+        assert res is not None
+        assert len(res.splitlines()) == 3
 
-    def test_call_error(self, mocker):
+    def test_call_error(self, mocker) -> None:
         mocker.patch('subprocess.check_output',
                      side_effect=subprocess.CalledProcessError(2, 'cmd'))
 
         with pytest.raises(SevereCheckError):
             Smb('foo').check()
 
-    def test_create(self):
+    def test_create(self) -> None:
         assert isinstance(Smb.create('name', None), Smb)
 
 
@@ -82,7 +83,7 @@ class TestUsers(CheckTest):
     def create_suser(name, terminal, host, started, pid):
         return psutil._common.suser(name, terminal, host, started, pid)
 
-    def test_no_users(self, monkeypatch):
+    def test_no_users(self, monkeypatch) -> None:
 
         def data():
             return []
@@ -91,11 +92,11 @@ class TestUsers(CheckTest):
         assert Users('users', re.compile('.*'), re.compile('.*'),
                      re.compile('.*')).check() is None
 
-    def test_smoke(self):
+    def test_smoke(self) -> None:
         Users('users', re.compile('.*'), re.compile('.*'),
               re.compile('.*')).check()
 
-    def test_matching_users(self, monkeypatch):
+    def test_matching_users(self, monkeypatch) -> None:
 
         def data():
             return [self.create_suser('foo', 'pts1', 'host', 12345, 12345)]
@@ -104,7 +105,7 @@ class TestUsers(CheckTest):
         assert Users('users', re.compile('.*'), re.compile('.*'),
                      re.compile('.*')).check() is not None
 
-    def test_non_matching_user(self, monkeypatch):
+    def test_non_matching_user(self, monkeypatch) -> None:
 
         def data():
             return [self.create_suser('foo', 'pts1', 'host', 12345, 12345)]
@@ -113,7 +114,7 @@ class TestUsers(CheckTest):
         assert Users('users', re.compile('narf'), re.compile('.*'),
                      re.compile('.*')).check() is None
 
-    def test_create(self):
+    def test_create(self) -> None:
         parser = configparser.ConfigParser()
         parser.read_string('''[section]
                            name = name.*name
@@ -126,7 +127,7 @@ class TestUsers(CheckTest):
         assert check._terminal_regex == re.compile('term.*term')
         assert check._host_regex == re.compile('host.*host')
 
-    def test_create_regex_error(self):
+    def test_create_regex_error(self) -> None:
         parser = configparser.ConfigParser()
         parser.read_string('''[section]
                            name = name.*name
@@ -155,7 +156,7 @@ class TestProcesses(CheckTest):
         def name(self):
             raise psutil.NoSuchProcess(42)
 
-    def test_matching_process(self, monkeypatch):
+    def test_matching_process(self, monkeypatch) -> None:
 
         def data():
             return [self.StubProcess('blubb'), self.StubProcess('nonmatching')]
@@ -164,7 +165,7 @@ class TestProcesses(CheckTest):
         assert Processes(
             'foo', ['dummy', 'blubb', 'other']).check() is not None
 
-    def test_ignore_no_such_process(self, monkeypatch):
+    def test_ignore_no_such_process(self, monkeypatch) -> None:
 
         def data():
             return [self.RaisingProcess()]
@@ -172,7 +173,7 @@ class TestProcesses(CheckTest):
 
         Processes('foo', ['dummy']).check()
 
-    def test_non_matching_process(self, monkeypatch):
+    def test_non_matching_process(self, monkeypatch) -> None:
 
         def data():
             return [self.StubProcess('asdfasdf'),
@@ -182,14 +183,14 @@ class TestProcesses(CheckTest):
         assert Processes(
             'foo', ['dummy', 'blubb', 'other']).check() is None
 
-    def test_create(self):
+    def test_create(self) -> None:
         parser = configparser.ConfigParser()
         parser.read_string('''[section]
                            processes = foo, bar, narf''')
         assert Processes.create(
             'name', parser['section'])._processes == ['foo', 'bar', 'narf']
 
-    def test_create_no_entry(self):
+    def test_create_no_entry(self) -> None:
         parser = configparser.ConfigParser()
         parser.read_string('''[section]''')
         with pytest.raises(ConfigurationError):
@@ -201,25 +202,27 @@ class TestActiveCalendarEvent(CheckTest):
     def create_instance(self, name):
         return ActiveCalendarEvent(name, url='asdfasdf', timeout=5)
 
-    def test_smoke(self, stub_server):
+    def test_smoke(self, stub_server) -> None:
         address = stub_server.resource_address('long-event.ics')
         result = ActiveCalendarEvent('test', url=address, timeout=3).check()
         assert result is not None
         assert 'long-event' in result
 
-    def test_no_event(self, stub_server):
+    def test_no_event(self, stub_server) -> None:
         address = stub_server.resource_address('old-event.ics')
         assert ActiveCalendarEvent(
             'test', url=address, timeout=3).check() is None
 
-    def test_create(self):
+    def test_create(self) -> None:
         parser = configparser.ConfigParser()
         parser.read_string('''[section]
                            url = foobar
                            username = user
                            password = pass
                            timeout = 3''')
-        check = ActiveCalendarEvent.create('name', parser['section'])
+        check: ActiveCalendarEvent = ActiveCalendarEvent.create(
+            'name', parser['section'],
+        )  # type: ignore
         assert check._url == 'foobar'
         assert check._username == 'user'
         assert check._password == 'pass'
@@ -238,7 +241,7 @@ class TestActiveConnection(CheckTest):
     def create_instance(self, name):
         return ActiveConnection(name, [10])
 
-    def test_smoke(self):
+    def test_smoke(self) -> None:
         ActiveConnection('foo', [22]).check()
 
     @pytest.mark.parametrize("connection", [
@@ -261,7 +264,7 @@ class TestActiveConnection(CheckTest):
                              ('42.42.42.42', 42),
                              'ESTABLISHED', None),
     ])
-    def test_connected(self, monkeypatch, connection):
+    def test_connected(self, monkeypatch, connection) -> None:
 
         def addresses():
             return {
@@ -316,7 +319,7 @@ class TestActiveConnection(CheckTest):
                              (MY_ADDRESS, MY_PORT),
                              'NARF', None),
     ])
-    def test_not_connected(self, monkeypatch, connection):
+    def test_not_connected(self, monkeypatch, connection) -> None:
 
         def addresses():
             return {'dummy': [snic(
@@ -332,20 +335,20 @@ class TestActiveConnection(CheckTest):
         assert ActiveConnection(
             'foo', [10, self.MY_PORT, 30]).check() is None
 
-    def test_create(self):
+    def test_create(self) -> None:
         parser = configparser.ConfigParser()
         parser.read_string('''[section]
                            ports = 10,20,30''')
         assert ActiveConnection.create(
             'name', parser['section'])._ports == {10, 20, 30}
 
-    def test_create_no_entry(self):
+    def test_create_no_entry(self) -> None:
         parser = configparser.ConfigParser()
         parser.read_string('''[section]''')
         with pytest.raises(ConfigurationError):
             ActiveConnection.create('name', parser['section'])
 
-    def test_create_no_number(self):
+    def test_create_no_number(self) -> None:
         parser = configparser.ConfigParser()
         parser.read_string('''[section]
                            ports = 10,20xx,30''')
@@ -358,7 +361,7 @@ class TestLoad(CheckTest):
     def create_instance(self, name):
         return Load(name, 0.4)
 
-    def test_below(self, monkeypatch):
+    def test_below(self, monkeypatch) -> None:
 
         threshold = 1.34
 
@@ -368,7 +371,7 @@ class TestLoad(CheckTest):
 
         assert Load('foo', threshold).check() is None
 
-    def test_above(self, monkeypatch):
+    def test_above(self, monkeypatch) -> None:
 
         threshold = 1.34
 
@@ -378,14 +381,14 @@ class TestLoad(CheckTest):
 
         assert Load('foo', threshold).check() is not None
 
-    def test_create(self):
+    def test_create(self) -> None:
         parser = configparser.ConfigParser()
         parser.read_string('''[section]
                            threshold = 3.2''')
         assert Load.create(
             'name', parser['section'])._threshold == 3.2
 
-    def test_create_no_number(self):
+    def test_create_no_number(self) -> None:
         parser = configparser.ConfigParser()
         parser.read_string('''[section]
                            threshold = narf''')
@@ -398,9 +401,9 @@ class TestMpd(CheckTest):
     def create_instance(self, name):
         return Mpd(name, None, None, None)
 
-    def test_playing(self, monkeypatch):
+    def test_playing(self, monkeypatch) -> None:
 
-        check = Mpd('test', None, None, None)
+        check = Mpd('test', None, None, None)  # type: ignore
 
         def get_state():
             return {'state': 'play'}
@@ -408,9 +411,9 @@ class TestMpd(CheckTest):
 
         assert check.check() is not None
 
-    def test_not_playing(self, monkeypatch):
+    def test_not_playing(self, monkeypatch) -> None:
 
-        check = Mpd('test', None, None, None)
+        check = Mpd('test', None, None, None)  # type: ignore
 
         def get_state():
             return {'state': 'pause'}
@@ -418,7 +421,7 @@ class TestMpd(CheckTest):
 
         assert check.check() is None
 
-    def test_correct_mpd_interaction(self, mocker):
+    def test_correct_mpd_interaction(self, mocker) -> None:
         import mpd
 
         mock_instance = mocker.MagicMock(spec=mpd.MPDClient)
@@ -440,19 +443,19 @@ class TestMpd(CheckTest):
         mock_instance.close.assert_called_once_with()
         mock_instance.disconnect.assert_called_once_with()
 
-    def test_handle_connection_errors(self):
+    def test_handle_connection_errors(self) -> None:
 
-        check = Mpd('test', None, None, None)
+        check = Mpd('test', None, None, None)  # type: ignore
 
         def _get_state():
             raise ConnectionError()
 
-        check._get_state = _get_state
+        check._get_state = _get_state  # type: ignore
 
         with pytest.raises(TemporaryCheckError):
             check.check()
 
-    def test_create(self):
+    def test_create(self) -> None:
         parser = configparser.ConfigParser()
         parser.read_string('''[section]
                            host = host
@@ -465,7 +468,7 @@ class TestMpd(CheckTest):
         assert check._port == 1234
         assert check._timeout == 12
 
-    def test_create_port_no_number(self):
+    def test_create_port_no_number(self) -> None:
         parser = configparser.ConfigParser()
         parser.read_string('''[section]
                            host = host
@@ -475,7 +478,7 @@ class TestMpd(CheckTest):
         with pytest.raises(ConfigurationError):
             Mpd.create('name', parser['section'])
 
-    def test_create_timeout_no_number(self):
+    def test_create_timeout_no_number(self) -> None:
         parser = configparser.ConfigParser()
         parser.read_string('''[section]
                            host = host
@@ -491,7 +494,7 @@ class TestNetworkBandwidth(CheckTest):
     def create_instance(self, name):
         return NetworkBandwidth(name, psutil.net_if_addrs().keys(), 0, 0)
 
-    def test_smoke(self, stub_server):
+    def test_smoke(self, stub_server) -> None:
         check = NetworkBandwidth(
             'name', psutil.net_if_addrs().keys(), 0, 0)
         # make some traffic
@@ -503,7 +506,7 @@ class TestNetworkBandwidth(CheckTest):
         mock = mocker.patch('psutil.net_if_addrs')
         mock.return_value = {'foo': None, 'bar': None, 'baz': None}
 
-    def test_create(self, mock_interfaces):
+    def test_create(self, mock_interfaces) -> None:
         parser = configparser.ConfigParser()
         parser.read_string('''
 [section]
@@ -516,7 +519,7 @@ threshold_receive = 300
         assert check._threshold_send == 200
         assert check._threshold_receive == 300
 
-    def test_create_default(self, mock_interfaces):
+    def test_create_default(self, mock_interfaces) -> None:
         parser = configparser.ConfigParser()
         parser.read_string('''
 [section]
@@ -556,7 +559,7 @@ interfaces = foo, bar
 threshold_receive = xxx
 ''', r'Threshold in wrong format'),
     ])
-    def test_create_error(self, mock_interfaces, config, error_match):
+    def test_create_error(self, mock_interfaces, config, error_match) -> None:
         parser = configparser.ConfigParser()
         parser.read_string(config)
         with pytest.raises(ConfigurationError, match=error_match):
@@ -567,7 +570,7 @@ threshold_receive = xxx
         (0, sys.float_info.max, 'sending'),
     ])
     def test_with_activity(self, send_threshold, receive_threshold, match,
-                           stub_server):
+                           stub_server) -> None:
         check = NetworkBandwidth(
             'name', psutil.net_if_addrs().keys(),
             send_threshold, receive_threshold)
@@ -577,7 +580,7 @@ threshold_receive = xxx
         assert res is not None
         assert match in res
 
-    def test_no_activity(self, stub_server):
+    def test_no_activity(self, stub_server) -> None:
         check = NetworkBandwidth(
             'name', psutil.net_if_addrs().keys(),
             sys.float_info.max, sys.float_info.max)
@@ -585,7 +588,7 @@ threshold_receive = xxx
         requests.get(stub_server.resource_address(''))
         assert check.check() is None
 
-    def test_internal_state_updated(self, stub_server):
+    def test_internal_state_updated(self, stub_server) -> None:
         check = NetworkBandwidth(
             'name', psutil.net_if_addrs().keys(),
             sys.float_info.max, sys.float_info.max)
@@ -601,7 +604,7 @@ class TestKodi(CheckTest):
     def create_instance(self, name):
         return Kodi(name, url='url', timeout=10)
 
-    def test_playing(self, mocker):
+    def test_playing(self, mocker) -> None:
         mock_reply = mocker.MagicMock()
         mock_reply.json.return_value = {
             "id": 1, "jsonrpc": "2.0",
@@ -612,7 +615,7 @@ class TestKodi(CheckTest):
 
         mock_reply.json.assert_called_once_with()
 
-    def test_not_playing(self, mocker):
+    def test_not_playing(self, mocker) -> None:
         mock_reply = mocker.MagicMock()
         mock_reply.json.return_value = {
             "id": 1, "jsonrpc": "2.0", "result": []}
@@ -622,7 +625,7 @@ class TestKodi(CheckTest):
 
         mock_reply.json.assert_called_once_with()
 
-    def test_playing_suspend_while_paused(self, mocker):
+    def test_playing_suspend_while_paused(self, mocker) -> None:
         mock_reply = mocker.MagicMock()
         mock_reply.json.return_value = {
             "id": 1, "jsonrpc": "2.0",
@@ -634,7 +637,7 @@ class TestKodi(CheckTest):
 
         mock_reply.json.assert_called_once_with()
 
-    def test_not_playing_suspend_while_paused(self, mocker):
+    def test_not_playing_suspend_while_paused(self, mocker) -> None:
         mock_reply = mocker.MagicMock()
         mock_reply.json.return_value = {
             "id": 1, "jsonrpc": "2.0",
@@ -646,7 +649,7 @@ class TestKodi(CheckTest):
 
         mock_reply.json.assert_called_once_with()
 
-    def test_assertion_no_result(self, mocker):
+    def test_assertion_no_result(self, mocker) -> None:
         mock_reply = mocker.MagicMock()
         mock_reply.json.return_value = {"id": 1, "jsonrpc": "2.0"}
         mocker.patch('requests.Session.get', return_value=mock_reply)
@@ -654,14 +657,14 @@ class TestKodi(CheckTest):
         with pytest.raises(TemporaryCheckError):
             Kodi('foo', url='url', timeout=10).check()
 
-    def test_request_error(self, mocker):
+    def test_request_error(self, mocker) -> None:
         mocker.patch('requests.Session.get',
                      side_effect=requests.exceptions.RequestException())
 
         with pytest.raises(TemporaryCheckError):
             Kodi('foo', url='url', timeout=10).check()
 
-    def test_json_error(self, mocker):
+    def test_json_error(self, mocker) -> None:
         mock_reply = mocker.MagicMock()
         mock_reply.json.side_effect = json.JSONDecodeError('test', 'test', 42)
         mocker.patch('requests.Session.get', return_value=mock_reply)
@@ -669,7 +672,7 @@ class TestKodi(CheckTest):
         with pytest.raises(TemporaryCheckError):
             Kodi('foo', url='url', timeout=10).check()
 
-    def test_create(self):
+    def test_create(self) -> None:
         parser = configparser.ConfigParser()
         parser.read_string('''[section]
                            url = anurl
@@ -681,7 +684,7 @@ class TestKodi(CheckTest):
         assert check._timeout == 12
         assert not check._suspend_while_paused
 
-    def test_create_timeout_no_number(self):
+    def test_create_timeout_no_number(self) -> None:
         parser = configparser.ConfigParser()
         parser.read_string('''[section]
                            url = anurl
@@ -690,7 +693,7 @@ class TestKodi(CheckTest):
         with pytest.raises(ConfigurationError):
             Kodi.create('name', parser['section'])
 
-    def test_create_suspend_while_paused(self):
+    def test_create_suspend_while_paused(self) -> None:
         parser = configparser.ConfigParser()
         parser.read_string('''[section]
                            url = anurl
@@ -707,7 +710,7 @@ class TestKodiIdleTime(CheckTest):
     def create_instance(self, name):
         return KodiIdleTime(name, url='url', timeout=10, idle_time=10)
 
-    def test_create(self):
+    def test_create(self) -> None:
         parser = configparser.ConfigParser()
         parser.read_string('''[section]
                            url = anurl
@@ -720,7 +723,7 @@ class TestKodiIdleTime(CheckTest):
         assert check._timeout == 12
         assert check._idle_time == 42
 
-    def test_create_timeout_no_number(self):
+    def test_create_timeout_no_number(self) -> None:
         parser = configparser.ConfigParser()
         parser.read_string('''[section]
                            url = anurl
@@ -729,7 +732,7 @@ class TestKodiIdleTime(CheckTest):
         with pytest.raises(ConfigurationError):
             KodiIdleTime.create('name', parser['section'])
 
-    def test_create_idle_time_no_number(self):
+    def test_create_idle_time_no_number(self) -> None:
         parser = configparser.ConfigParser()
         parser.read_string('''[section]
                            url = anurl
@@ -738,7 +741,7 @@ class TestKodiIdleTime(CheckTest):
         with pytest.raises(ConfigurationError):
             KodiIdleTime.create('name', parser['section'])
 
-    def test_no_result(self, mocker):
+    def test_no_result(self, mocker) -> None:
         mock_reply = mocker.MagicMock()
         mock_reply.json.return_value = {"id": 1, "jsonrpc": "2.0"}
         mocker.patch('requests.Session.get', return_value=mock_reply)
@@ -746,7 +749,7 @@ class TestKodiIdleTime(CheckTest):
         with pytest.raises(TemporaryCheckError):
             KodiIdleTime('foo', url='url', timeout=10, idle_time=42).check()
 
-    def test_result_is_list(self, mocker):
+    def test_result_is_list(self, mocker) -> None:
         mock_reply = mocker.MagicMock()
         mock_reply.json.return_value = {"id": 1, "jsonrpc": "2.0",
                                         "result": []}
@@ -755,7 +758,7 @@ class TestKodiIdleTime(CheckTest):
         with pytest.raises(TemporaryCheckError):
             KodiIdleTime('foo', url='url', timeout=10, idle_time=42).check()
 
-    def test_result_no_entry(self, mocker):
+    def test_result_no_entry(self, mocker) -> None:
         mock_reply = mocker.MagicMock()
         mock_reply.json.return_value = {"id": 1, "jsonrpc": "2.0",
                                         "result": {}}
@@ -764,7 +767,7 @@ class TestKodiIdleTime(CheckTest):
         with pytest.raises(TemporaryCheckError):
             KodiIdleTime('foo', url='url', timeout=10, idle_time=42).check()
 
-    def test_result_wrong_entry(self, mocker):
+    def test_result_wrong_entry(self, mocker) -> None:
         mock_reply = mocker.MagicMock()
         mock_reply.json.return_value = {"id": 1, "jsonrpc": "2.0",
                                         "result": {"narf": True}}
@@ -773,7 +776,7 @@ class TestKodiIdleTime(CheckTest):
         with pytest.raises(TemporaryCheckError):
             KodiIdleTime('foo', url='url', timeout=10, idle_time=42).check()
 
-    def test_active(self, mocker):
+    def test_active(self, mocker) -> None:
         mock_reply = mocker.MagicMock()
         mock_reply.json.return_value = {"id": 1, "jsonrpc": "2.0",
                                         "result": {
@@ -783,7 +786,7 @@ class TestKodiIdleTime(CheckTest):
         assert KodiIdleTime('foo', url='url',
                             timeout=10, idle_time=42).check() is not None
 
-    def test_inactive(self, mocker):
+    def test_inactive(self, mocker) -> None:
         mock_reply = mocker.MagicMock()
         mock_reply.json.return_value = {"id": 1, "jsonrpc": "2.0",
                                         "result": {
@@ -793,7 +796,7 @@ class TestKodiIdleTime(CheckTest):
         assert KodiIdleTime('foo', url='url',
                             timeout=10, idle_time=42).check() is None
 
-    def test_request_error(self, mocker):
+    def test_request_error(self, mocker) -> None:
         mocker.patch('requests.Session.get',
                      side_effect=requests.exceptions.RequestException())
 
@@ -806,7 +809,7 @@ class TestPing(CheckTest):
     def create_instance(self, name):
         return Ping(name, '8.8.8.8')
 
-    def test_smoke(self, mocker):
+    def test_smoke(self, mocker) -> None:
         mock = mocker.patch('subprocess.call')
         mock.return_value = 1
 
@@ -818,18 +821,18 @@ class TestPing(CheckTest):
         for (args, _), host in zip(mock.call_args_list, hosts):
             assert args[0][-1] == host
 
-    def test_matching(self, mocker):
+    def test_matching(self, mocker) -> None:
         mock = mocker.patch('subprocess.call')
         mock.return_value = 0
         assert Ping('name', ['foo']).check() is not None
 
-    def test_create_missing_hosts(self):
+    def test_create_missing_hosts(self) -> None:
         parser = configparser.ConfigParser()
         parser.read_string('''[section]''')
         with pytest.raises(ConfigurationError):
             Ping.create('name', parser['section'])
 
-    def test_create_host_splitting(self):
+    def test_create_host_splitting(self) -> None:
         parser = configparser.ConfigParser()
         parser.read_string('''[section]
                            hosts=a,b,c''')
@@ -842,7 +845,7 @@ class TestXIdleTime(CheckTest):
     def create_instance(self, name):
         return XIdleTime(name, 10, 'sockets', None, None)
 
-    def test_create_default(self):
+    def test_create_default(self) -> None:
         parser = configparser.ConfigParser()
         parser.read_string('''[section]''')
         check = XIdleTime.create('name', parser['section'])
@@ -851,7 +854,7 @@ class TestXIdleTime(CheckTest):
         assert check._ignore_users_re == re.compile(r'a^')
         assert check._provide_sessions == check._list_sessions_sockets
 
-    def test_create(self):
+    def test_create(self) -> None:
         parser = configparser.ConfigParser()
         parser.read_string('''[section]
                               timeout = 42
@@ -864,35 +867,35 @@ class TestXIdleTime(CheckTest):
         assert check._ignore_users_re == re.compile(r'test.*test')
         assert check._provide_sessions == check._list_sessions_logind
 
-    def test_create_no_int(self):
+    def test_create_no_int(self) -> None:
         parser = configparser.ConfigParser()
         parser.read_string('''[section]
                               timeout = string''')
         with pytest.raises(ConfigurationError):
             XIdleTime.create('name', parser['section'])
 
-    def test_create_broken_process_re(self):
+    def test_create_broken_process_re(self) -> None:
         parser = configparser.ConfigParser()
         parser.read_string('''[section]
                               ignore_if_process = [[a-9]''')
         with pytest.raises(ConfigurationError):
             XIdleTime.create('name', parser['section'])
 
-    def test_create_broken_users_re(self):
+    def test_create_broken_users_re(self) -> None:
         parser = configparser.ConfigParser()
         parser.read_string('''[section]
                               ignore_users = [[a-9]''')
         with pytest.raises(ConfigurationError):
             XIdleTime.create('name', parser['section'])
 
-    def test_create_unknown_method(self):
+    def test_create_unknown_method(self) -> None:
         parser = configparser.ConfigParser()
         parser.read_string('''[section]
                               method = asdfasdf''')
         with pytest.raises(ConfigurationError):
             XIdleTime.create('name', parser['section'])
 
-    def test_list_sessions_logind(self, mocker):
+    def test_list_sessions_logind(self, mocker) -> None:
         mock = mocker.patch('autosuspend.checks.activity.list_logind_sessions')
         mock.return_value = [('c1', {'Name': 'foo'}),
                              ('c2', {'Display': 'asdfasf'}),
@@ -904,7 +907,7 @@ class TestXIdleTime(CheckTest):
         check = XIdleTime.create('name', parser['section'])
         assert check._list_sessions_logind() == [(3, 'hello')]
 
-    def test_list_sessions_socket(self, mocker):
+    def test_list_sessions_socket(self, mocker) -> None:
         mock_glob = mocker.patch('glob.glob')
         mock_glob.return_value = ['/tmp/.X11-unix/X0',
                                   '/tmp/.X11-unix/X42',
@@ -930,23 +933,23 @@ class TestExternalCommand(CheckTest):
     def create_instance(self, name):
         return ExternalCommand(name, 'asdfasdf')
 
-    def test_check(self, mocker):
+    def test_check(self, mocker) -> None:
         mock = mocker.patch('subprocess.check_call')
         parser = configparser.ConfigParser()
         parser.read_string('''[section]
                               command = foo bar''')
         assert ExternalCommand.create(
-            'name', parser['section']).check() is not None
+            'name', parser['section']).check() is not None  # type: ignore
         mock.assert_called_once_with('foo bar', shell=True)
 
-    def test_check_no_match(self, mocker):
+    def test_check_no_match(self, mocker) -> None:
         mock = mocker.patch('subprocess.check_call')
         mock.side_effect = subprocess.CalledProcessError(2, 'foo bar')
         parser = configparser.ConfigParser()
         parser.read_string('''[section]
                               command = foo bar''')
         assert ExternalCommand.create(
-            'name', parser['section']).check() is None
+            'name', parser['section']).check() is None  # type: ignore
         mock.assert_called_once_with('foo bar', shell=True)
 
 
@@ -957,7 +960,7 @@ class TestXPath(CheckTest):
                      username='userx', password='pass',
                      xpath='/b')
 
-    def test_matching(self, mocker):
+    def test_matching(self, mocker) -> None:
         mock_reply = mocker.MagicMock()
         content_property = mocker.PropertyMock()
         type(mock_reply).content = content_property
@@ -971,7 +974,7 @@ class TestXPath(CheckTest):
         mock_method.assert_called_once_with(url, timeout=5)
         content_property.assert_called_once_with()
 
-    def test_not_matching(self, mocker):
+    def test_not_matching(self, mocker) -> None:
         mock_reply = mocker.MagicMock()
         content_property = mocker.PropertyMock()
         type(mock_reply).content = content_property
@@ -980,7 +983,7 @@ class TestXPath(CheckTest):
 
         assert XPath('foo', xpath='/b', url='nourl', timeout=5).check() is None
 
-    def test_create(self):
+    def test_create(self) -> None:
         parser = configparser.ConfigParser()
         parser.read_string('''[section]
                            url = url
@@ -988,14 +991,14 @@ class TestXPath(CheckTest):
                            username = user
                            password = pass
                            timeout = 42''')
-        check = XPath.create('name', parser['section'])
+        check: XPath = XPath.create('name', parser['section'])  # type: ignore
         assert check._xpath == '/xpath'
         assert check._url == 'url'
         assert check._username == 'user'
         assert check._password == 'pass'
         assert check._timeout == 42
 
-    def test_network_errors_are_passed(self, stub_auth_server):
+    def test_network_errors_are_passed(self, stub_auth_server) -> None:
         with pytest.raises(TemporaryCheckError):
             XPath(name='name',
                   url=stub_auth_server.resource_address('data.txt'),
@@ -1009,7 +1012,7 @@ class TestLogindSessionsIdle(CheckTest):
         return LogindSessionsIdle(
             name, ['tty', 'x11', 'wayland'], ['active', 'online'])
 
-    def test_smoke(self):
+    def test_smoke(self) -> None:
         check = LogindSessionsIdle(
             'test', ['tty', 'x11', 'wayland'], ['active', 'online'])
         assert check._types == ['tty', 'x11', 'wayland']
@@ -1021,21 +1024,21 @@ class TestLogindSessionsIdle(CheckTest):
         except ImportError:
             pass
 
-    def test_configure_defaults(self):
+    def test_configure_defaults(self) -> None:
         parser = configparser.ConfigParser()
         parser.read_string('[section]')
         check = LogindSessionsIdle.create('name', parser['section'])
         assert check._types == ['tty', 'x11', 'wayland']
         assert check._states == ['active', 'online']
 
-    def test_configure_types(self):
+    def test_configure_types(self) -> None:
         parser = configparser.ConfigParser()
         parser.read_string('''[section]
                            types=test, bla,foo''')
         check = LogindSessionsIdle.create('name', parser['section'])
         assert check._types == ['test', 'bla', 'foo']
 
-    def test_configure_states(self):
+    def test_configure_states(self) -> None:
         parser = configparser.ConfigParser()
         parser.read_string('''[section]
                            states=test, bla,foo''')

@@ -10,13 +10,13 @@ import autosuspend
 
 class TestExecuteSuspend:
 
-    def test_smoke(self, mocker):
+    def test_smoke(self, mocker) -> None:
         mock = mocker.patch('subprocess.check_call')
         command = ['foo', 'bar']
         autosuspend.execute_suspend(command, None)
         mock.assert_called_once_with(command, shell=True)
 
-    def test_call_exception(self, mocker):
+    def test_call_exception(self, mocker) -> None:
         mock = mocker.patch('subprocess.check_call')
         command = ['foo', 'bar']
         mock.side_effect = subprocess.CalledProcessError(2, command)
@@ -31,14 +31,14 @@ class TestExecuteSuspend:
 
 class TestScheduleWakeup:
 
-    def test_smoke(self, mocker):
+    def test_smoke(self, mocker) -> None:
         mock = mocker.patch('subprocess.check_call')
         dt = datetime.fromtimestamp(1525270801, timezone(timedelta(hours=4)))
         autosuspend.schedule_wakeup('echo {timestamp:.0f} {iso}', dt)
         mock.assert_called_once_with(
             'echo 1525270801 2018-05-02T18:20:01+04:00', shell=True)
 
-    def test_call_exception(self, mocker):
+    def test_call_exception(self, mocker) -> None:
         mock = mocker.patch('subprocess.check_call')
         mock.side_effect = subprocess.CalledProcessError(2, "foo")
 
@@ -52,35 +52,35 @@ class TestScheduleWakeup:
 
 class TestConfigureLogging:
 
-    def test_debug(self, mocker):
+    def test_debug(self, mocker) -> None:
         mock = mocker.patch('logging.basicConfig')
 
         autosuspend.configure_logging(True)
 
         mock.assert_called_once_with(level=logging.DEBUG)
 
-    def test_standard(self, mocker):
+    def test_standard(self, mocker) -> None:
         mock = mocker.patch('logging.basicConfig')
 
         autosuspend.configure_logging(False)
 
         mock.assert_called_once_with(level=logging.WARNING)
 
-    def test_file(self, mocker):
+    def test_file(self, mocker) -> None:
         mock = mocker.patch('logging.config.fileConfig')
 
         # anything that is not a boolean is treated like a file
-        autosuspend.configure_logging(42)
+        autosuspend.configure_logging(42)  # type: ignore
 
         mock.assert_called_once_with(42)
 
-    def test_file_fallback(self, mocker):
+    def test_file_fallback(self, mocker) -> None:
         mock = mocker.patch('logging.config.fileConfig',
                             side_effect=RuntimeError())
         mock_basic = mocker.patch('logging.basicConfig')
 
         # anything that is not a boolean is treated like a file
-        autosuspend.configure_logging(42)
+        autosuspend.configure_logging(42)  # type: ignore
 
         mock.assert_called_once_with(42)
         mock_basic.assert_called_once_with(level=logging.WARNING)
@@ -88,7 +88,7 @@ class TestConfigureLogging:
 
 class TestSetUpChecks:
 
-    def test_smoke(self, mocker):
+    def test_smoke(self, mocker) -> None:
         mock_class = mocker.patch('autosuspend.checks.activity.Mpd')
         mock_class.create.return_value = mocker.MagicMock(
             spec=autosuspend.checks.Activity)
@@ -99,11 +99,11 @@ class TestSetUpChecks:
                            enabled = True''')
 
         autosuspend.set_up_checks(parser, 'check', 'activity',
-                                  autosuspend.Activity)
+                                  autosuspend.Activity)  # type: ignore
 
         mock_class.create.assert_called_once_with('Foo', parser['check.Foo'])
 
-    def test_external_class(self, mocker):
+    def test_external_class(self, mocker) -> None:
         mock_class = mocker.patch('os.path.TestCheck', create=True)
         mock_class.create.return_value = mocker.MagicMock(
             spec=autosuspend.checks.Activity)
@@ -113,11 +113,11 @@ class TestSetUpChecks:
                            enabled = True''')
 
         autosuspend.set_up_checks(parser, 'check', 'activity',
-                                  autosuspend.Activity)
+                                  autosuspend.Activity)  # type: ignore
 
         mock_class.create.assert_called_once_with('Foo', parser['check.Foo'])
 
-    def test_not_enabled(self, mocker):
+    def test_not_enabled(self, mocker) -> None:
         mock_class = mocker.patch('autosuspend.checks.activity.Mpd')
         mock_class.create.return_value = mocker.MagicMock(
             spec=autosuspend.Activity)
@@ -128,23 +128,23 @@ class TestSetUpChecks:
                            enabled = False''')
 
         autosuspend.set_up_checks(parser, 'check', 'activity',
-                                  autosuspend.Activity)
+                                  autosuspend.Activity)  # type: ignore
 
         with pytest.raises(autosuspend.ConfigurationError):
             autosuspend.set_up_checks(parser, 'check', 'activity',
-                                      autosuspend.Activity,
+                                      autosuspend.Activity,  # type: ignore
                                       error_none=True)
 
-    def test_no_such_class(self, mocker):
+    def test_no_such_class(self, mocker) -> None:
         parser = configparser.ConfigParser()
         parser.read_string('''[check.Foo]
                            class = FooBarr
                            enabled = True''')
         with pytest.raises(autosuspend.ConfigurationError):
             autosuspend.set_up_checks(parser, 'check', 'activity',
-                                      autosuspend.Activity)
+                                      autosuspend.Activity)  # type: ignore
 
-    def test_not_a_check(self, mocker):
+    def test_not_a_check(self, mocker) -> None:
         mock_class = mocker.patch('autosuspend.checks.activity.Mpd')
         mock_class.create.return_value = mocker.MagicMock()
 
@@ -155,18 +155,18 @@ class TestSetUpChecks:
 
         with pytest.raises(autosuspend.ConfigurationError):
             autosuspend.set_up_checks(parser, 'check', 'activity',
-                                      autosuspend.Activity)
+                                      autosuspend.Activity)  # type: ignore
 
         mock_class.create.assert_called_once_with('Foo', parser['check.Foo'])
 
 
 class TestExecuteChecks:
 
-    def test_no_checks(self, mocker):
+    def test_no_checks(self, mocker) -> None:
         assert autosuspend.execute_checks(
             [], False, mocker.MagicMock()) is False
 
-    def test_matches(self, mocker):
+    def test_matches(self, mocker) -> None:
         matching_check = mocker.MagicMock(
             spec=autosuspend.Activity)
         matching_check.name = 'foo'
@@ -175,7 +175,7 @@ class TestExecuteChecks:
             [matching_check], False, mocker.MagicMock()) is True
         matching_check.check.assert_called_once_with()
 
-    def test_only_first_called(self, mocker):
+    def test_only_first_called(self, mocker) -> None:
         matching_check = mocker.MagicMock(
             spec=autosuspend.Activity)
         matching_check.name = 'foo'
@@ -191,7 +191,7 @@ class TestExecuteChecks:
         matching_check.check.assert_called_once_with()
         second_check.check.assert_not_called()
 
-    def test_all_called(self, mocker):
+    def test_all_called(self, mocker) -> None:
         matching_check = mocker.MagicMock(
             spec=autosuspend.Activity)
         matching_check.name = 'foo'
@@ -207,7 +207,7 @@ class TestExecuteChecks:
         matching_check.check.assert_called_once_with()
         second_check.check.assert_called_once_with()
 
-    def test_ignore_temporary_errors(self, mocker):
+    def test_ignore_temporary_errors(self, mocker) -> None:
         matching_check = mocker.MagicMock(
             spec=autosuspend.Activity)
         matching_check.name = 'foo'
@@ -226,18 +226,18 @@ class TestExecuteChecks:
 
 class TestExecuteWakeups:
 
-    def test_no_wakeups(self, mocker):
+    def test_no_wakeups(self, mocker) -> None:
         assert autosuspend.execute_wakeups(
-            [], 0, mocker.MagicMock()) is None
+            [], datetime.now(timezone.utc), mocker.MagicMock()) is None
 
-    def test_all_none(self, mocker):
+    def test_all_none(self, mocker) -> None:
         wakeup = mocker.MagicMock(
             spec=autosuspend.Wakeup)
         wakeup.check.return_value = None
         assert autosuspend.execute_wakeups(
-            [wakeup], 0, mocker.MagicMock()) is None
+            [wakeup], datetime.now(timezone.utc), mocker.MagicMock()) is None
 
-    def test_basic_return(self, mocker):
+    def test_basic_return(self, mocker) -> None:
         wakeup = mocker.MagicMock(
             spec=autosuspend.Wakeup)
         now = datetime.now(timezone.utc)
@@ -246,7 +246,7 @@ class TestExecuteWakeups:
         assert autosuspend.execute_wakeups(
             [wakeup], now, mocker.MagicMock()) == wakeup_time
 
-    def test_soonest_taken(self, mocker):
+    def test_soonest_taken(self, mocker) -> None:
         reference = datetime.now(timezone.utc)
         wakeup = mocker.MagicMock(
             spec=autosuspend.Wakeup)
@@ -263,7 +263,7 @@ class TestExecuteWakeups:
             [wakeup, wakeup_earlier, wakeup_later],
             reference, mocker.MagicMock()) == earlier
 
-    def test_ignore_temporary_errors(self, mocker):
+    def test_ignore_temporary_errors(self, mocker) -> None:
         now = datetime.now(timezone.utc)
 
         wakeup = mocker.MagicMock(
@@ -279,7 +279,7 @@ class TestExecuteWakeups:
             [wakeup, wakeup_error, wakeup_earlier],
             now, mocker.MagicMock()) == now + timedelta(seconds=10)
 
-    def test_ignore_too_early(self, mocker):
+    def test_ignore_too_early(self, mocker) -> None:
         now = datetime.now(timezone.utc)
         wakeup = mocker.MagicMock(
             spec=autosuspend.Wakeup)
@@ -292,7 +292,7 @@ class TestExecuteWakeups:
 
 class TestNotifySuspend:
 
-    def test_date(self, mocker):
+    def test_date(self, mocker) -> None:
         mock = mocker.patch('subprocess.check_call')
         dt = datetime.fromtimestamp(1525270801, timezone(timedelta(hours=4)))
         autosuspend.notify_suspend(
@@ -300,32 +300,32 @@ class TestNotifySuspend:
         mock.assert_called_once_with(
             'echo 1525270801 2018-05-02T18:20:01+04:00', shell=True)
 
-    def test_date_no_command(self, mocker):
+    def test_date_no_command(self, mocker) -> None:
         mock = mocker.patch('subprocess.check_call')
         dt = datetime.fromtimestamp(1525270801, timezone(timedelta(hours=4)))
         autosuspend.notify_suspend(None, 'not this', dt)
         mock.assert_not_called()
 
-    def test_no_date(self, mocker):
+    def test_no_date(self, mocker) -> None:
         mock = mocker.patch('subprocess.check_call')
         autosuspend.notify_suspend(
             'echo {timestamp:.0f} {iso}', 'echo nothing', None)
         mock.assert_called_once_with('echo nothing', shell=True)
 
-    def test_no_date_no_command(self, mocker):
+    def test_no_date_no_command(self, mocker) -> None:
         mock = mocker.patch('subprocess.check_call')
         autosuspend.notify_suspend(
             'echo {timestamp:.0f} {iso}', None, None)
         mock.assert_not_called()
 
-    def test_ignore_execution_errors(self, mocker):
+    def test_ignore_execution_errors(self, mocker) -> None:
         mock = mocker.patch('subprocess.check_call')
         mock.side_effect = subprocess.CalledProcessError(2, 'cmd')
         dt = datetime.fromtimestamp(1525270801, timezone(timedelta(hours=4)))
         autosuspend.notify_suspend(None, 'not this', dt)
 
 
-def test_notify_and_suspend(mocker):
+def test_notify_and_suspend(mocker) -> None:
     mock = mocker.patch('subprocess.check_call')
     dt = datetime.fromtimestamp(1525270801, timezone(timedelta(hours=4)))
     autosuspend.notify_and_suspend('echo suspend',
@@ -391,7 +391,7 @@ def wakeup_fn():
 
 class TestProcessor:
 
-    def test_smoke(self, sleep_fn, wakeup_fn):
+    def test_smoke(self, sleep_fn, wakeup_fn) -> None:
         processor = autosuspend.Processor([_StubCheck('stub', None)],
                                           [],
                                           2,
@@ -427,7 +427,7 @@ class TestProcessor:
 
         assert wakeup_fn.call_arg is None
 
-    def test_just_woke_up_handling(self, sleep_fn, wakeup_fn):
+    def test_just_woke_up_handling(self, sleep_fn, wakeup_fn) -> None:
         processor = autosuspend.Processor([_StubCheck('stub', None)],
                                           [],
                                           2,
@@ -456,7 +456,7 @@ class TestProcessor:
 
         assert wakeup_fn.call_arg is None
 
-    def test_wakeup_blocks_sleep(self, mocker, sleep_fn, wakeup_fn):
+    def test_wakeup_blocks_sleep(self, mocker, sleep_fn, wakeup_fn) -> None:
         start = datetime.now(timezone.utc)
         wakeup = mocker.MagicMock(spec=autosuspend.Wakeup)
         wakeup.check.return_value = start + timedelta(seconds=6)
@@ -476,7 +476,7 @@ class TestProcessor:
         assert not sleep_fn.called
         assert wakeup_fn.call_arg is None
 
-    def test_wakeup_scheduled(self, mocker, sleep_fn, wakeup_fn):
+    def test_wakeup_scheduled(self, mocker, sleep_fn, wakeup_fn) -> None:
         start = datetime.now(timezone.utc)
         wakeup = mocker.MagicMock(spec=autosuspend.Wakeup)
         wakeup.check.return_value = start + timedelta(seconds=25)
@@ -504,7 +504,7 @@ class TestProcessor:
         processor.iteration(start + timedelta(seconds=25), False)
         assert wakeup_fn.call_arg is None
 
-    def test_wakeup_delta_blocks(self, mocker, sleep_fn, wakeup_fn):
+    def test_wakeup_delta_blocks(self, mocker, sleep_fn, wakeup_fn) -> None:
         start = datetime.now(timezone.utc)
         wakeup = mocker.MagicMock(spec=autosuspend.Wakeup)
         wakeup.check.return_value = start + timedelta(seconds=25)
@@ -523,7 +523,7 @@ class TestProcessor:
         processor.iteration(start + timedelta(seconds=3), False)
         assert not sleep_fn.called
 
-    def test_wakeup_delta_applied(self, mocker, sleep_fn, wakeup_fn):
+    def test_wakeup_delta_applied(self, mocker, sleep_fn, wakeup_fn) -> None:
         start = datetime.now(timezone.utc)
         wakeup = mocker.MagicMock(spec=autosuspend.Wakeup)
         wakeup.check.return_value = start + timedelta(seconds=25)

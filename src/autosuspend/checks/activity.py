@@ -413,7 +413,9 @@ class Processes(Activity):
 class Smb(Activity):
 
     @classmethod
-    def create(cls, name: str, config: configparser.SectionProxy) -> 'Smb':
+    def create(
+        cls, name: str, config: Optional[configparser.SectionProxy],
+    ) -> 'Smb':
         return cls(name)
 
     def check(self) -> Optional[str]:

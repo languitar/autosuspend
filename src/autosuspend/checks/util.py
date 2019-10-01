@@ -1,5 +1,5 @@
 import configparser
-from typing import Any, Dict, Iterable, Optional, TYPE_CHECKING
+from typing import Any, Dict, Optional, Sequence, TYPE_CHECKING
 
 from . import Check, ConfigurationError, SevereCheckError, TemporaryCheckError
 
@@ -135,7 +135,7 @@ class XPathMixin(NetworkMixin):
         from lxml import etree  # noqa: S410 required flag set
         self._parser = etree.XMLParser(resolve_entities=False)
 
-    def evaluate(self) -> Iterable[Any]:
+    def evaluate(self) -> Sequence[Any]:
         import requests
         import requests.exceptions
         from lxml import etree  # noqa: S410 using safe parser

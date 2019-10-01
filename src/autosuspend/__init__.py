@@ -35,7 +35,7 @@ _logger = logging.getLogger('autosuspend')
 
 
 def execute_suspend(
-    command: str, wakeup_at: Optional[datetime.datetime],
+    command: Union[str, Sequence[str]], wakeup_at: Optional[datetime.datetime],
 ) -> None:
     """Suspend the system by calling the specified command.
 
@@ -94,7 +94,7 @@ def notify_suspend(command_wakeup_template: Optional[str],
         _logger.info('No suitable notification command configured.')
 
 
-def notify_and_suspend(suspend_cmd: str,
+def notify_and_suspend(suspend_cmd: Union[str, Sequence[str]],
                        notify_cmd_wakeup_template: Optional[str],
                        notify_cmd_no_wakeup: Optional[str],
                        wakeup_at: Optional[datetime.datetime]) -> None:
