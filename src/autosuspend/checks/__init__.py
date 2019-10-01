@@ -76,7 +76,7 @@ class Check(abc.ABC):
         return {k: v for k, v in self.__dict__.items()
                 if not callable(v) and k != 'logger'}
 
-    def __str__(self):
+    def __str__(self) -> str:
         return '{name}[class={clazz}]'.format(name=self.name,
                                               clazz=self.__class__.__name__)
 

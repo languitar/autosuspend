@@ -43,6 +43,7 @@ class TestCalendar(CheckTest):
         address = stub_server.resource_address('old-event.ics')
         timestamp = dateutil.parser.parse('20040605T090000Z')
         desired_start = dateutil.parser.parse('20040605T110000Z')
+
         assert Calendar(
             'test', url=address, timeout=3).check(timestamp) == desired_start
 
@@ -72,9 +73,9 @@ class TestFile(CheckTest):
             File.create('name', parser['section'])
 
     def test_smoke(self, tmpdir):
-        file = tmpdir.join('file')
-        file.write('42\n\n')
-        assert File('name', str(file)).check(
+        test_file = tmpdir.join('file')
+        test_file.write('42\n\n')
+        assert File('name', str(test_file)).check(
             datetime.now(timezone.utc)) == datetime.fromtimestamp(
                 42, timezone.utc)
 
@@ -83,10 +84,10 @@ class TestFile(CheckTest):
             datetime.now(timezone.utc)) is None
 
     def test_invalid_number(self, tmpdir):
-        file = tmpdir.join('filexxx')
-        file.write('nonumber\n\n')
+        test_file = tmpdir.join('filexxx')
+        test_file.write('nonumber\n\n')
         with pytest.raises(TemporaryCheckError):
-            File('name', str(file)).check(datetime.now(timezone.utc))
+            File('name', str(test_file)).check(datetime.now(timezone.utc))
 
 
 class TestCommand(CheckTest):

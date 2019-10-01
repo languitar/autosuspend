@@ -139,9 +139,10 @@ class TestXPathMixin:
         mock_reply = mocker.MagicMock()
         content_property = mocker.PropertyMock()
         type(mock_reply).content = content_property
-        content_property.return_value = \
+        content_property.return_value = (
             b"""<?xml version="1.0" encoding="ISO-8859-1" ?>
 <root></root>"""
+        )
         mocker.patch('requests.Session.get', return_value=mock_reply)
 
         _XPathMixinSub('foo', xpath='/b', url='nourl', timeout=5).evaluate()

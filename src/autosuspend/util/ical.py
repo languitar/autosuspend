@@ -1,5 +1,5 @@
 from datetime import date, datetime, timedelta
-from typing import Dict, IO, Iterable, List, Mapping
+from typing import Dict, IO, Iterable, List, Mapping, Sequence, Union
 
 from dateutil.rrule import rruleset, rrulestr
 import icalendar
@@ -10,7 +10,12 @@ import tzlocal
 
 class CalendarEvent:
 
-    def __init__(self, summary: str, start: datetime, end: datetime) -> None:
+    def __init__(
+        self,
+        summary: str,
+        start: Union[datetime, date],
+        end: Union[datetime, date],
+    ) -> None:
         self.summary = summary
         self.start = start
         self.end = end
@@ -57,7 +62,7 @@ def _expand_rrule(rrule: str,
                   exclusions: Iterable,
                   changes: Iterable[icalendar.cal.Event],
                   start_at: datetime,
-                  end_at: datetime):
+                  end_at: datetime) -> Sequence[datetime]:
 
     # unify everything to a single timezone and then strip it to handle DST
     # changes correctly
@@ -120,7 +125,7 @@ def _collect_recurrence_changes(calendar: icalendar.Calendar) -> ChangeMapping:
 
 def list_calendar_events(data: IO[bytes],
                          start_at: datetime,
-                         end_at: datetime) -> Iterable[CalendarEvent]:
+                         end_at: datetime) -> Sequence[CalendarEvent]:
     """List all relevant calendar events in the provided interval.
 
     Args:
@@ -189,15 +194,15 @@ def list_calendar_events(data: IO[bytes],
                         summary, local_start, local_end))
             else:
                 # simplified processing for all-day events
-                for local_start in _expand_rrule_all_day(
+                for local_start_date in _expand_rrule_all_day(
                         rrule,
                         start,
                         exclusions,
                         start_at,
                         end_at):
-                    local_end = local_start + timedelta(days=1)
+                    local_end = local_start_date + timedelta(days=1)
                     events.append(CalendarEvent(
-                        summary, local_start, local_end))
+                        summary, local_start_date, local_end))
         else:
             # same distinction here as above
             if isinstance(start, datetime):

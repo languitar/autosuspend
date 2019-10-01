@@ -18,7 +18,8 @@ from typing import (Callable,
                     Optional,
                     Sequence,
                     Type,
-                    TypeVar)
+                    TypeVar,
+                    Union)
 
 from .checks import (Activity,
                      Check,
@@ -33,7 +34,9 @@ _logger = logging.getLogger('autosuspend')
 # pylint: enable=invalid-name
 
 
-def execute_suspend(command: str, wakeup_at: Optional[datetime.datetime]):
+def execute_suspend(
+    command: str, wakeup_at: Optional[datetime.datetime],
+) -> None:
     """Suspend the system by calling the specified command.
 
     Args:
@@ -45,7 +48,7 @@ def execute_suspend(command: str, wakeup_at: Optional[datetime.datetime]):
     """
     _logger.info('Suspending using command: %s', command)
     try:
-        subprocess.check_call(command, shell=True)
+        subprocess.check_call(command, shell=True)  # noqa: S602
     except subprocess.CalledProcessError:
         _logger.warning('Unable to execute suspend command: %s', command,
                         exc_info=True)
@@ -53,7 +56,7 @@ def execute_suspend(command: str, wakeup_at: Optional[datetime.datetime]):
 
 def notify_suspend(command_wakeup_template: Optional[str],
                    command_no_wakeup: Optional[str],
-                   wakeup_at: Optional[datetime.datetime]):
+                   wakeup_at: Optional[datetime.datetime]) -> None:
     """Call a command to notify on suspending.
 
     Args:
@@ -72,10 +75,10 @@ def notify_suspend(command_wakeup_template: Optional[str],
             if not ``None``, this is the time the system will wake up again
     """
 
-    def safe_exec(command):
+    def safe_exec(command: str) -> None:
         _logger.info('Notifying using command: %s', command)
         try:
-            subprocess.check_call(command, shell=True)
+            subprocess.check_call(command, shell=True)  # noqa: S602
         except subprocess.CalledProcessError:
             _logger.warning('Unable to execute notification command: %s',
                             command, exc_info=True)
@@ -94,17 +97,19 @@ def notify_suspend(command_wakeup_template: Optional[str],
 def notify_and_suspend(suspend_cmd: str,
                        notify_cmd_wakeup_template: Optional[str],
                        notify_cmd_no_wakeup: Optional[str],
-                       wakeup_at: Optional[datetime.datetime]):
+                       wakeup_at: Optional[datetime.datetime]) -> None:
     notify_suspend(notify_cmd_wakeup_template, notify_cmd_no_wakeup, wakeup_at)
     execute_suspend(suspend_cmd, wakeup_at)
 
 
-def schedule_wakeup(command_template: str, wakeup_at: datetime.datetime):
+def schedule_wakeup(
+    command_template: str, wakeup_at: datetime.datetime,
+) -> None:
     command = command_template.format(timestamp=wakeup_at.timestamp(),
                                       iso=wakeup_at.isoformat())
     _logger.info('Scheduling wakeup using command: %s', command)
     try:
-        subprocess.check_call(command, shell=True)
+        subprocess.check_call(command, shell=True)  # noqa: S602
     except subprocess.CalledProcessError:
         _logger.warning('Unable to execute wakeup scheduling command: %s',
                         command, exc_info=True)
@@ -112,7 +117,7 @@ def schedule_wakeup(command_template: str, wakeup_at: datetime.datetime):
 
 def execute_checks(checks: Iterable[Activity],
                    all_checks: bool,
-                   logger) -> bool:
+                   logger: logging.Logger) -> bool:
     """Execute the provided checks sequentially.
 
     Args:
@@ -144,7 +149,7 @@ def execute_checks(checks: Iterable[Activity],
 
 def execute_wakeups(wakeups: Iterable[Wakeup],
                     timestamp: datetime.datetime,
-                    logger) -> Optional[datetime.datetime]:
+                    logger: logging.Logger) -> Optional[datetime.datetime]:
 
     wakeup_at = None
     for wakeup in wakeups:
@@ -225,7 +230,9 @@ class Processor:
         self._logger.info('%s. Resetting state', reason)
         self._idle_since = None
 
-    def iteration(self, timestamp: datetime.datetime, just_woke_up: bool):
+    def iteration(
+        self, timestamp: datetime.datetime, just_woke_up: bool,
+    ) -> None:
         self._logger.info('Starting new check iteration')
 
         # determine system activity
@@ -285,7 +292,7 @@ class Processor:
 
 
 def loop(processor: Processor,
-         interval: int,
+         interval: float,
          run_for: Optional[int],
          woke_up_file: str) -> None:
     """Run the main loop of the daemon.
@@ -397,7 +404,7 @@ def set_up_checks(config: configparser.ConfigParser,
     return configured_checks
 
 
-def parse_config(config_file: Iterable[str]):
+def parse_config(config_file: Iterable[str]) -> configparser.ConfigParser:
     """Parse the configuration file.
 
     Args:
@@ -474,7 +481,7 @@ def parse_arguments(args: Optional[Sequence[str]]) -> argparse.Namespace:
     return result
 
 
-def configure_logging(file_or_flag):
+def configure_logging(file_or_flag: Union[bool, IO]) -> None:
     """Configure the python :mod:`logging` system.
 
     If the provided argument is a `file` instance, try to use the
@@ -507,17 +514,24 @@ def configure_logging(file_or_flag):
                             exc_info=True)
 
 
-def main(args=None):
+def main(argv: Optional[Sequence[str]] = None) -> None:
     """Run the daemon."""
-    args = parse_arguments(args)
+    args = parse_arguments(argv)
 
     configure_logging(args.logging)
 
     config = parse_config(args.config_file)
 
-    checks = set_up_checks(config, 'check', 'activity', Activity,
-                           error_none=True)
-    wakeups = set_up_checks(config, 'wakeup', 'wakeup', Wakeup)
+    checks = set_up_checks(
+        config,
+        'check',
+        'activity',
+        Activity,  # type: ignore
+        error_none=True,
+    )
+    wakeups = set_up_checks(
+        config, 'wakeup', 'wakeup', Wakeup,  # type: ignore
+    )
 
     processor = Processor(
         checks, wakeups,

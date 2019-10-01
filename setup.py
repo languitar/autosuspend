@@ -39,14 +39,14 @@ setup(
     },
 
     package_dir={
-        '': 'src'
+        '': 'src',
     },
     packages=find_packages('src'),
 
     entry_points={
         'console_scripts': [
             'autosuspend = autosuspend:main',
-        ]
+        ],
     },
 
     data_files=[

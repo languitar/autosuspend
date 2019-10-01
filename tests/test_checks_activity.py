@@ -278,7 +278,7 @@ class TestActiveConnection(CheckTest):
                          self.MY_ADDRESS_IPV6_SCOPED,
                          'ffff:ffff:ffff:ffff::',
                          None, None),
-                ]
+                ],
             }
 
         def connections():
