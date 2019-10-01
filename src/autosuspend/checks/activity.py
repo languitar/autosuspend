@@ -312,6 +312,8 @@ class NetworkBandwidth(Activity):
         new_values = psutil.net_io_counters(pernic=True)
         self._previous_values = new_values
         new_time = time.time()
+        if new_time == self._previous_time:
+            raise TemporaryCheckError('Called too fast, no time between calls')
         self._previous_time = new_time
 
         for interface in self._interfaces:

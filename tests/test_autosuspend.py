@@ -1,8 +1,10 @@
+import argparse
 import configparser
 from datetime import datetime, timedelta, timezone
 import logging
 import subprocess
 
+import dateutil.parser
 import pytest
 
 import autosuspend
@@ -127,13 +129,34 @@ class TestSetUpChecks:
                            class = Mpd
                            enabled = False''')
 
-        autosuspend.set_up_checks(parser, 'check', 'activity',
-                                  autosuspend.Activity)  # type: ignore
+        assert not autosuspend.set_up_checks(
+            parser, 'check', 'activity', autosuspend.Activity,  # type: ignore
+        )
 
         with pytest.raises(autosuspend.ConfigurationError):
             autosuspend.set_up_checks(parser, 'check', 'activity',
                                       autosuspend.Activity,  # type: ignore
                                       error_none=True)
+
+    def test_not_enabled_continues_with_next(self, mocker) -> None:
+        mock_mpd = mocker.patch('autosuspend.checks.activity.Mpd')
+        mock_mpd.create.return_value = mocker.MagicMock(
+            spec=autosuspend.Activity)
+        mock_xidletime = mocker.patch('autosuspend.checks.activity.XIdleTime')
+        mock_xidletime.create.return_value = mocker.MagicMock(
+            spec=autosuspend.Activity)
+
+        parser = configparser.ConfigParser()
+        parser.read_string('''[check.Foo]
+                           class = Mpd
+                           enabled = False
+                           [check.Bar]
+                           class = XIdleTime
+                           enabled = True''')
+
+        assert len(autosuspend.set_up_checks(
+            parser, 'check', 'activity', autosuspend.Activity,  # type: ignore
+        )) == 1
 
     def test_no_such_class(self, mocker) -> None:
         parser = configparser.ConfigParser()
@@ -237,6 +260,26 @@ class TestExecuteWakeups:
         assert autosuspend.execute_wakeups(
             [wakeup], datetime.now(timezone.utc), mocker.MagicMock()) is None
 
+    @pytest.mark.parametrize(
+        'illegal',
+        [None, dateutil.parser.parse('20040605T090000Z')],
+    )
+    def test_skips_none_outdated_and_continues(self, mocker, illegal) -> None:
+        wakeup_none = mocker.MagicMock(
+            spec=autosuspend.Wakeup)
+        wakeup_none.check.return_value = illegal
+        now = dateutil.parser.parse('20040705T090000Z')
+        wake_up_at = now + timedelta(minutes=10)
+        wakeup_real = mocker.MagicMock(
+            spec=autosuspend.Wakeup)
+        wakeup_real.check.return_value = wake_up_at
+        assert autosuspend.execute_wakeups(
+            [wakeup_none, wakeup_real],
+            now,
+            mocker.MagicMock(),
+        ) == wake_up_at
+        assert wakeup_none.check.called
+
     def test_basic_return(self, mocker) -> None:
         wakeup = mocker.MagicMock(
             spec=autosuspend.Wakeup)
@@ -318,11 +361,40 @@ class TestNotifySuspend:
             'echo {timestamp:.0f} {iso}', None, None)
         mock.assert_not_called()
 
-    def test_ignore_execution_errors(self, mocker) -> None:
+    def test_ignore_execution_errors(self, mocker, caplog) -> None:
         mock = mocker.patch('subprocess.check_call')
         mock.side_effect = subprocess.CalledProcessError(2, 'cmd')
         dt = datetime.fromtimestamp(1525270801, timezone(timedelta(hours=4)))
-        autosuspend.notify_suspend(None, 'not this', dt)
+        with caplog.at_level(logging.WARNING):
+            autosuspend.notify_suspend('wakeup', 'nowakeup', dt)
+            assert 'Unable to execute' in caplog.text
+            assert mock.called
+
+    def test_info_no_command(self, caplog) -> None:
+        with caplog.at_level(logging.INFO):
+            autosuspend.notify_suspend(None, None, datetime.now())
+            assert 'suitable' in caplog.text
+
+
+class TestConfigureProcessor:
+
+    def test_minimal_config(self, mocker) -> None:
+        parser = configparser.ConfigParser()
+        parser.read_string(
+            '''
+[general]
+suspend_cmd = suspend
+wakeup_cmd = wakeup
+            ''')
+        args = mocker.MagicMock(spec=argparse.Namespace)
+        type(args).all_checks = mocker.PropertyMock(return_value=True)
+        processor = autosuspend.configure_processor(
+            args, parser, [], [],
+        )
+        assert processor._idle_time == 300
+        assert processor._min_sleep_time == 1200
+        assert processor._wakeup_delta == 30
+        assert processor._all_activities
 
 
 def test_notify_and_suspend(mocker) -> None:
@@ -463,7 +535,7 @@ class TestProcessor:
         processor = autosuspend.Processor([_StubCheck('stub', None)],
                                           [wakeup],
                                           2,
-                                          10,
+                                          3.1,
                                           0,
                                           sleep_fn,
                                           wakeup_fn,
@@ -475,6 +547,28 @@ class TestProcessor:
         processor.iteration(start + timedelta(seconds=3), False)
         assert not sleep_fn.called
         assert wakeup_fn.call_arg is None
+
+    def test_wakeup_exact_hit_does_not_block(
+        self, mocker, sleep_fn, wakeup_fn,
+    ) -> None:
+        start = datetime.now(timezone.utc)
+        wakeup = mocker.MagicMock(spec=autosuspend.Wakeup)
+        wakeup.check.return_value = start + timedelta(seconds=6)
+        processor = autosuspend.Processor([_StubCheck('stub', None)],
+                                          [wakeup],
+                                          2,
+                                          3,
+                                          0,
+                                          sleep_fn,
+                                          wakeup_fn,
+                                          False)
+
+        # init iteration
+        processor.iteration(start, False)
+        # no activity and enough time passed to start sleeping
+        processor.iteration(start + timedelta(seconds=3), False)
+        assert sleep_fn.called
+        assert wakeup_fn.call_arg is not None
 
     def test_wakeup_scheduled(self, mocker, sleep_fn, wakeup_fn) -> None:
         start = datetime.now(timezone.utc)

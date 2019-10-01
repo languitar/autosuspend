@@ -46,6 +46,24 @@ class TestNetworkMixin:
             parser.read_string('[section]')
             NetworkMixin.collect_init_args(parser['section'])
 
+    def test_username_missing(self) -> None:
+        with pytest.raises(ConfigurationError,
+                           match=r"^Username and.*"):
+            parser = configparser.ConfigParser()
+            parser.read_string('''[section]
+                                  url=ok
+                                  password=xxx''')
+            NetworkMixin.collect_init_args(parser['section'])
+
+    def test_password_missing(self) -> None:
+        with pytest.raises(ConfigurationError,
+                           match=r"^Username and.*"):
+            parser = configparser.ConfigParser()
+            parser.read_string('''[section]
+                                  url=ok
+                                  username=xxx''')
+            NetworkMixin.collect_init_args(parser['section'])
+
     def test_collect_default_timeout(self) -> None:
         parser = configparser.ConfigParser()
         parser.read_string('''[section]
@@ -167,4 +185,14 @@ class TestXPathMixin:
                                xpath=/valid
                                url=nourl''')
             del parser['section'][entry]
+            _XPathMixinSub.create('name', parser['section'])
+
+    def test_invalid_config_entry(self) -> None:
+        with pytest.raises(ConfigurationError,
+                           match=r"^Configuration error .*"):
+            parser = configparser.ConfigParser()
+            parser.read_string('''[section]
+                               xpath=/valid
+                               timeout=xxx
+                               url=nourl''')
             _XPathMixinSub.create('name', parser['section'])

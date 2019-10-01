@@ -1,5 +1,6 @@
 import configparser
 from datetime import datetime, timedelta, timezone
+import os
 import subprocess
 
 import dateutil.parser
@@ -49,11 +50,34 @@ class TestCalendar(CheckTest):
         assert Calendar(
             'test', url=address, timeout=3).check(timestamp) == desired_start
 
+    def test_select_earliest(self, stub_server) -> None:
+        address = stub_server.resource_address('multiple.ics')
+        timestamp = dateutil.parser.parse('20040401T090000Z')
+        desired_start = dateutil.parser.parse('20040405T110000Z')
+
+        assert Calendar(
+            'test', url=address, timeout=3).check(timestamp) == desired_start
+
     def test_ignore_running(self, stub_server) -> None:
         address = stub_server.resource_address('old-event.ics')
-        timestamp = dateutil.parser.parse('20040605T120000Z')
+        timestamp = dateutil.parser.parse('20040605T110000Z')
+        # events are taken if start hits exactly the current time
+        assert Calendar(
+            'test', url=address, timeout=3).check(timestamp) is not None
+        timestamp = timestamp + timedelta(seconds=1)
         assert Calendar(
             'test', url=address, timeout=3).check(timestamp) is None
+
+    def test_limited_horizon(self, stub_server) -> None:
+        timestamp = dateutil.parser.parse('20040101T000000Z')
+
+        after_address = stub_server.resource_address('after-horizon.ics')
+        assert Calendar(
+            'test', url=after_address, timeout=3).check(timestamp) is None
+
+        before_address = stub_server.resource_address('before-horizon.ics')
+        assert Calendar(
+            'test', url=before_address, timeout=3).check(timestamp) is not None
 
 
 class TestFile(CheckTest):
@@ -84,6 +108,20 @@ class TestFile(CheckTest):
     def test_no_file(self, tmpdir) -> None:
         assert File('name', str(tmpdir.join('narf'))).check(
             datetime.now(timezone.utc)) is None
+
+    def test_handle_permission_error(self, tmpdir) -> None:
+        file_path = tmpdir / "test"
+        file_path.write(b'2314898')
+        os.chmod(file_path, 0)
+        with pytest.raises(TemporaryCheckError):
+            File('name', str(file_path)).check(datetime.now(timezone.utc))
+
+    def test_handle_io_error(self, tmpdir, mocker) -> None:
+        file_path = tmpdir / "test"
+        file_path.write(b'2314898')
+        mocker.patch('builtins.open').side_effect = IOError
+        with pytest.raises(TemporaryCheckError):
+            File('name', str(file_path)).check(datetime.now(timezone.utc))
 
     def test_invalid_number(self, tmpdir) -> None:
         test_file = tmpdir.join('filexxx')
@@ -160,6 +198,13 @@ class TestPeriodic(CheckTest):
         parser = configparser.ConfigParser()
         parser.read_string('''[section]
                            unit=seconds
+                           value=asdfasd''')
+        with pytest.raises(ConfigurationError):
+            Periodic.create('name', parser['section'])
+
+    def test_create_no_unit(self) -> None:
+        parser = configparser.ConfigParser()
+        parser.read_string('''[section]
                            value=asdfasd''')
         with pytest.raises(ConfigurationError):
             Periodic.create('name', parser['section'])
@@ -296,6 +341,16 @@ class TestXPathDelta(CheckTest):
                            unit=weeks''')
         check = XPathDelta.create('name', parser['section'])
         assert check._unit == 'weeks'
+
+    def test_create_wrong_unit(self) -> None:
+        parser = configparser.ConfigParser()
+        parser.read_string('''[section]
+                           xpath=/valid
+                           url=nourl
+                           timeout=20
+                           unit=unknown''')
+        with pytest.raises(ConfigurationError):
+            XPathDelta.create('name', parser['section'])
 
     def test_init_wrong_unit(self) -> None:
         with pytest.raises(ValueError):

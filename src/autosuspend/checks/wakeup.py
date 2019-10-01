@@ -27,10 +27,11 @@ class Calendar(NetworkMixin, Wakeup):
         events = [e for e in events if e.start >= timestamp]
 
         if events:
-            if isinstance(events[0].start, datetime):
-                return events[0].start
+            candidate = events[0]
+            if isinstance(candidate.start, datetime):
+                return candidate.start
             else:
-                return datetime.combine(events[0].start, datetime.min.time())
+                return datetime.combine(candidate.start, datetime.min.time())
         else:
             return None
 

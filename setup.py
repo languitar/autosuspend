@@ -18,7 +18,13 @@ extras_require = {
     'Logind': ['dbus-python'],
     'ical': ['requests', 'icalendar', 'python-dateutil', 'tzlocal'],
     'localfiles': ['requests-file'],
-    'test': ['pytest', 'pytest-cov', 'pytest-mock', 'freezegun'],
+    'test': [
+        'pytest',
+        'pytest-cov',
+        'pytest-mock',
+        'freezegun',
+        'pytest-freezegun',
+    ],
 }
 extras_require['test'].extend(
     {dep for k, v in extras_require.items() if k != 'test' for dep in v},

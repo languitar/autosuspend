@@ -207,8 +207,8 @@ class Processor:
     """
 
     def __init__(self,
-                 activities: List[Activity],
-                 wakeups: List[Wakeup],
+                 activities: Iterable[Activity],
+                 wakeups: Iterable[Wakeup],
                  idle_time: float,
                  min_sleep_time: float,
                  wakeup_delta: float,
@@ -514,6 +514,29 @@ def configure_logging(file_or_flag: Union[bool, IO]) -> None:
                             exc_info=True)
 
 
+def configure_processor(
+    args: argparse.Namespace,
+    config: configparser.ConfigParser,
+    checks: Iterable[Activity],
+    wakeups: Iterable[Wakeup],
+) -> Processor:
+    return Processor(
+        checks, wakeups,
+        config.getfloat('general', 'idle_time', fallback=300),
+        config.getfloat('general', 'min_sleep_time', fallback=1200),
+        config.getfloat('general', 'wakeup_delta', fallback=30),
+        functools.partial(notify_and_suspend,
+                          config.get('general', 'suspend_cmd'),
+                          config.get('general', 'notify_cmd_wakeup',
+                                     fallback=None),
+                          config.get('general', 'notify_cmd_no_wakeup',
+                                     fallback=None)),
+        functools.partial(schedule_wakeup,
+                          config.get('general', 'wakeup_cmd')),
+        all_activities=args.all_checks,
+    )
+
+
 def main(argv: Optional[Sequence[str]] = None) -> None:
     """Run the daemon."""
     args = parse_arguments(argv)
@@ -533,20 +556,7 @@ def main(argv: Optional[Sequence[str]] = None) -> None:
         config, 'wakeup', 'wakeup', Wakeup,  # type: ignore
     )
 
-    processor = Processor(
-        checks, wakeups,
-        config.getfloat('general', 'idle_time', fallback=300),
-        config.getfloat('general', 'min_sleep_time', fallback=1200),
-        config.getfloat('general', 'wakeup_delta', fallback=30),
-        functools.partial(notify_and_suspend,
-                          config.get('general', 'suspend_cmd'),
-                          config.get('general', 'notify_cmd_wakeup',
-                                     fallback=None),
-                          config.get('general', 'notify_cmd_no_wakeup',
-                                     fallback=None)),
-        functools.partial(schedule_wakeup,
-                          config.get('general', 'wakeup_cmd')),
-        all_activities=args.all_checks)
+    processor = configure_processor(args, config, checks, wakeups)
     loop(processor,
          config.getfloat('general', 'interval', fallback=60),
          run_for=args.run_for,

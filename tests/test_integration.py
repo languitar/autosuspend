@@ -124,6 +124,16 @@ def test_notify_call_wakeup(tmpdir, rapid_sleep) -> None:
         round((wakeup_at - datetime.timedelta(seconds=10)).timestamp()))
 
 
+def test_error_no_checks_configured(tmpdir) -> None:
+    with pytest.raises(autosuspend.ConfigurationError):
+        autosuspend.main([
+            '-c',
+            configure_config('no_checks.conf', tmpdir).strpath,
+            '-r',
+            '10',
+            '-l'])
+
+
 def test_temporary_errors_logged(tmpdir, rapid_sleep, caplog) -> None:
     autosuspend.main([
         '-c',
@@ -138,3 +148,21 @@ def test_temporary_errors_logged(tmpdir, rapid_sleep, caplog) -> None:
                 'failed' in r[2]]
 
     assert len(warnings) > 0
+
+
+def test_loop_defaults(tmpdir, mocker) -> None:
+    loop = mocker.patch('autosuspend.loop')
+    loop.side_effect = StopIteration
+    with pytest.raises(StopIteration):
+        autosuspend.main([
+            '-c',
+            configure_config('minimal.conf', tmpdir).strpath,
+            '-r',
+            '10',
+            '-l'])
+    args, kwargs = loop.call_args
+    assert args[1] == 60
+    assert kwargs['run_for'] == 10
+    assert kwargs['woke_up_file'] == (
+        '/var/run/autosuspend-just-woke-up'
+    )

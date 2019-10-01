@@ -116,9 +116,6 @@ class XPathMixin(NetworkMixin):
                 raise ConfigurationError(
                     'Invalid xpath expression: ' + args['xpath']) from error
             return args
-        except ValueError as error:
-            raise ConfigurationError(
-                'Configuration error ' + str(error)) from error
         except KeyError as error:
             raise ConfigurationError(
                 'Lacks ' + str(error) + ' config entry') from error

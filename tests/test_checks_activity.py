@@ -9,6 +9,7 @@ import socket
 import subprocess
 import sys
 
+from freezegun import freeze_time
 import psutil
 import pytest
 import requests
@@ -207,6 +208,19 @@ class TestActiveCalendarEvent(CheckTest):
         result = ActiveCalendarEvent('test', url=address, timeout=3).check()
         assert result is not None
         assert 'long-event' in result
+
+    @pytest.mark.freeze_time('2016-06-05 13:00:00', tz_offset=-2)
+    def test_exact_range(self, stub_server) -> None:
+        address = stub_server.resource_address('long-event.ics')
+        result = ActiveCalendarEvent('test', url=address, timeout=3).check()
+        assert result is not None
+        assert 'long-event' in result
+
+    @pytest.mark.freeze_time('2016-06-05 12:58:00', tz_offset=-2)
+    def test_before_exact_range(self, stub_server) -> None:
+        address = stub_server.resource_address('long-event.ics')
+        result = ActiveCalendarEvent('test', url=address, timeout=3).check()
+        assert result is None
 
     def test_no_event(self, stub_server) -> None:
         address = stub_server.resource_address('old-event.ics')
@@ -598,6 +612,58 @@ threshold_receive = xxx
         check.check()
         assert old_state != check._previous_values
 
+    def test_delta_calculation_send(self, mocker) -> None:
+        first = mocker.MagicMock()
+        type(first).bytes_sent = mocker.PropertyMock(return_value=1000)
+        type(first).bytes_recv = mocker.PropertyMock(return_value=800)
+        mocker.patch('psutil.net_io_counters').return_value = {
+            'eth0': first,
+        }
+
+        with freeze_time('2019-10-01 10:00:00'):
+            check = NetworkBandwidth(
+                'name', ['eth0'],
+                0, sys.float_info.max,
+            )
+
+        second = mocker.MagicMock()
+        type(second).bytes_sent = mocker.PropertyMock(return_value=1222)
+        type(second).bytes_recv = mocker.PropertyMock(return_value=900)
+        mocker.patch('psutil.net_io_counters').return_value = {
+            'eth0': second,
+        }
+
+        with freeze_time('2019-10-01 10:00:01'):
+            res = check.check()
+            assert res is not None
+            assert ' 222.0 ' in res
+
+    def test_delta_calculation_receive(self, mocker) -> None:
+        first = mocker.MagicMock()
+        type(first).bytes_sent = mocker.PropertyMock(return_value=1000)
+        type(first).bytes_recv = mocker.PropertyMock(return_value=800)
+        mocker.patch('psutil.net_io_counters').return_value = {
+            'eth0': first,
+        }
+
+        with freeze_time('2019-10-01 10:00:00'):
+            check = NetworkBandwidth(
+                'name', ['eth0'],
+                sys.float_info.max, 0,
+            )
+
+        second = mocker.MagicMock()
+        type(second).bytes_sent = mocker.PropertyMock(return_value=1222)
+        type(second).bytes_recv = mocker.PropertyMock(return_value=900)
+        mocker.patch('psutil.net_io_counters').return_value = {
+            'eth0': second,
+        }
+
+        with freeze_time('2019-10-01 10:00:01'):
+            res = check.check()
+            assert res is not None
+            assert ' 100.0 ' in res
+
 
 class TestKodi(CheckTest):
 
@@ -844,6 +910,73 @@ class TestXIdleTime(CheckTest):
 
     def create_instance(self, name):
         return XIdleTime(name, 10, 'sockets', None, None)
+
+    def test_smoke(self, mocker) -> None:
+        check = XIdleTime('name', 100, 'logind',
+                          re.compile(r'a^'), re.compile(r'a^'))
+        mocker.patch.object(check, '_provide_sessions').return_value = [
+            ('42', 'auser'),
+        ]
+
+        co_mock = mocker.patch('subprocess.check_output')
+        co_mock.return_value = '123'
+
+        res = check.check()
+        assert res is not None
+        assert ' 0.123 ' in res
+
+        args, kwargs = co_mock.call_args
+        assert 'auser' in args[0]
+        assert kwargs['env']['DISPLAY'] == ':42'
+        assert 'auser' in kwargs['env']['XAUTHORITY']
+
+    def test_no_activity(self, mocker) -> None:
+        check = XIdleTime('name', 100, 'logind',
+                          re.compile(r'a^'), re.compile(r'a^'))
+        mocker.patch.object(check, '_provide_sessions').return_value = [
+            ('42', 'auser'),
+        ]
+
+        mocker.patch('subprocess.check_output').return_value = '120000'
+
+        assert check.check() is None
+
+    def test_multiple_sessions(self, mocker) -> None:
+        check = XIdleTime('name', 100, 'logind',
+                          re.compile(r'a^'), re.compile(r'a^'))
+        mocker.patch.object(check, '_provide_sessions').return_value = [
+            ('42', 'auser'), ('17', 'otheruser'),
+        ]
+
+        co_mock = mocker.patch('subprocess.check_output')
+        co_mock.side_effect = [
+            '120000', '123',
+        ]
+
+        res = check.check()
+        assert res is not None
+        assert ' 0.123 ' in res
+
+        assert co_mock.call_count == 2
+        # check second call for correct values, not checked before
+        args, kwargs = co_mock.call_args_list[1]
+        assert 'otheruser' in args[0]
+        assert kwargs['env']['DISPLAY'] == ':17'
+        assert 'otheruser' in kwargs['env']['XAUTHORITY']
+
+    def test_handle_call_error(self, mocker) -> None:
+        check = XIdleTime('name', 100, 'logind',
+                          re.compile(r'a^'), re.compile(r'a^'))
+        mocker.patch.object(check, '_provide_sessions').return_value = [
+            ('42', 'auser'),
+        ]
+
+        mocker.patch(
+            'subprocess.check_output',
+        ).side_effect = subprocess.CalledProcessError(2, 'foo')
+
+        with pytest.raises(TemporaryCheckError):
+            check.check()
 
     def test_create_default(self) -> None:
         parser = configparser.ConfigParser()
