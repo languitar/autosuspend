@@ -11,6 +11,19 @@ with open(os.path.join(
     lines = version_file.readlines()
 release = lines[1].strip()
 
+extras_require = {
+    'Mpd': ['python-mpd2'],
+    'Kodi': ['requests'],
+    'XPath': ['lxml', 'requests'],
+    'Logind': ['dbus-python'],
+    'ical': ['requests', 'icalendar', 'python-dateutil', 'tzlocal'],
+    'localfiles': ['requests-file'],
+    'test': ['pytest', 'pytest-cov', 'pytest-mock', 'freezegun'],
+}
+extras_require['test'].extend(
+    {dep for k, v in extras_require.items() if k != 'test' for dep in v},
+)
+
 setup(
     name=name,
     version=release,
@@ -28,15 +41,7 @@ setup(
     install_requires=[
         'psutil>=5.0',
     ],
-    extras_require={
-        'Mpd': ['python-mpd2'],
-        'Kodi': ['requests'],
-        'XPath': ['lxml', 'requests'],
-        'Logind': ['dbus-python'],
-        'ical': ['requests', 'icalendar', 'python-dateutil', 'tzlocal'],
-        'localfiles': ['requests-file'],
-        'test': ['pytest', 'pytest-cov', 'pytest-mock', 'freezegun'],
-    },
+    extras_require=extras_require,
 
     package_dir={
         '': 'src',
