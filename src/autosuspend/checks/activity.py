@@ -11,6 +11,7 @@ import socket
 import subprocess
 import time
 from typing import Any, Dict
+import warnings
 
 import psutil
 
@@ -411,17 +412,20 @@ class Users(Activity):
 
     @classmethod
     def create(cls, name, config):
-        try:
-            user_regex = re.compile(
-                config.get('name', fallback=r'.*'))
-            terminal_regex = re.compile(
-                config.get('terminal', fallback=r'.*'))
-            host_regex = re.compile(
-                config.get('host', fallback=r'.*'))
-            return cls(name, user_regex, terminal_regex, host_regex)
-        except re.error as error:
-            raise ConfigurationError(
-                'Regular expression is invalid: {}'.format(error)) from error
+        with warnings.catch_warnings():
+            warnings.simplefilter('ignore', FutureWarning)
+            try:
+                user_regex = re.compile(
+                    config.get('name', fallback=r'.*'))
+                terminal_regex = re.compile(
+                    config.get('terminal', fallback=r'.*'))
+                host_regex = re.compile(
+                    config.get('host', fallback=r'.*'))
+                return cls(name, user_regex, terminal_regex, host_regex)
+            except re.error as error:
+                raise ConfigurationError(
+                    'Regular expression is invalid: {}'.format(error),
+                ) from error
 
     def __init__(self, name, user_regex, terminal_regex, host_regex):
         Activity.__init__(self, name)
@@ -450,19 +454,26 @@ class XIdleTime(Activity):
 
     @classmethod
     def create(cls, name, config):
-        try:
-            return cls(name, config.getint('timeout', fallback=600),
-                       config.get('method', fallback='sockets'),
-                       re.compile(config.get('ignore_if_process',
-                                             fallback=r'a^')),
-                       re.compile(config.get('ignore_users',
-                                             fallback=r'a^')))
-        except re.error as error:
-            raise ConfigurationError(
-                'Regular expression is invalid: {}'.format(error)) from error
-        except ValueError as error:
-            raise ConfigurationError(
-                'Unable to parse configuration: {}'.format(error)) from error
+        with warnings.catch_warnings():
+            warnings.simplefilter('ignore', FutureWarning)
+            try:
+                return cls(
+                    name,
+                    config.getint('timeout', fallback=600),
+                    config.get('method', fallback='sockets'),
+                    re.compile(
+                        config.get('ignore_if_process', fallback=r'a^'),
+                    ),
+                    re.compile(config.get('ignore_users', fallback=r'a^')),
+                )
+            except re.error as error:
+                raise ConfigurationError(
+                    'Regular expression is invalid: {}'.format(error),
+                ) from error
+            except ValueError as error:
+                raise ConfigurationError(
+                    'Unable to parse configuration: {}'.format(error),
+                ) from error
 
     def __init__(self, name, timeout, method,
                  ignore_process_re, ignore_users_re):
