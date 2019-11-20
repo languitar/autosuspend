@@ -95,6 +95,11 @@ class ExternalCommand(CommandMixin, Activity):
             return None
 
 
+def _add_default_kodi_url(config: configparser.SectionProxy) -> None:
+    if 'url' not in config:
+        config['url'] = 'http://localhost:8080/jsonrpc'
+
+
 class Kodi(NetworkMixin, Activity):
 
     @classmethod
@@ -102,6 +107,7 @@ class Kodi(NetworkMixin, Activity):
         cls, config: configparser.SectionProxy,
     ) -> Dict[str, Any]:
         try:
+            _add_default_kodi_url(config)
             args = NetworkMixin.collect_init_args(config)
             args['suspend_while_paused'] = config.getboolean(
                 'suspend_while_paused', fallback=False)
@@ -152,6 +158,7 @@ class KodiIdleTime(NetworkMixin, Activity):
         cls, config: configparser.SectionProxy,
     ) -> Dict[str, Any]:
         try:
+            _add_default_kodi_url(config)
             args = NetworkMixin.collect_init_args(config)
             args['idle_time'] = config.getint('idle_time', fallback=120)
             return args
