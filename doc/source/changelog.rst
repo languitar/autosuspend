@@ -4,6 +4,11 @@ Changelog
 3.0
 ---
 
+New features
+~~~~~~~~~~~~
+
+* The ``KodiIdleTime`` activity check can now be parameterized whether to indicate activity on a paused player or not (:issue:`59`, :issue:`60`).
+
 Fixed bugs
 ~~~~~~~~~~
 
