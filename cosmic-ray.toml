@@ -1,0 +1,15 @@
+[cosmic-ray]
+module-path = "src/autosuspend"
+python-version = ""
+timeout = 20.0
+excluded-modules = []
+test-command = "env PYTHONPATH=`pwd`/src pytest -x"
+
+[cosmic-ray.execution-engine]
+name = "local"
+
+[cosmic-ray.cloning]
+method = "copy"
+commands = [
+    "pip install .[test]"
+]

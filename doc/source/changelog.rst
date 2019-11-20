@@ -1,6 +1,16 @@
 Changelog
 =========
 
+3.0
+---
+
+Notable changes
+~~~~~~~~~~~~~~~
+
+* Dropped support for Python 3.6 and included Python 3.8 in CI infrastructure.
+  Everything works on Python 3.8.
+
+
 2.0.4
 -----
 

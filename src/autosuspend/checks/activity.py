@@ -10,7 +10,8 @@ import re
 import socket
 import subprocess
 import time
-from typing import Any, Dict
+from typing import Any, Dict, Iterable, Optional, Pattern, Sequence, Tuple
+import warnings
 
 import psutil
 
@@ -30,7 +31,7 @@ class ActiveCalendarEvent(NetworkMixin, Activity):
         NetworkMixin.__init__(self, **kwargs)
         Activity.__init__(self, name)
 
-    def check(self):
+    def check(self) -> Optional[str]:
         from ..util.ical import list_calendar_events
         response = self.request()
         start = datetime.now(timezone.utc)
@@ -49,23 +50,23 @@ class ActiveConnection(Activity):
     """Checks if a client connection exists on specified ports."""
 
     @classmethod
-    def create(cls, name, config):
+    def create(
+        cls, name: str, config: configparser.SectionProxy,
+    ) -> 'ActiveConnection':
         try:
-            ports = config['ports']
-            ports = ports.split(',')
-            ports = [p.strip() for p in ports]
-            ports = {int(p) for p in ports}
+            split_ports = config['ports'].split(',')
+            ports = {int(p.strip()) for p in split_ports}
             return cls(name, ports)
         except KeyError as error:
             raise ConfigurationError('Missing option ports') from error
         except ValueError as error:
             raise ConfigurationError('Ports must be integers') from error
 
-    def __init__(self, name, ports):
+    def __init__(self, name: str, ports: Iterable[int]) -> None:
         Activity.__init__(self, name)
         self._ports = ports
 
-    def check(self):
+    def check(self) -> Optional[str]:
         own_addresses = [(item.family, item.address.split('%')[0])
                          for sublist in psutil.net_if_addrs().values()
                          for item in sublist]
@@ -76,17 +77,19 @@ class ActiveConnection(Activity):
                          c.laddr[1] in self._ports)]
         if connected:
             return 'Ports {} are connected'.format(connected)
+        else:
+            return None
 
 
 class ExternalCommand(CommandMixin, Activity):
 
-    def __init__(self, name, command):
+    def __init__(self, name: str, command: str) -> None:
         CommandMixin.__init__(self, command)
         Check.__init__(self, name)
 
-    def check(self):
+    def check(self) -> Optional[str]:
         try:
-            subprocess.check_call(self._command, shell=True)
+            subprocess.check_call(self._command, shell=True)  # noqa: S602
             return 'Command {} succeeded'.format(self._command)
         except subprocess.CalledProcessError:
             return None
@@ -95,7 +98,9 @@ class ExternalCommand(CommandMixin, Activity):
 class Kodi(NetworkMixin, Activity):
 
     @classmethod
-    def collect_init_args(cls, config) -> Dict[str, Any]:
+    def collect_init_args(
+        cls, config: configparser.SectionProxy,
+    ) -> Dict[str, Any]:
         try:
             args = NetworkMixin.collect_init_args(config)
             args['suspend_while_paused'] = config.getboolean(
@@ -106,25 +111,27 @@ class Kodi(NetworkMixin, Activity):
                 'Configuration error {}'.format(error)) from error
 
     @classmethod
-    def create(cls, name: str, config: configparser.SectionProxy):
+    def create(cls, name: str, config: configparser.SectionProxy) -> 'Kodi':
         return cls(name, **cls.collect_init_args(config))
 
-    def __init__(self, name: str, url: str, suspend_while_paused=False,
+    def __init__(self, name: str, url: str, suspend_while_paused: bool = False,
                  **kwargs) -> None:
         self._suspend_while_paused = suspend_while_paused
         if self._suspend_while_paused:
-            request = url + \
-                '?request={"jsonrpc": "2.0", "id": 1, ' \
-                '"method": "XBMC.GetInfoBooleans",' \
+            request = url + (
+                '?request={"jsonrpc": "2.0", "id": 1, '
+                '"method": "XBMC.GetInfoBooleans",'
                 '"params": {"booleans": ["Player.Playing"]} }'
+            )
         else:
-            request = url + \
-                '?request={"jsonrpc": "2.0", "id": 1, ' \
+            request = url + (
+                '?request={"jsonrpc": "2.0", "id": 1, '
                 '"method": "Player.GetActivePlayers"}'
+            )
         NetworkMixin.__init__(self, url=request, **kwargs)
         Activity.__init__(self, name)
 
-    def check(self):
+    def check(self) -> Optional[str]:
         try:
             reply = self.request().json()
             if self._suspend_while_paused:
@@ -141,7 +148,9 @@ class Kodi(NetworkMixin, Activity):
 class KodiIdleTime(NetworkMixin, Activity):
 
     @classmethod
-    def collect_init_args(cls, config) -> Dict[str, Any]:
+    def collect_init_args(
+        cls, config: configparser.SectionProxy,
+    ) -> Dict[str, Any]:
         try:
             args = NetworkMixin.collect_init_args(config)
             args['idle_time'] = config.getint('idle_time', fallback=120)
@@ -151,20 +160,23 @@ class KodiIdleTime(NetworkMixin, Activity):
                 'Configuration error ' + str(error)) from error
 
     @classmethod
-    def create(cls, name: str, config: configparser.SectionProxy):
+    def create(
+        cls, name: str, config: configparser.SectionProxy,
+    ) -> 'KodiIdleTime':
         return cls(name, **cls.collect_init_args(config))
 
     def __init__(self, name: str, url: str, idle_time: int, **kwargs) -> None:
-        request = url + \
-            '?request={{"jsonrpc": "2.0", "id": 1, ' \
-            '"method": "XBMC.GetInfoBooleans",' \
+        request = url + (
+            '?request={{"jsonrpc": "2.0", "id": 1, '
+            '"method": "XBMC.GetInfoBooleans",'
             '"params": {{"booleans": ["System.IdleTime({})"]}}}}'.format(
                 idle_time)
+        )
         NetworkMixin.__init__(self, url=request, **kwargs)
         Activity.__init__(self, name)
         self._idle_time = idle_time
 
-    def check(self):
+    def check(self) -> Optional[str]:
         try:
             reply = self.request().json()
             if not reply['result'][
@@ -179,7 +191,7 @@ class KodiIdleTime(NetworkMixin, Activity):
 class Load(Activity):
 
     @classmethod
-    def create(cls, name, config):
+    def create(cls, name: str, config: configparser.SectionProxy) -> 'Load':
         try:
             return cls(name,
                        config.getfloat('threshold', fallback=2.5))
@@ -188,11 +200,11 @@ class Load(Activity):
                 'Unable to parse threshold as float: {}'.format(
                     error)) from error
 
-    def __init__(self, name, threshold):
+    def __init__(self, name: str, threshold: float) -> None:
         Check.__init__(self, name)
         self._threshold = threshold
 
-    def check(self):
+    def check(self) -> Optional[str]:
         loadcurrent = os.getloadavg()[1]
         self.logger.debug("Load: %s", loadcurrent)
         if loadcurrent > self._threshold:
@@ -205,7 +217,7 @@ class Load(Activity):
 class Mpd(Activity):
 
     @classmethod
-    def create(cls, name, config):
+    def create(cls, name: str, config: configparser.SectionProxy) -> 'Mpd':
         try:
             host = config.get('host', fallback='localhost')
             port = config.getint('port', fallback=6600)
@@ -216,13 +228,15 @@ class Mpd(Activity):
                 'Host port or timeout configuration wrong: {}'.format(
                     error)) from error
 
-    def __init__(self, name, host, port, timeout):
+    def __init__(
+        self, name: str, host: str, port: int, timeout: float,
+    ) -> None:
         Check.__init__(self, name)
         self._host = host
         self._port = port
         self._timeout = timeout
 
-    def _get_state(self):
+    def _get_state(self) -> Dict:
         from mpd import MPDClient
         client = MPDClient()
         client.timeout = self._timeout
@@ -232,7 +246,7 @@ class Mpd(Activity):
         client.disconnect()
         return state
 
-    def check(self):
+    def check(self) -> Optional[str]:
         try:
             state = self._get_state()
             if state['state'] == 'play':
@@ -249,10 +263,11 @@ class Mpd(Activity):
 class NetworkBandwidth(Activity):
 
     @classmethod
-    def create(cls, name, config):
+    def create(
+        cls, name: str, config: configparser.SectionProxy,
+    ) -> 'NetworkBandwidth':
         try:
-            interfaces = config['interfaces']
-            interfaces = interfaces.split(',')
+            interfaces = config['interfaces'].split(',')
             interfaces = [i.strip() for i in interfaces if i.strip()]
             if not interfaces:
                 raise ConfigurationError('No interfaces configured')
@@ -274,7 +289,13 @@ class NetworkBandwidth(Activity):
             raise ConfigurationError(
                 'Threshold in wrong format: {}'.format(error)) from error
 
-    def __init__(self, name, interfaces, threshold_send, threshold_receive):
+    def __init__(
+        self,
+        name: str,
+        interfaces: Iterable[str],
+        threshold_send: float,
+        threshold_receive: float,
+    ) -> None:
         Check.__init__(self, name)
         self._interfaces = interfaces
         self._threshold_send = threshold_send
@@ -282,7 +303,7 @@ class NetworkBandwidth(Activity):
         self._previous_values = psutil.net_io_counters(pernic=True)
         self._previous_time = time.time()
 
-    def check(self):
+    def check(self) -> Optional[str]:
         # acquire the previous state and preserve it
         old_values = self._previous_values
         old_time = self._previous_time
@@ -291,38 +312,52 @@ class NetworkBandwidth(Activity):
         new_values = psutil.net_io_counters(pernic=True)
         self._previous_values = new_values
         new_time = time.time()
+        if new_time == self._previous_time:
+            raise TemporaryCheckError('Called too fast, no time between calls')
         self._previous_time = new_time
 
         for interface in self._interfaces:
-            if interface not in new_values or \
-                    interface not in self._previous_values:
+            if (
+                interface not in new_values or
+                interface not in self._previous_values
+            ):
                 raise TemporaryCheckError(
                     'Interface {} is missing'.format(interface))
 
             # send direction
-            delta_send = new_values[interface].bytes_sent - \
+            delta_send = (
+                new_values[interface].bytes_sent -
                 old_values[interface].bytes_sent
+            )
             rate_send = delta_send / (new_time - old_time)
             if rate_send > self._threshold_send:
-                return 'Interface {} sending rate {} byte/s '\
+                return (
+                    'Interface {} sending rate {} byte/s '
                     'higher than threshold {}'.format(
                         interface, rate_send, self._threshold_send)
+                )
 
             # receive direction
-            delta_receive = new_values[interface].bytes_recv - \
+            delta_receive = (
+                new_values[interface].bytes_recv -
                 old_values[interface].bytes_recv
+            )
             rate_receive = delta_receive / (new_time - old_time)
             if rate_receive > self._threshold_receive:
-                return 'Interface {} receive rate {} byte/s '\
+                return (
+                    'Interface {} receive rate {} byte/s '
                     'higher than threshold {}'.format(
                         interface, rate_receive, self._threshold_receive)
+                )
+
+        return None
 
 
 class Ping(Activity):
     """Check if one or several hosts are reachable via ping."""
 
     @classmethod
-    def create(cls, name, config):
+    def create(cls, name: str, config: configparser.SectionProxy) -> 'Ping':
         try:
             hosts = config['hosts'].split(',')
             hosts = [h.strip() for h in hosts]
@@ -332,14 +367,14 @@ class Ping(Activity):
                 'Unable to determine hosts to ping: {}'.format(
                     error)) from error
 
-    def __init__(self, name, hosts):
+    def __init__(self, name: str, hosts: Iterable[str]) -> None:
         Check.__init__(self, name)
         self._hosts = hosts
 
-    def check(self):
+    def check(self) -> Optional[str]:
         for host in self._hosts:
             cmd = ['ping', '-q', '-c', '1', host]
-            if subprocess.call(cmd,
+            if subprocess.call(cmd,  # noqa: S603 we know the input
                                stdout=subprocess.DEVNULL,
                                stderr=subprocess.DEVNULL) == 0:
                 self.logger.debug("host " + host + " appears to be up")
@@ -350,7 +385,9 @@ class Ping(Activity):
 class Processes(Activity):
 
     @classmethod
-    def create(cls, name, config):
+    def create(
+        cls, name: str, config: configparser.SectionProxy,
+    ) -> 'Processes':
         try:
             processes = config['processes'].split(',')
             processes = [p.strip() for p in processes]
@@ -359,11 +396,11 @@ class Processes(Activity):
             raise ConfigurationError(
                 'No processes to check specified') from error
 
-    def __init__(self, name, processes):
+    def __init__(self, name: str, processes: Iterable[str]) -> None:
         Check.__init__(self, name)
         self._processes = processes
 
-    def check(self):
+    def check(self) -> Optional[str]:
         for proc in psutil.process_iter():
             try:
                 pinfo = proc.name()
@@ -378,12 +415,14 @@ class Processes(Activity):
 class Smb(Activity):
 
     @classmethod
-    def create(cls, name, config):
+    def create(
+        cls, name: str, config: Optional[configparser.SectionProxy],
+    ) -> 'Smb':
         return cls(name)
 
-    def check(self):
+    def check(self) -> Optional[str]:
         try:
-            status_output = subprocess.check_output(
+            status_output = subprocess.check_output(  # noqa: S603, S607
                 ['smbstatus', '-b']).decode('utf-8')
         except subprocess.CalledProcessError as error:
             raise SevereCheckError(error) from error
@@ -410,38 +449,50 @@ class Smb(Activity):
 class Users(Activity):
 
     @classmethod
-    def create(cls, name, config):
-        try:
-            user_regex = re.compile(
-                config.get('name', fallback=r'.*'))
-            terminal_regex = re.compile(
-                config.get('terminal', fallback=r'.*'))
-            host_regex = re.compile(
-                config.get('host', fallback=r'.*'))
-            return cls(name, user_regex, terminal_regex, host_regex)
-        except re.error as error:
-            raise ConfigurationError(
-                'Regular expression is invalid: {}'.format(error)) from error
+    def create(cls, name: str, config: configparser.SectionProxy) -> 'Users':
+        with warnings.catch_warnings():
+            warnings.simplefilter('ignore', FutureWarning)
+            try:
+                user_regex = re.compile(
+                    config.get('name', fallback=r'.*'))
+                terminal_regex = re.compile(
+                    config.get('terminal', fallback=r'.*'))
+                host_regex = re.compile(
+                    config.get('host', fallback=r'.*'))
+                return cls(name, user_regex, terminal_regex, host_regex)
+            except re.error as error:
+                raise ConfigurationError(
+                    'Regular expression is invalid: {}'.format(error),
+                ) from error
 
-    def __init__(self, name, user_regex, terminal_regex, host_regex):
+    def __init__(
+        self,
+        name: str,
+        user_regex: Pattern,
+        terminal_regex: Pattern,
+        host_regex: Pattern,
+    ) -> None:
         Activity.__init__(self, name)
         self._user_regex = user_regex
         self._terminal_regex = terminal_regex
         self._host_regex = host_regex
 
-    def check(self):
+    def check(self) -> Optional[str]:
         for entry in psutil.users():
-            if self._user_regex.fullmatch(entry.name) is not None and \
-                    self._terminal_regex.fullmatch(
-                        entry.terminal) is not None and \
-                    self._host_regex.fullmatch(entry.host) is not None:
+            if (
+                self._user_regex.fullmatch(entry.name) is not None and
+                self._terminal_regex.fullmatch(entry.terminal) is not None and
+                self._host_regex.fullmatch(entry.host) is not None
+            ):
                 self.logger.debug('User %s on terminal %s from host %s '
                                   'matches criteria.', entry.name,
                                   entry.terminal, entry.host)
-                return 'User {user} is logged in on terminal {terminal} ' \
+                return (
+                    'User {user} is logged in on terminal {terminal} '
                     'from {host} since {started}'.format(
                         user=entry.name, terminal=entry.terminal,
                         host=entry.host, started=entry.started)
+                )
         return None
 
 
@@ -449,23 +500,38 @@ class XIdleTime(Activity):
     """Check that local X display have been idle long enough."""
 
     @classmethod
-    def create(cls, name, config):
-        try:
-            return cls(name, config.getint('timeout', fallback=600),
-                       config.get('method', fallback='sockets'),
-                       re.compile(config.get('ignore_if_process',
-                                             fallback=r'a^')),
-                       re.compile(config.get('ignore_users',
-                                             fallback=r'a^')))
-        except re.error as error:
-            raise ConfigurationError(
-                'Regular expression is invalid: {}'.format(error)) from error
-        except ValueError as error:
-            raise ConfigurationError(
-                'Unable to parse configuration: {}'.format(error)) from error
+    def create(
+        cls, name: str, config: configparser.SectionProxy,
+    ) -> 'XIdleTime':
+        with warnings.catch_warnings():
+            warnings.simplefilter('ignore', FutureWarning)
+            try:
+                return cls(
+                    name,
+                    config.getint('timeout', fallback=600),
+                    config.get('method', fallback='sockets'),
+                    re.compile(
+                        config.get('ignore_if_process', fallback=r'a^'),
+                    ),
+                    re.compile(config.get('ignore_users', fallback=r'a^')),
+                )
+            except re.error as error:
+                raise ConfigurationError(
+                    'Regular expression is invalid: {}'.format(error),
+                ) from error
+            except ValueError as error:
+                raise ConfigurationError(
+                    'Unable to parse configuration: {}'.format(error),
+                ) from error
 
-    def __init__(self, name, timeout, method,
-                 ignore_process_re, ignore_users_re):
+    def __init__(
+        self,
+        name: str,
+        timeout: float,
+        method: str,
+        ignore_process_re: Pattern,
+        ignore_users_re: Pattern,
+    ) -> None:
         Activity.__init__(self, name)
         self._timeout = timeout
         if method == 'sockets':
@@ -478,7 +544,7 @@ class XIdleTime(Activity):
         self._ignore_process_re = ignore_process_re
         self._ignore_users_re = ignore_users_re
 
-    def _list_sessions_sockets(self):
+    def _list_sessions_sockets(self) -> Sequence[Tuple[int, str]]:
         """List running X sessions by iterating the X sockets.
 
         This method assumes that X servers are run under the users using the
@@ -511,7 +577,7 @@ class XIdleTime(Activity):
 
         return results
 
-    def _list_sessions_logind(self):
+    def _list_sessions_logind(self) -> Sequence[Tuple[int, str]]:
         """List running X sessions using logind.
 
         This method assumes that a ``Display`` variable is set in the logind
@@ -534,7 +600,7 @@ class XIdleTime(Activity):
                     'a user name and a display', session_id)
         return results
 
-    def _is_skip_process_running(self, user):
+    def _is_skip_process_running(self, user: str) -> bool:
         user_processes = []
         for process in psutil.process_iter():
             try:
@@ -556,7 +622,7 @@ class XIdleTime(Activity):
 
         return False
 
-    def check(self):
+    def check(self) -> Optional[str]:
         for display, user in self._provide_sessions():
             self.logger.info('Checking display %s of user %s', display, user)
 
@@ -579,9 +645,9 @@ class XIdleTime(Activity):
                                              '.Xauthority')
 
             try:
-                idle_time = subprocess.check_output(
+                idle_time_output = subprocess.check_output(  # noqa: S603, S607
                     ['sudo', '-u', user, 'xprintidle'], env=env)
-                idle_time = float(idle_time.strip()) / 1000.0
+                idle_time = float(idle_time_output.strip()) / 1000.0
             except (subprocess.CalledProcessError, ValueError) as error:
                 self.logger.warning(
                     'Unable to determine the idle time for display %s.',
@@ -593,9 +659,11 @@ class XIdleTime(Activity):
                 display, user, idle_time)
 
             if idle_time < self._timeout:
-                return 'X session {} of user {} ' \
+                return (
+                    'X session {} of user {} '
                     'has idle time {} < threshold {}'.format(
                         display, user, idle_time, self._timeout)
+                )
 
         return None
 
@@ -607,19 +675,23 @@ class LogindSessionsIdle(Activity):
     """
 
     @classmethod
-    def create(cls, name, config):
-        types = config.get('types', fallback='tty,x11,wayland')
-        types = [t.strip() for t in types.split(',')]
-        states = config.get('states', fallback='active,online')
-        states = [t.strip() for t in states.split(',')]
+    def create(
+        cls, name: str, config: configparser.SectionProxy,
+    ) -> 'LogindSessionsIdle':
+        types = config.get('types', fallback='tty,x11,wayland').split(',')
+        types = [t.strip() for t in types]
+        states = config.get('states', fallback='active,online').split(',')
+        states = [t.strip() for t in states]
         return cls(name, types, states)
 
-    def __init__(self, name, types, states):
+    def __init__(
+        self, name: str, types: Iterable[str], states: Iterable[str],
+    ) -> None:
         Activity.__init__(self, name)
         self._types = types
         self._states = states
 
-    def check(self):
+    def check(self) -> Optional[str]:
         for session_id, properties in list_logind_sessions():
             self.logger.debug('Session %s properties: %s',
                               session_id, properties)
@@ -642,10 +714,12 @@ class LogindSessionsIdle(Activity):
 
 class XPath(XPathMixin, Activity):
 
-    def __init__(self, name, **kwargs):
+    def __init__(self, name: str, **kwargs) -> None:
         Activity.__init__(self, name)
         XPathMixin.__init__(self, **kwargs)
 
-    def check(self):
+    def check(self) -> Optional[str]:
         if self.evaluate():
             return "XPath matches for url " + self._url
+        else:
+            return None

@@ -1,14 +1,16 @@
 language: python
-sudo: false
+sudo: true
+before_install:
+  - sudo apt-get -y install libdbus-1-dev
 python:
-  - 3.6
-  - nightly
+  - 3.7
+  - 3.8
 env:
   - TASK=test
   - TASK=integration
 matrix:
   include:
-  - python: 3.6
+  - python: 3.8
     env: TASK=checks
 install:
   - pip install tox-travis

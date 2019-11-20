@@ -9,7 +9,7 @@ from autosuspend.util.ical import CalendarEvent, list_calendar_events
 
 class TestCalendarEvent:
 
-    def test_str(self):
+    def test_str(self) -> None:
         start = parser.parse("2018-06-11 02:00:00 UTC")
         end = start + timedelta(hours=1)
         event = CalendarEvent('summary', start, end)
@@ -19,7 +19,7 @@ class TestCalendarEvent:
 
 class TestListCalendarEvents:
 
-    def test_simple_recurring(self):
+    def test_simple_recurring(self) -> None:
         """Tests for basic recurrence.
 
         Events are collected with the same DST setting as their original
@@ -44,9 +44,23 @@ class TestListCalendarEvents:
                 parser.parse("2018-06-29 07:00:00 UTC"),
             ]
 
-            assert expected_start_times == [e.start for e in events]
+            expected_end_times = [
+                parser.parse("2018-06-18 16:00:00 UTC"),
+                parser.parse("2018-06-19 16:00:00 UTC"),
+                parser.parse("2018-06-20 16:00:00 UTC"),
+                parser.parse("2018-06-21 16:00:00 UTC"),
+                parser.parse("2018-06-22 16:00:00 UTC"),
+                parser.parse("2018-06-25 16:00:00 UTC"),
+                parser.parse("2018-06-26 16:00:00 UTC"),
+                parser.parse("2018-06-27 16:00:00 UTC"),
+                parser.parse("2018-06-28 16:00:00 UTC"),
+                parser.parse("2018-06-29 16:00:00 UTC"),
+            ]
 
-    def test_recurrence_different_dst(self):
+            assert expected_start_times == [e.start for e in events]
+            assert expected_end_times == [e.end for e in events]
+
+    def test_recurrence_different_dst(self) -> None:
         with open(os.path.join(os.path.dirname(__file__), 'test_data',
                                'simple-recurring.ics'), 'rb') as f:
             start = parser.parse("2018-11-19 04:00:00 UTC")
@@ -68,7 +82,7 @@ class TestListCalendarEvents:
 
             assert expected_start_times == [e.start for e in events]
 
-    def test_all_day_events(self):
+    def test_all_day_events(self) -> None:
         with open(os.path.join(os.path.dirname(__file__), 'test_data',
                                'all-day-events.ics'), 'rb') as f:
             start = parser.parse("2018-06-11 02:00:00 UTC")
@@ -79,7 +93,7 @@ class TestListCalendarEvents:
             expected_summaries = ['start', 'between', 'end']
             assert [e.summary for e in events] == expected_summaries
 
-    def test_normal_events(self):
+    def test_normal_events(self) -> None:
         with open(os.path.join(os.path.dirname(__file__), 'test_data',
                                'normal-events-corner-cases.ics'), 'rb') as f:
             start = parser.parse("2018-06-04 00:00:00 +0200")
@@ -87,17 +101,41 @@ class TestListCalendarEvents:
             events = list_calendar_events(f, start, end)
 
             expected = [
-                ('overlapping', parser.parse("2018-06-02 20:00:00 +0200")),
-                ('before include', parser.parse("2018-06-03 21:00:00 +0200")),
-                ('direct start', parser.parse("2018-06-04 00:00:00 +0200")),
-                ('in between', parser.parse("2018-06-07 04:00:00 +0200")),
-                ('end overlap', parser.parse("2018-06-10 21:00:00 +0200")),
-                ('direct end', parser.parse("2018-06-10 22:00:00 +0200")),
+                (
+                    'overlapping',
+                    parser.parse("2018-06-02 20:00:00 +0200"),
+                    parser.parse("2018-06-12 23:00:00 +0200"),
+                ),
+                (
+                    'before include',
+                    parser.parse("2018-06-03 21:00:00 +0200"),
+                    parser.parse("2018-06-04 02:00:00 +0200"),
+                ),
+                (
+                    'direct start',
+                    parser.parse("2018-06-04 00:00:00 +0200"),
+                    parser.parse("2018-06-04 03:00:00 +0200"),
+                ),
+                (
+                    'in between',
+                    parser.parse("2018-06-07 04:00:00 +0200"),
+                    parser.parse("2018-06-07 09:00:00 +0200"),
+                ),
+                (
+                    'end overlap',
+                    parser.parse("2018-06-10 21:00:00 +0200"),
+                    parser.parse("2018-06-11 02:00:00 +0200"),
+                ),
+                (
+                    'direct end',
+                    parser.parse("2018-06-10 22:00:00 +0200"),
+                    parser.parse("2018-06-11 00:00:00 +0200"),
+                ),
             ]
 
-            assert [(e.summary, e.start) for e in events] == expected
+            assert [(e.summary, e.start, e.end) for e in events] == expected
 
-    def test_floating_time(self):
+    def test_floating_time(self) -> None:
         with open(os.path.join(os.path.dirname(__file__), 'test_data',
                                'floating.ics'), 'rb') as f:
             start = parser.parse("2018-06-09 00:00:00 +0200")
@@ -107,21 +145,36 @@ class TestListCalendarEvents:
             tzinfo = {'LOCAL': tzlocal()}
 
             expected = [
-                ('floating', parser.parse("2018-06-10 15:00:00 LOCAL",
-                                          tzinfos=tzinfo)),
-                ('floating recurring',
-                 parser.parse("2018-06-12 18:00:00 LOCAL", tzinfos=tzinfo)),
-                ('floating recurring',
-                 parser.parse("2018-06-13 18:00:00 LOCAL", tzinfos=tzinfo)),
-                ('floating recurring',
-                 parser.parse("2018-06-14 18:00:00 LOCAL", tzinfos=tzinfo)),
-                ('floating recurring',
-                 parser.parse("2018-06-15 18:00:00 LOCAL", tzinfos=tzinfo)),
+                (
+                    'floating',
+                    parser.parse("2018-06-10 15:00:00 LOCAL", tzinfos=tzinfo),
+                    parser.parse("2018-06-10 17:00:00 LOCAL", tzinfos=tzinfo),
+                ),
+                (
+                    'floating recurring',
+                    parser.parse("2018-06-12 18:00:00 LOCAL", tzinfos=tzinfo),
+                    parser.parse("2018-06-12 20:00:00 LOCAL", tzinfos=tzinfo),
+                ),
+                (
+                    'floating recurring',
+                    parser.parse("2018-06-13 18:00:00 LOCAL", tzinfos=tzinfo),
+                    parser.parse("2018-06-13 20:00:00 LOCAL", tzinfos=tzinfo),
+                ),
+                (
+                    'floating recurring',
+                    parser.parse("2018-06-14 18:00:00 LOCAL", tzinfos=tzinfo),
+                    parser.parse("2018-06-14 20:00:00 LOCAL", tzinfos=tzinfo),
+                ),
+                (
+                    'floating recurring',
+                    parser.parse("2018-06-15 18:00:00 LOCAL", tzinfos=tzinfo),
+                    parser.parse("2018-06-15 20:00:00 LOCAL", tzinfos=tzinfo),
+                ),
             ]
 
-            assert [(e.summary, e.start) for e in events] == expected
+            assert [(e.summary, e.start, e.end) for e in events] == expected
 
-    def test_floating_time_other_dst(self):
+    def test_floating_time_other_dst(self) -> None:
         with open(os.path.join(os.path.dirname(__file__), 'test_data',
                                'floating.ics'), 'rb') as f:
             start = parser.parse("2018-12-09 00:00:00 +0200")
@@ -131,25 +184,46 @@ class TestListCalendarEvents:
             tzinfo = {'LOCAL': tzlocal()}
 
             expected = [
-                ('floating recurring',
-                 parser.parse("2018-12-09 18:00:00 LOCAL", tzinfos=tzinfo)),
-                ('floating recurring',
-                 parser.parse("2018-12-10 18:00:00 LOCAL", tzinfos=tzinfo)),
-                ('floating recurring',
-                 parser.parse("2018-12-11 18:00:00 LOCAL", tzinfos=tzinfo)),
-                ('floating recurring',
-                 parser.parse("2018-12-12 18:00:00 LOCAL", tzinfos=tzinfo)),
-                ('floating recurring',
-                 parser.parse("2018-12-13 18:00:00 LOCAL", tzinfos=tzinfo)),
-                ('floating recurring',
-                 parser.parse("2018-12-14 18:00:00 LOCAL", tzinfos=tzinfo)),
-                ('floating recurring',
-                 parser.parse("2018-12-15 18:00:00 LOCAL", tzinfos=tzinfo)),
+                (
+                    'floating recurring',
+                    parser.parse("2018-12-09 18:00:00 LOCAL", tzinfos=tzinfo),
+                    parser.parse("2018-12-09 20:00:00 LOCAL", tzinfos=tzinfo),
+                ),
+                (
+                    'floating recurring',
+                    parser.parse("2018-12-10 18:00:00 LOCAL", tzinfos=tzinfo),
+                    parser.parse("2018-12-10 20:00:00 LOCAL", tzinfos=tzinfo),
+                ),
+                (
+                    'floating recurring',
+                    parser.parse("2018-12-11 18:00:00 LOCAL", tzinfos=tzinfo),
+                    parser.parse("2018-12-11 20:00:00 LOCAL", tzinfos=tzinfo),
+                ),
+                (
+                    'floating recurring',
+                    parser.parse("2018-12-12 18:00:00 LOCAL", tzinfos=tzinfo),
+                    parser.parse("2018-12-12 20:00:00 LOCAL", tzinfos=tzinfo),
+                ),
+                (
+                    'floating recurring',
+                    parser.parse("2018-12-13 18:00:00 LOCAL", tzinfos=tzinfo),
+                    parser.parse("2018-12-13 20:00:00 LOCAL", tzinfos=tzinfo),
+                ),
+                (
+                    'floating recurring',
+                    parser.parse("2018-12-14 18:00:00 LOCAL", tzinfos=tzinfo),
+                    parser.parse("2018-12-14 20:00:00 LOCAL", tzinfos=tzinfo),
+                ),
+                (
+                    'floating recurring',
+                    parser.parse("2018-12-15 18:00:00 LOCAL", tzinfos=tzinfo),
+                    parser.parse("2018-12-15 20:00:00 LOCAL", tzinfos=tzinfo),
+                ),
             ]
 
-            assert [(e.summary, e.start) for e in events] == expected
+            assert [(e.summary, e.start, e.end) for e in events] == expected
 
-    def test_exclusions(self):
+    def test_exclusions(self) -> None:
         with open(os.path.join(os.path.dirname(__file__), 'test_data',
                                'exclusions.ics'), 'rb') as f:
             start = parser.parse("2018-06-09 04:00:00 UTC")
@@ -167,7 +241,7 @@ class TestListCalendarEvents:
 
             assert expected_start_times == [e.start for e in events]
 
-    def test_reucrring_single_changes(self):
+    def test_reucrring_single_changes(self) -> None:
         with open(os.path.join(os.path.dirname(__file__), 'test_data',
                                'single-change.ics'), 'rb') as f:
             start = parser.parse("2018-06-11 00:00:00 UTC")
@@ -186,7 +260,7 @@ class TestListCalendarEvents:
 
             assert expected_start_times == [e.start for e in events]
 
-    def test_reucrring_change_dst(self):
+    def test_reucrring_change_dst(self) -> None:
         with open(os.path.join(os.path.dirname(__file__), 'test_data',
                                'recurring-change-dst.ics'), 'rb') as f:
             start = parser.parse("2018-12-10 00:00:00 UTC")
@@ -204,7 +278,7 @@ class TestListCalendarEvents:
 
             assert expected_start_times == [e.start for e in events]
 
-    def test_recurring_start_and_end_inclusive(self):
+    def test_recurring_start_and_end_inclusive(self) -> None:
         with open(os.path.join(os.path.dirname(__file__), 'test_data',
                                'issue-41.ics'), 'rb') as f:
             start = parser.parse("2018-06-26 15:13:51 UTC")
@@ -224,7 +298,7 @@ class TestListCalendarEvents:
 
             assert expected_start_times == [e.start for e in events]
 
-    def test_single_start_end_inclusive(self):
+    def test_single_start_end_inclusive(self) -> None:
         with open(os.path.join(os.path.dirname(__file__), 'test_data',
                                'old-event.ics'), 'rb') as f:
             start = parser.parse("2004-06-05 11:15:00 UTC")
@@ -237,7 +311,7 @@ class TestListCalendarEvents:
 
             assert expected_start_times == [e.start for e in events]
 
-    def test_single_all_day_start_end_inclusive(self):
+    def test_single_all_day_start_end_inclusive(self) -> None:
         with open(os.path.join(os.path.dirname(__file__), 'test_data',
                                'all-day-starts.ics'), 'rb') as f:
             start = parser.parse("2018-06-25 10:00:00 UTC")
@@ -250,7 +324,13 @@ class TestListCalendarEvents:
 
             assert expected_start_times == [e.start for e in events]
 
-    def test_longer_single_all_day_start_end_inclusive(self):
+            expected_end_times = [
+                parser.parse("2018-06-26 02:00:00 UTC").date(),
+            ]
+
+            assert expected_end_times == [e.end for e in events]
+
+    def test_longer_single_all_day_start_end_inclusive(self) -> None:
         with open(os.path.join(os.path.dirname(__file__), 'test_data',
                                'all-day-starts.ics'), 'rb') as f:
             start = parser.parse("2018-06-29 10:00:00 UTC")
@@ -263,7 +343,7 @@ class TestListCalendarEvents:
 
             assert expected_start_times == [e.start for e in events]
 
-    def test_recurring_all_day_start_end_inclusive(self):
+    def test_recurring_all_day_start_end_inclusive(self) -> None:
         with open(os.path.join(os.path.dirname(__file__), 'test_data',
                                'all-day-recurring.ics'), 'rb') as f:
             start = parser.parse("2018-06-29 10:00:00 UTC")
@@ -276,7 +356,13 @@ class TestListCalendarEvents:
 
             assert expected_start_times == [e.start for e in events]
 
-    def test_recurring_all_day_start_in_between(self):
+            expected_end_times = [
+                parser.parse("2018-06-30 02:00:00 UTC").date(),
+            ]
+
+            assert expected_end_times == [e.end for e in events]
+
+    def test_recurring_all_day_start_in_between(self) -> None:
         with open(os.path.join(os.path.dirname(__file__), 'test_data',
                                'all-day-recurring.ics'), 'rb') as f:
             start = parser.parse("2018-06-29 00:00:00 UTC")
@@ -290,7 +376,7 @@ class TestListCalendarEvents:
 
             assert expected_start_times == [e.start for e in events]
 
-    def test_recurring_all_day_exclusions(self):
+    def test_recurring_all_day_exclusions(self) -> None:
         with open(os.path.join(os.path.dirname(__file__), 'test_data',
                                'all-day-recurring-exclusions.ics'), 'rb') as f:
             start = parser.parse("2018-06-27 00:00:00 UTC")
@@ -306,7 +392,7 @@ class TestListCalendarEvents:
 
             assert expected_start_times == [e.start for e in events]
 
-    def test_recurring_all_day_exclusions_end(self):
+    def test_recurring_all_day_exclusions_end(self) -> None:
         with open(os.path.join(os.path.dirname(__file__), 'test_data',
                                'all-day-recurring-exclusions.ics'), 'rb') as f:
             start = parser.parse("2018-06-26 00:00:00 UTC")
