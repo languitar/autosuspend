@@ -1,5 +1,7 @@
 language: python
-sudo: false
+sudo: true
+before_install:
+  - sudo apt-get -y install libdbus-1-dev
 python:
   - 3.7
   - 3.8
