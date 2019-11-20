@@ -4,6 +4,11 @@ Changelog
 3.0
 ---
 
+Fixed bugs
+~~~~~~~~~~
+
+* Documented default URL for the ``Kodi*`` checks did not actually exist in code, which has been fixed now (:issue:`58`, :issue:`61`).
+
 Notable changes
 ~~~~~~~~~~~~~~~
 
