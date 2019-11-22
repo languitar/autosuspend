@@ -1,4 +1,0 @@
-[pydocstyle]
-
-add_select=D212
-add_ignore=D105,D107,D413
