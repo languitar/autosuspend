@@ -711,7 +711,7 @@ class LogindSessionsIdle(Activity):
                                   properties['State'])
                 continue
 
-            if properties['IdleHint'] == 'no':
+            if not properties['IdleHint']:
                 return 'Login session {} is not idle'.format(
                     session_id)
 
