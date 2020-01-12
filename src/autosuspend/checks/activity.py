@@ -261,7 +261,6 @@ class Mpd(Activity):
             else:
                 return None
         except (ConnectionError,
-                ConnectionRefusedError,
                 socket.timeout,
                 socket.gaierror) as error:
             raise TemporaryCheckError(error) from error
