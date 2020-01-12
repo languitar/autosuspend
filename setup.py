@@ -25,6 +25,8 @@ extras_require = {
         'freezegun',
         'python-dbusmock',
         'PyGObject',
+        'pytest-datadir',
+        'pytest-httpserver',
     ],
 }
 extras_require['test'].extend(

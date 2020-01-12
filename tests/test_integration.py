@@ -20,12 +20,14 @@ WOKE_UP_FILE = 'test-woke-up'
 NOTIFY_FILE = 'notify'
 
 
-def configure_config(config, tmpdir):
+def configure_config(config, datadir, tmpdir):
     out_path = tmpdir.join(config)
-    with open(os.path.join(ROOT, 'test_data', config), 'r') as in_config:
-        with out_path.open('w') as out_config:
-            out_config.write(in_config.read().replace('@TMPDIR@',
-                                                      tmpdir.strpath))
+    with out_path.open('w') as out_config:
+        out_config.write(
+            (datadir / config).read_text().replace(
+                '@TMPDIR@', tmpdir.strpath,
+            ),
+        )
     return out_path
 
 
@@ -38,10 +40,10 @@ def rapid_sleep(mocker):
         yield frozen_time
 
 
-def test_no_suspend_if_matching(tmpdir, rapid_sleep) -> None:
+def test_no_suspend_if_matching(datadir, tmpdir, rapid_sleep) -> None:
     autosuspend.main([
         '-c',
-        configure_config('dont_suspend.conf', tmpdir).strpath,
+        configure_config('dont_suspend.conf', datadir, tmpdir).strpath,
         '-r',
         '10',
         '-l'])
@@ -49,10 +51,10 @@ def test_no_suspend_if_matching(tmpdir, rapid_sleep) -> None:
     assert not tmpdir.join(SUSPENSION_FILE).check()
 
 
-def test_suspend(tmpdir, rapid_sleep) -> None:
+def test_suspend(tmpdir, datadir, rapid_sleep) -> None:
     autosuspend.main([
         '-c',
-        configure_config('would_suspend.conf', tmpdir).strpath,
+        configure_config('would_suspend.conf', datadir, tmpdir).strpath,
         '-r',
         '10',
         '-l'])
@@ -60,7 +62,7 @@ def test_suspend(tmpdir, rapid_sleep) -> None:
     assert tmpdir.join(SUSPENSION_FILE).check()
 
 
-def test_wakeup_scheduled(tmpdir, rapid_sleep) -> None:
+def test_wakeup_scheduled(tmpdir, datadir, rapid_sleep) -> None:
     # configure when to wake up
     now = datetime.datetime.now(datetime.timezone.utc)
     wakeup_at = now + datetime.timedelta(hours=4)
@@ -69,7 +71,7 @@ def test_wakeup_scheduled(tmpdir, rapid_sleep) -> None:
 
     autosuspend.main([
         '-c',
-        configure_config('would_schedule.conf', tmpdir).strpath,
+        configure_config('would_schedule.conf', datadir, tmpdir).strpath,
         '-r',
         '10',
         '-l'])
@@ -80,21 +82,21 @@ def test_wakeup_scheduled(tmpdir, rapid_sleep) -> None:
         round((wakeup_at - datetime.timedelta(seconds=30)).timestamp()))
 
 
-def test_woke_up_file_removed(tmpdir, rapid_sleep) -> None:
+def test_woke_up_file_removed(tmpdir, datadir, rapid_sleep) -> None:
     tmpdir.join(WOKE_UP_FILE).ensure()
     autosuspend.main([
         '-c',
-        configure_config('dont_suspend.conf', tmpdir).strpath,
+        configure_config('dont_suspend.conf', datadir, tmpdir).strpath,
         '-r',
         '5',
         '-l'])
     assert not tmpdir.join(WOKE_UP_FILE).check()
 
 
-def test_notify_call(tmpdir, rapid_sleep) -> None:
+def test_notify_call(tmpdir, datadir, rapid_sleep) -> None:
     autosuspend.main([
         '-c',
-        configure_config('notify.conf', tmpdir).strpath,
+        configure_config('notify.conf', datadir, tmpdir).strpath,
         '-r',
         '10',
         '-l'])
@@ -104,7 +106,7 @@ def test_notify_call(tmpdir, rapid_sleep) -> None:
     assert len(tmpdir.join(NOTIFY_FILE).read()) == 0
 
 
-def test_notify_call_wakeup(tmpdir, rapid_sleep) -> None:
+def test_notify_call_wakeup(tmpdir, datadir, rapid_sleep) -> None:
     # configure when to wake up
     now = datetime.datetime.now(datetime.timezone.utc)
     wakeup_at = now + datetime.timedelta(hours=4)
@@ -113,7 +115,7 @@ def test_notify_call_wakeup(tmpdir, rapid_sleep) -> None:
 
     autosuspend.main([
         '-c',
-        configure_config('notify_wakeup.conf', tmpdir).strpath,
+        configure_config('notify_wakeup.conf', datadir, tmpdir).strpath,
         '-r',
         '10',
         '-l'])
@@ -124,20 +126,20 @@ def test_notify_call_wakeup(tmpdir, rapid_sleep) -> None:
         round((wakeup_at - datetime.timedelta(seconds=10)).timestamp()))
 
 
-def test_error_no_checks_configured(tmpdir) -> None:
+def test_error_no_checks_configured(tmpdir, datadir) -> None:
     with pytest.raises(autosuspend.ConfigurationError):
         autosuspend.main([
             '-c',
-            configure_config('no_checks.conf', tmpdir).strpath,
+            configure_config('no_checks.conf', datadir, tmpdir).strpath,
             '-r',
             '10',
             '-l'])
 
 
-def test_temporary_errors_logged(tmpdir, rapid_sleep, caplog) -> None:
+def test_temporary_errors_logged(tmpdir, datadir, rapid_sleep, caplog) -> None:
     autosuspend.main([
         '-c',
-        configure_config('temporary_error.conf', tmpdir).strpath,
+        configure_config('temporary_error.conf', datadir, tmpdir).strpath,
         '-r',
         '10',
         '-l'])
@@ -150,13 +152,13 @@ def test_temporary_errors_logged(tmpdir, rapid_sleep, caplog) -> None:
     assert len(warnings) > 0
 
 
-def test_loop_defaults(tmpdir, mocker) -> None:
+def test_loop_defaults(tmpdir, datadir, mocker) -> None:
     loop = mocker.patch('autosuspend.loop')
     loop.side_effect = StopIteration
     with pytest.raises(StopIteration):
         autosuspend.main([
             '-c',
-            configure_config('minimal.conf', tmpdir).strpath,
+            configure_config('minimal.conf', datadir, tmpdir).strpath,
             '-r',
             '10',
             '-l'])

@@ -43,20 +43,16 @@ class TestSmb(CheckTest):
     def create_instance(self, name):
         return Smb(name)
 
-    def test_no_connections(self, monkeypatch) -> None:
+    def test_no_connections(self, datadir, monkeypatch) -> None:
         def return_data(*args, **kwargs):
-            with open(os.path.join(os.path.dirname(__file__), 'test_data',
-                                   'smbstatus_no_connections'), 'rb') as f:
-                return f.read()
+            return (datadir / 'smbstatus_no_connections').read_bytes()
         monkeypatch.setattr(subprocess, 'check_output', return_data)
 
         assert Smb('foo').check() is None
 
-    def test_with_connections(self, monkeypatch) -> None:
+    def test_with_connections(self, datadir, monkeypatch) -> None:
         def return_data(*args, **kwargs):
-            with open(os.path.join(os.path.dirname(__file__), 'test_data',
-                                   'smbstatus_with_connections'), 'rb') as f:
-                return f.read()
+            return (datadir / 'smbstatus_with_connections').read_bytes()
         monkeypatch.setattr(subprocess, 'check_output', return_data)
 
         res = Smb('foo').check()
@@ -203,33 +199,32 @@ class TestActiveCalendarEvent(CheckTest):
     def create_instance(self, name):
         return ActiveCalendarEvent(name, url='asdfasdf', timeout=5)
 
-    def test_smoke(self, stub_server) -> None:
-        address = stub_server.resource_address('long-event.ics')
-        result = ActiveCalendarEvent('test', url=address, timeout=3).check()
+    def test_smoke(self, datadir, serve_file) -> None:
+        result = ActiveCalendarEvent(
+            'test', url=serve_file(datadir / 'long-event.ics'), timeout=3,
+        ).check()
         assert result is not None
         assert 'long-event' in result
 
-    def test_exact_range(self, stub_server) -> None:
+    def test_exact_range(self, datadir, serve_file) -> None:
         with freeze_time('2016-06-05 13:00:00', tz_offset=-2):
-            address = stub_server.resource_address('long-event.ics')
             result = ActiveCalendarEvent(
-                'test', url=address, timeout=3,
+                'test', url=serve_file(datadir / 'long-event.ics'), timeout=3,
             ).check()
             assert result is not None
             assert 'long-event' in result
 
-    def test_before_exact_range(self, stub_server) -> None:
+    def test_before_exact_range(self, datadir, serve_file) -> None:
         with freeze_time('2016-06-05 12:58:00', tz_offset=-2):
-            address = stub_server.resource_address('long-event.ics')
             result = ActiveCalendarEvent(
-                'test', url=address, timeout=3,
+                'test', url=serve_file(datadir / 'long-event.ics'), timeout=3,
             ).check()
             assert result is None
 
-    def test_no_event(self, stub_server) -> None:
-        address = stub_server.resource_address('old-event.ics')
+    def test_no_event(self, datadir, serve_file) -> None:
         assert ActiveCalendarEvent(
-            'test', url=address, timeout=3).check() is None
+            'test', url=serve_file(datadir / 'old-event.ics'), timeout=3,
+        ).check() is None
 
     def test_create(self) -> None:
         parser = configparser.ConfigParser()
@@ -512,11 +507,17 @@ class TestNetworkBandwidth(CheckTest):
     def create_instance(self, name):
         return NetworkBandwidth(name, psutil.net_if_addrs().keys(), 0, 0)
 
-    def test_smoke(self, stub_server) -> None:
+    @staticmethod
+    @pytest.fixture()
+    def serve_data_url(httpserver) -> str:
+        httpserver.expect_request('').respond_with_json({"foo": "bar"})
+        return httpserver.url_for('')
+
+    def test_smoke(self, serve_data_url) -> None:
         check = NetworkBandwidth(
             'name', psutil.net_if_addrs().keys(), 0, 0)
         # make some traffic
-        requests.get(stub_server.resource_address(''))
+        requests.get(serve_data_url)
         assert check.check() is not None
 
     @pytest.fixture
@@ -588,31 +589,31 @@ threshold_receive = xxx
         (0, sys.float_info.max, 'sending'),
     ])
     def test_with_activity(self, send_threshold, receive_threshold, match,
-                           stub_server) -> None:
+                           serve_data_url) -> None:
         check = NetworkBandwidth(
             'name', psutil.net_if_addrs().keys(),
             send_threshold, receive_threshold)
         # make some traffic
-        requests.get(stub_server.resource_address(''))
+        requests.get(serve_data_url)
         res = check.check()
         assert res is not None
         assert match in res
 
-    def test_no_activity(self, stub_server) -> None:
+    def test_no_activity(self, serve_data_url) -> None:
         check = NetworkBandwidth(
             'name', psutil.net_if_addrs().keys(),
             sys.float_info.max, sys.float_info.max)
         # make some traffic
-        requests.get(stub_server.resource_address(''))
+        requests.get(serve_data_url)
         assert check.check() is None
 
-    def test_internal_state_updated(self, stub_server) -> None:
+    def test_internal_state_updated(self, serve_data_url) -> None:
         check = NetworkBandwidth(
             'name', psutil.net_if_addrs().keys(),
             sys.float_info.max, sys.float_info.max)
         check.check()
         old_state = check._previous_values
-        requests.get(stub_server.resource_address(''))
+        requests.get(serve_data_url)
         check.check()
         assert old_state != check._previous_values
 
@@ -1151,12 +1152,14 @@ class TestXPath(CheckTest):
         assert check._password == 'pass'
         assert check._timeout == 42
 
-    def test_network_errors_are_passed(self, stub_auth_server) -> None:
+    def test_network_errors_are_passed(self, datadir, serve_protected) -> None:
         with pytest.raises(TemporaryCheckError):
-            XPath(name='name',
-                  url=stub_auth_server.resource_address('data.txt'),
-                  timeout=5, username='userx', password='pass',
-                  xpath='/b').request()
+            XPath(
+                name='name',
+                url=serve_protected(datadir / 'data.txt')[0],
+                timeout=5, username='wrong', password='wrong',
+                xpath='/b',
+            ).request()
 
 
 class TestLogindSessionsIdle(CheckTest):

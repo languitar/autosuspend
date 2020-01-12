@@ -1,5 +1,4 @@
 from datetime import timedelta
-import os.path
 
 from dateutil import parser
 from dateutil.tz import tzlocal
@@ -19,14 +18,13 @@ class TestCalendarEvent:
 
 class TestListCalendarEvents:
 
-    def test_simple_recurring(self) -> None:
+    def test_simple_recurring(self, datadir) -> None:
         """Tests for basic recurrence.
 
         Events are collected with the same DST setting as their original
         creation.
         """
-        with open(os.path.join(os.path.dirname(__file__), 'test_data',
-                               'simple-recurring.ics'), 'rb') as f:
+        with (datadir / 'simple-recurring.ics').open('rb') as f:
             start = parser.parse("2018-06-18 04:00:00 UTC")
             end = start + timedelta(weeks=2)
             events = list_calendar_events(f, start, end)
@@ -60,9 +58,8 @@ class TestListCalendarEvents:
             assert expected_start_times == [e.start for e in events]
             assert expected_end_times == [e.end for e in events]
 
-    def test_recurrence_different_dst(self) -> None:
-        with open(os.path.join(os.path.dirname(__file__), 'test_data',
-                               'simple-recurring.ics'), 'rb') as f:
+    def test_recurrence_different_dst(self, datadir) -> None:
+        with (datadir / 'simple-recurring.ics').open('rb') as f:
             start = parser.parse("2018-11-19 04:00:00 UTC")
             end = start + timedelta(weeks=2)
             events = list_calendar_events(f, start, end)
@@ -82,9 +79,8 @@ class TestListCalendarEvents:
 
             assert expected_start_times == [e.start for e in events]
 
-    def test_all_day_events(self) -> None:
-        with open(os.path.join(os.path.dirname(__file__), 'test_data',
-                               'all-day-events.ics'), 'rb') as f:
+    def test_all_day_events(self, datadir) -> None:
+        with (datadir / 'all-day-events.ics').open('rb') as f:
             start = parser.parse("2018-06-11 02:00:00 UTC")
             end = start + timedelta(weeks=1)
             events = list_calendar_events(f, start, end)
@@ -93,9 +89,8 @@ class TestListCalendarEvents:
             expected_summaries = ['start', 'between', 'end']
             assert [e.summary for e in events] == expected_summaries
 
-    def test_normal_events(self) -> None:
-        with open(os.path.join(os.path.dirname(__file__), 'test_data',
-                               'normal-events-corner-cases.ics'), 'rb') as f:
+    def test_normal_events(self, datadir) -> None:
+        with (datadir / 'normal-events-corner-cases.ics').open('rb') as f:
             start = parser.parse("2018-06-04 00:00:00 +0200")
             end = start + timedelta(weeks=1)
             events = list_calendar_events(f, start, end)
@@ -135,9 +130,8 @@ class TestListCalendarEvents:
 
             assert [(e.summary, e.start, e.end) for e in events] == expected
 
-    def test_floating_time(self) -> None:
-        with open(os.path.join(os.path.dirname(__file__), 'test_data',
-                               'floating.ics'), 'rb') as f:
+    def test_floating_time(self, datadir) -> None:
+        with (datadir / 'floating.ics').open('rb') as f:
             start = parser.parse("2018-06-09 00:00:00 +0200")
             end = start + timedelta(weeks=1)
             events = list_calendar_events(f, start, end)
@@ -174,9 +168,8 @@ class TestListCalendarEvents:
 
             assert [(e.summary, e.start, e.end) for e in events] == expected
 
-    def test_floating_time_other_dst(self) -> None:
-        with open(os.path.join(os.path.dirname(__file__), 'test_data',
-                               'floating.ics'), 'rb') as f:
+    def test_floating_time_other_dst(self, datadir) -> None:
+        with (datadir / 'floating.ics').open('rb') as f:
             start = parser.parse("2018-12-09 00:00:00 +0200")
             end = start + timedelta(weeks=1)
             events = list_calendar_events(f, start, end)
@@ -223,9 +216,8 @@ class TestListCalendarEvents:
 
             assert [(e.summary, e.start, e.end) for e in events] == expected
 
-    def test_exclusions(self) -> None:
-        with open(os.path.join(os.path.dirname(__file__), 'test_data',
-                               'exclusions.ics'), 'rb') as f:
+    def test_exclusions(self, datadir) -> None:
+        with (datadir / 'exclusions.ics').open('rb') as f:
             start = parser.parse("2018-06-09 04:00:00 UTC")
             end = start + timedelta(weeks=2)
             events = list_calendar_events(f, start, end)
@@ -241,9 +233,8 @@ class TestListCalendarEvents:
 
             assert expected_start_times == [e.start for e in events]
 
-    def test_reucrring_single_changes(self) -> None:
-        with open(os.path.join(os.path.dirname(__file__), 'test_data',
-                               'single-change.ics'), 'rb') as f:
+    def test_reucrring_single_changes(self, datadir) -> None:
+        with (datadir / 'single-change.ics').open('rb') as f:
             start = parser.parse("2018-06-11 00:00:00 UTC")
             end = start + timedelta(weeks=1)
             events = list_calendar_events(f, start, end)
@@ -260,9 +251,8 @@ class TestListCalendarEvents:
 
             assert expected_start_times == [e.start for e in events]
 
-    def test_reucrring_change_dst(self) -> None:
-        with open(os.path.join(os.path.dirname(__file__), 'test_data',
-                               'recurring-change-dst.ics'), 'rb') as f:
+    def test_reucrring_change_dst(self, datadir) -> None:
+        with (datadir / 'recurring-change-dst.ics').open('rb') as f:
             start = parser.parse("2018-12-10 00:00:00 UTC")
             end = start + timedelta(weeks=1)
             events = list_calendar_events(f, start, end)
@@ -278,9 +268,8 @@ class TestListCalendarEvents:
 
             assert expected_start_times == [e.start for e in events]
 
-    def test_recurring_start_and_end_inclusive(self) -> None:
-        with open(os.path.join(os.path.dirname(__file__), 'test_data',
-                               'issue-41.ics'), 'rb') as f:
+    def test_recurring_start_and_end_inclusive(self, datadir) -> None:
+        with (datadir / 'issue-41.ics').open('rb') as f:
             start = parser.parse("2018-06-26 15:13:51 UTC")
             end = start + timedelta(weeks=1)
             events = list_calendar_events(f, start, end)
@@ -298,9 +287,8 @@ class TestListCalendarEvents:
 
             assert expected_start_times == [e.start for e in events]
 
-    def test_single_start_end_inclusive(self) -> None:
-        with open(os.path.join(os.path.dirname(__file__), 'test_data',
-                               'old-event.ics'), 'rb') as f:
+    def test_single_start_end_inclusive(self, datadir) -> None:
+        with (datadir / 'old-event.ics').open('rb') as f:
             start = parser.parse("2004-06-05 11:15:00 UTC")
             end = start + timedelta(hours=1)
             events = list_calendar_events(f, start, end)
@@ -311,9 +299,8 @@ class TestListCalendarEvents:
 
             assert expected_start_times == [e.start for e in events]
 
-    def test_single_all_day_start_end_inclusive(self) -> None:
-        with open(os.path.join(os.path.dirname(__file__), 'test_data',
-                               'all-day-starts.ics'), 'rb') as f:
+    def test_single_all_day_start_end_inclusive(self, datadir) -> None:
+        with (datadir / 'all-day-starts.ics').open('rb') as f:
             start = parser.parse("2018-06-25 10:00:00 UTC")
             end = start + timedelta(hours=2)
             events = list_calendar_events(f, start, end)
@@ -330,9 +317,8 @@ class TestListCalendarEvents:
 
             assert expected_end_times == [e.end for e in events]
 
-    def test_longer_single_all_day_start_end_inclusive(self) -> None:
-        with open(os.path.join(os.path.dirname(__file__), 'test_data',
-                               'all-day-starts.ics'), 'rb') as f:
+    def test_longer_single_all_day_start_end_inclusive(self, datadir) -> None:
+        with (datadir / 'all-day-starts.ics').open('rb') as f:
             start = parser.parse("2018-06-29 10:00:00 UTC")
             end = start + timedelta(hours=2)
             events = list_calendar_events(f, start, end)
@@ -343,9 +329,8 @@ class TestListCalendarEvents:
 
             assert expected_start_times == [e.start for e in events]
 
-    def test_recurring_all_day_start_end_inclusive(self) -> None:
-        with open(os.path.join(os.path.dirname(__file__), 'test_data',
-                               'all-day-recurring.ics'), 'rb') as f:
+    def test_recurring_all_day_start_end_inclusive(self, datadir) -> None:
+        with (datadir / 'all-day-recurring.ics').open('rb') as f:
             start = parser.parse("2018-06-29 10:00:00 UTC")
             end = start + timedelta(hours=2)
             events = list_calendar_events(f, start, end)
@@ -362,9 +347,8 @@ class TestListCalendarEvents:
 
             assert expected_end_times == [e.end for e in events]
 
-    def test_recurring_all_day_start_in_between(self) -> None:
-        with open(os.path.join(os.path.dirname(__file__), 'test_data',
-                               'all-day-recurring.ics'), 'rb') as f:
+    def test_recurring_all_day_start_in_between(self, datadir) -> None:
+        with (datadir / 'all-day-recurring.ics').open('rb') as f:
             start = parser.parse("2018-06-29 00:00:00 UTC")
             end = start + timedelta(days=1)
             events = list_calendar_events(f, start, end)
@@ -376,9 +360,8 @@ class TestListCalendarEvents:
 
             assert expected_start_times == [e.start for e in events]
 
-    def test_recurring_all_day_exclusions(self) -> None:
-        with open(os.path.join(os.path.dirname(__file__), 'test_data',
-                               'all-day-recurring-exclusions.ics'), 'rb') as f:
+    def test_recurring_all_day_exclusions(self, datadir) -> None:
+        with (datadir / 'all-day-recurring-exclusions.ics').open('rb') as f:
             start = parser.parse("2018-06-27 00:00:00 UTC")
             end = start + timedelta(days=4)
             events = list_calendar_events(f, start, end)
@@ -392,9 +375,8 @@ class TestListCalendarEvents:
 
             assert expected_start_times == [e.start for e in events]
 
-    def test_recurring_all_day_exclusions_end(self) -> None:
-        with open(os.path.join(os.path.dirname(__file__), 'test_data',
-                               'all-day-recurring-exclusions.ics'), 'rb') as f:
+    def test_recurring_all_day_exclusions_end(self, datadir) -> None:
+        with (datadir / 'all-day-recurring-exclusions.ics').open('rb') as f:
             start = parser.parse("2018-06-26 00:00:00 UTC")
             end = start + timedelta(days=4)
             events = list_calendar_events(f, start, end)
