@@ -1161,17 +1161,26 @@ class TestLogindSessionsIdle(CheckTest):
         return LogindSessionsIdle(
             name, ['tty', 'x11', 'wayland'], ['active', 'online'])
 
-    def test_smoke(self) -> None:
+    def test_active(self, logind) -> None:
+        logind.AddSession('c1', 'seat0', 1042, 'auser', True)
+
         check = LogindSessionsIdle(
-            'test', ['tty', 'x11', 'wayland'], ['active', 'online'])
-        assert check._types == ['tty', 'x11', 'wayland']
-        assert check._states == ['active', 'online']
-        try:
-            # only run the test if the dbus module is available (not on travis)
-            import dbus  # noqa: F401
-            check.check()
-        except ImportError:
-            pass
+            'test', ['test'], ['active', 'online'])
+        check.check() is not None
+
+    def test_inactive(self, logind) -> None:
+        logind.AddSession('c1', 'seat0', 1042, 'auser', False)
+
+        check = LogindSessionsIdle(
+            'test', ['test'], ['active', 'online'])
+        check.check() is None
+
+    def test_ignore_unknow_type(self, logind) -> None:
+        logind.AddSession('c1', 'seat0', 1042, 'auser', True)
+
+        check = LogindSessionsIdle(
+            'test', ['not_test'], ['active', 'online'])
+        check.check() is None
 
     def test_configure_defaults(self) -> None:
         parser = configparser.ConfigParser()

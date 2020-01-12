@@ -24,6 +24,8 @@ extras_require = {
         'pytest-mock',
         'freezegun',
         'pytest-freezegun',
+        'python-dbusmock',
+        'PyGObject',
     ],
 }
 extras_require['test'].extend(
