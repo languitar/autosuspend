@@ -63,7 +63,7 @@ class File(Wakeup):
         except FileNotFoundError:
             # this is ok
             return None
-        except (ValueError, PermissionError, IOError) as error:
+        except (ValueError, IOError) as error:
             raise TemporaryCheckError(error) from error
 
 
