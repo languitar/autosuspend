@@ -1,4 +1,13 @@
-from typing import Iterable, Tuple
+from typing import Iterable, Tuple, TYPE_CHECKING
+
+
+if TYPE_CHECKING:
+    import dbus
+
+
+def _get_bus() -> 'dbus.SystemBus':
+    import dbus
+    return dbus.SystemBus()
 
 
 def list_logind_sessions() -> Iterable[Tuple[str, dict]]:
@@ -10,7 +19,7 @@ def list_logind_sessions() -> Iterable[Tuple[str, dict]]:
             represented as dicts.
     """
     import dbus
-    bus = dbus.SystemBus()
+    bus = _get_bus()
     login1 = bus.get_object("org.freedesktop.login1",
                             "/org/freedesktop/login1")
 

@@ -3,7 +3,10 @@ import http.server
 import os
 import threading
 
+import dbusmock
 import pytest
+
+from autosuspend.util import systemd as util_systemd
 
 
 class AuthHandler(http.server.SimpleHTTPRequestHandler):
@@ -69,3 +72,24 @@ def stub_server(request):
 @pytest.fixture(scope='session')
 def stub_auth_server(request):
     yield from _serve(request, AuthHandler)
+
+
+@pytest.fixture()
+def logind(monkeypatch):
+    pytest.importorskip('dbus')
+    pytest.importorskip('gi')
+
+    test_case = dbusmock.DBusTestCase()
+    test_case.start_system_bus()
+
+    mock, obj = test_case.spawn_server_template('logind')
+
+    def get_bus():
+        return test_case.get_dbus(system_bus=True)
+
+    monkeypatch.setattr(util_systemd, '_get_bus', get_bus)
+
+    yield obj
+
+    mock.terminate()
+    mock.wait()
