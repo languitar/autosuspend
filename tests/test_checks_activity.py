@@ -209,18 +209,22 @@ class TestActiveCalendarEvent(CheckTest):
         assert result is not None
         assert 'long-event' in result
 
-    @pytest.mark.freeze_time('2016-06-05 13:00:00', tz_offset=-2)
     def test_exact_range(self, stub_server) -> None:
-        address = stub_server.resource_address('long-event.ics')
-        result = ActiveCalendarEvent('test', url=address, timeout=3).check()
-        assert result is not None
-        assert 'long-event' in result
+        with freeze_time('2016-06-05 13:00:00', tz_offset=-2):
+            address = stub_server.resource_address('long-event.ics')
+            result = ActiveCalendarEvent(
+                'test', url=address, timeout=3,
+            ).check()
+            assert result is not None
+            assert 'long-event' in result
 
-    @pytest.mark.freeze_time('2016-06-05 12:58:00', tz_offset=-2)
     def test_before_exact_range(self, stub_server) -> None:
-        address = stub_server.resource_address('long-event.ics')
-        result = ActiveCalendarEvent('test', url=address, timeout=3).check()
-        assert result is None
+        with freeze_time('2016-06-05 12:58:00', tz_offset=-2):
+            address = stub_server.resource_address('long-event.ics')
+            result = ActiveCalendarEvent(
+                'test', url=address, timeout=3,
+            ).check()
+            assert result is None
 
     def test_no_event(self, stub_server) -> None:
         address = stub_server.resource_address('old-event.ics')

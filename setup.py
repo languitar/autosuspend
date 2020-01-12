@@ -23,7 +23,6 @@ extras_require = {
         'pytest-cov',
         'pytest-mock',
         'freezegun',
-        'pytest-freezegun',
         'python-dbusmock',
         'PyGObject',
     ],
