@@ -21,8 +21,7 @@ class Calendar(NetworkMixin, Wakeup):
         response = self.request()
 
         end = timestamp + timedelta(weeks=6 * 4)
-        events = list_calendar_events(BytesIO(response.content),
-                                      timestamp, end)
+        events = list_calendar_events(BytesIO(response.content), timestamp, end)
         # Filter out currently active events. They are not our business.
         events = [e for e in events if e.start >= timestamp]
 
@@ -43,12 +42,12 @@ class File(Wakeup):
     """
 
     @classmethod
-    def create(cls, name: str, config: configparser.SectionProxy) -> 'File':
+    def create(cls, name: str, config: configparser.SectionProxy) -> "File":
         try:
-            path = config['path']
+            path = config["path"]
             return cls(name, path)
         except KeyError as error:
-            raise ConfigurationError('Missing option path') from error
+            raise ConfigurationError("Missing option path") from error
 
     def __init__(self, name: str, path: str) -> None:
         Wakeup.__init__(self, name)
@@ -56,10 +55,10 @@ class File(Wakeup):
 
     def check(self, timestamp: datetime) -> Optional[datetime]:
         try:
-            with open(self._path, 'r') as time_file:
+            with open(self._path, "r") as time_file:
                 return datetime.fromtimestamp(
-                    float(time_file.readlines()[0].strip()),
-                    timezone.utc)
+                    float(time_file.readlines()[0].strip()), timezone.utc
+                )
         except FileNotFoundError:
             # this is ok
             return None
@@ -83,12 +82,11 @@ class Command(CommandMixin, Wakeup):
             output = subprocess.check_output(
                 self._command, shell=True,  # noqa: S602
             ).splitlines()[0]
-            self.logger.debug('Command %s succeeded with output %s',
-                              self._command, output)
+            self.logger.debug(
+                "Command %s succeeded with output %s", self._command, output
+            )
             if output.strip():
-                return datetime.fromtimestamp(
-                    float(output.strip()),
-                    timezone.utc)
+                return datetime.fromtimestamp(float(output.strip()), timezone.utc)
             else:
                 return None
 
@@ -103,12 +101,10 @@ class Periodic(Wakeup):
     """
 
     @classmethod
-    def create(
-        cls, name: str, config: configparser.SectionProxy,
-    ) -> 'Periodic':
+    def create(cls, name: str, config: configparser.SectionProxy) -> "Periodic":
         try:
             kwargs = {}
-            kwargs[config['unit']] = float(config['value'])
+            kwargs[config["unit"]] = float(config["value"])
             return cls(name, timedelta(**kwargs))  # type: ignore
         except (ValueError, KeyError, TypeError) as error:
             raise ConfigurationError(str(error))
@@ -138,36 +134,41 @@ class XPath(XPathMixin, Wakeup):
         matches = self.evaluate()
         try:
             if matches:
-                return min(self.convert_result(m, timestamp)
-                           for m in matches)
+                return min(self.convert_result(m, timestamp) for m in matches)
             else:
                 return None
         except TypeError as error:
             raise TemporaryCheckError(
-                'XPath returned a result that is not a string: ' + str(error))
+                "XPath returned a result that is not a string: " + str(error)
+            )
         except ValueError as error:
-            raise TemporaryCheckError('Result cannot be parsed: ' + str(error))
+            raise TemporaryCheckError("Result cannot be parsed: " + str(error))
 
 
 class XPathDelta(XPath):
 
-    UNITS = ['days', 'seconds', 'microseconds', 'milliseconds',
-             'minutes', 'hours', 'weeks']
+    UNITS = [
+        "days",
+        "seconds",
+        "microseconds",
+        "milliseconds",
+        "minutes",
+        "hours",
+        "weeks",
+    ]
 
     @classmethod
-    def create(
-        cls, name: str, config: configparser.SectionProxy,
-    ) -> 'XPathDelta':
+    def create(cls, name: str, config: configparser.SectionProxy) -> "XPathDelta":
         try:
             args = XPath.collect_init_args(config)
-            args['unit'] = config.get('unit', fallback='minutes')
+            args["unit"] = config.get("unit", fallback="minutes")
             return cls(name, **args)
         except ValueError as error:
             raise ConfigurationError(str(error))
 
     def __init__(self, name: str, unit: str, **kwargs) -> None:
         if unit not in self.UNITS:
-            raise ValueError('Unsupported unit')
+            raise ValueError("Unsupported unit")
         XPath.__init__(self, name, **kwargs)
         self._unit = unit
 

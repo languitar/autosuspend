@@ -45,7 +45,7 @@ class Check(abc.ABC):
 
     @classmethod
     @abc.abstractmethod
-    def create(cls, name: str, config: configparser.SectionProxy) -> 'Check':
+    def create(cls, name: str, config: configparser.SectionProxy) -> "Check":
         """Create a new check instance from the provided configuration.
 
         Args:
@@ -73,12 +73,14 @@ class Check(abc.ABC):
 
         This is used for debugging purposes only.
         """
-        return {k: v for k, v in self.__dict__.items()
-                if not callable(v) and k != 'logger'}
+        return {
+            k: v for k, v in self.__dict__.items() if not callable(v) and k != "logger"
+        }
 
     def __str__(self) -> str:
-        return '{name}[class={clazz}]'.format(name=self.name,
-                                              clazz=self.__class__.__name__)
+        return "{name}[class={clazz}]".format(
+            name=self.name, clazz=self.__class__.__name__
+        )
 
 
 class Activity(Check):
@@ -105,16 +107,16 @@ class Activity(Check):
         pass
 
     def __str__(self) -> str:
-        return '{name}[class={clazz}]'.format(name=self.name,
-                                              clazz=self.__class__.__name__)
+        return "{name}[class={clazz}]".format(
+            name=self.name, clazz=self.__class__.__name__
+        )
 
 
 class Wakeup(Check):
     """Represents a check for potential wake up points."""
 
     @abc.abstractmethod
-    def check(self,
-              timestamp: datetime.datetime) -> Optional[datetime.datetime]:
+    def check(self, timestamp: datetime.datetime) -> Optional[datetime.datetime]:
         """Indicate if a wakeup has to be scheduled for this check.
 
         Args:

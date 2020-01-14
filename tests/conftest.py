@@ -19,10 +19,8 @@ def serve_file(httpserver) -> Callable[[Path], str]:
     """
 
     def serve(the_file: Path) -> str:
-        path = f'/{the_file.name}'
-        httpserver.expect_request(path).respond_with_data(
-            the_file.read_bytes(),
-        )
+        path = f"/{the_file.name}"
+        httpserver.expect_request(path).respond_with_data(the_file.read_bytes())
         return httpserver.url_for(path)
 
     return serve
@@ -37,12 +35,11 @@ def serve_protected(httpserver) -> Callable[[Path], Tuple[str, str, str]]:
         A callable that accepts the file path to serve. It returns as a tuple
         the URL to use for the file, valid username and password
     """
-    realm = 'the_realm'
-    username = 'the_user'
-    password = 'the_password'
+    realm = "the_realm"
+    username = "the_user"
+    password = "the_password"
 
     def serve(the_file: Path) -> Tuple[str, str, str]:
-
         def handler(request: Request) -> Response:
             auth = request.authorization
 
@@ -50,15 +47,15 @@ def serve_protected(httpserver) -> Callable[[Path], Tuple[str, str, str]]:
                 auth.username == username and auth.password == password
             ):
                 return Response(
-                    'Authentication required',
+                    "Authentication required",
                     401,
-                    {'WWW-Authenticate': f'Basic realm={realm}'},
+                    {"WWW-Authenticate": f"Basic realm={realm}"},
                 )
 
             else:
                 return Response(the_file.read_bytes())
 
-        path = f'/{the_file.name}'
+        path = f"/{the_file.name}"
         httpserver.expect_request(path).respond_with_handler(handler)
         return (httpserver.url_for(path), username, password)
 
@@ -67,18 +64,18 @@ def serve_protected(httpserver) -> Callable[[Path], Tuple[str, str, str]]:
 
 @pytest.fixture()
 def logind(monkeypatch):
-    pytest.importorskip('dbus')
-    pytest.importorskip('gi')
+    pytest.importorskip("dbus")
+    pytest.importorskip("gi")
 
     test_case = dbusmock.DBusTestCase()
     test_case.start_system_bus()
 
-    mock, obj = test_case.spawn_server_template('logind')
+    mock, obj = test_case.spawn_server_template("logind")
 
     def get_bus():
         return test_case.get_dbus(system_bus=True)
 
-    monkeypatch.setattr(util_systemd, '_get_bus', get_bus)
+    monkeypatch.setattr(util_systemd, "_get_bus", get_bus)
 
     yield obj
 

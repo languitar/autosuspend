@@ -7,24 +7,22 @@ from autosuspend.util.ical import CalendarEvent, list_calendar_events
 
 
 class TestCalendarEvent:
-
     def test_str(self) -> None:
         start = parser.parse("2018-06-11 02:00:00 UTC")
         end = start + timedelta(hours=1)
-        event = CalendarEvent('summary', start, end)
+        event = CalendarEvent("summary", start, end)
 
-        assert 'summary' in str(event)
+        assert "summary" in str(event)
 
 
 class TestListCalendarEvents:
-
     def test_simple_recurring(self, datadir) -> None:
         """Tests for basic recurrence.
 
         Events are collected with the same DST setting as their original
         creation.
         """
-        with (datadir / 'simple-recurring.ics').open('rb') as f:
+        with (datadir / "simple-recurring.ics").open("rb") as f:
             start = parser.parse("2018-06-18 04:00:00 UTC")
             end = start + timedelta(weeks=2)
             events = list_calendar_events(f, start, end)
@@ -59,7 +57,7 @@ class TestListCalendarEvents:
             assert expected_end_times == [e.end for e in events]
 
     def test_recurrence_different_dst(self, datadir) -> None:
-        with (datadir / 'simple-recurring.ics').open('rb') as f:
+        with (datadir / "simple-recurring.ics").open("rb") as f:
             start = parser.parse("2018-11-19 04:00:00 UTC")
             end = start + timedelta(weeks=2)
             events = list_calendar_events(f, start, end)
@@ -80,49 +78,49 @@ class TestListCalendarEvents:
             assert expected_start_times == [e.start for e in events]
 
     def test_all_day_events(self, datadir) -> None:
-        with (datadir / 'all-day-events.ics').open('rb') as f:
+        with (datadir / "all-day-events.ics").open("rb") as f:
             start = parser.parse("2018-06-11 02:00:00 UTC")
             end = start + timedelta(weeks=1)
             events = list_calendar_events(f, start, end)
 
             assert len(events) == 3
-            expected_summaries = ['start', 'between', 'end']
+            expected_summaries = ["start", "between", "end"]
             assert [e.summary for e in events] == expected_summaries
 
     def test_normal_events(self, datadir) -> None:
-        with (datadir / 'normal-events-corner-cases.ics').open('rb') as f:
+        with (datadir / "normal-events-corner-cases.ics").open("rb") as f:
             start = parser.parse("2018-06-04 00:00:00 +0200")
             end = start + timedelta(weeks=1)
             events = list_calendar_events(f, start, end)
 
             expected = [
                 (
-                    'overlapping',
+                    "overlapping",
                     parser.parse("2018-06-02 20:00:00 +0200"),
                     parser.parse("2018-06-12 23:00:00 +0200"),
                 ),
                 (
-                    'before include',
+                    "before include",
                     parser.parse("2018-06-03 21:00:00 +0200"),
                     parser.parse("2018-06-04 02:00:00 +0200"),
                 ),
                 (
-                    'direct start',
+                    "direct start",
                     parser.parse("2018-06-04 00:00:00 +0200"),
                     parser.parse("2018-06-04 03:00:00 +0200"),
                 ),
                 (
-                    'in between',
+                    "in between",
                     parser.parse("2018-06-07 04:00:00 +0200"),
                     parser.parse("2018-06-07 09:00:00 +0200"),
                 ),
                 (
-                    'end overlap',
+                    "end overlap",
                     parser.parse("2018-06-10 21:00:00 +0200"),
                     parser.parse("2018-06-11 02:00:00 +0200"),
                 ),
                 (
-                    'direct end',
+                    "direct end",
                     parser.parse("2018-06-10 22:00:00 +0200"),
                     parser.parse("2018-06-11 00:00:00 +0200"),
                 ),
@@ -131,36 +129,36 @@ class TestListCalendarEvents:
             assert [(e.summary, e.start, e.end) for e in events] == expected
 
     def test_floating_time(self, datadir) -> None:
-        with (datadir / 'floating.ics').open('rb') as f:
+        with (datadir / "floating.ics").open("rb") as f:
             start = parser.parse("2018-06-09 00:00:00 +0200")
             end = start + timedelta(weeks=1)
             events = list_calendar_events(f, start, end)
 
-            tzinfo = {'LOCAL': tzlocal()}
+            tzinfo = {"LOCAL": tzlocal()}
 
             expected = [
                 (
-                    'floating',
+                    "floating",
                     parser.parse("2018-06-10 15:00:00 LOCAL", tzinfos=tzinfo),
                     parser.parse("2018-06-10 17:00:00 LOCAL", tzinfos=tzinfo),
                 ),
                 (
-                    'floating recurring',
+                    "floating recurring",
                     parser.parse("2018-06-12 18:00:00 LOCAL", tzinfos=tzinfo),
                     parser.parse("2018-06-12 20:00:00 LOCAL", tzinfos=tzinfo),
                 ),
                 (
-                    'floating recurring',
+                    "floating recurring",
                     parser.parse("2018-06-13 18:00:00 LOCAL", tzinfos=tzinfo),
                     parser.parse("2018-06-13 20:00:00 LOCAL", tzinfos=tzinfo),
                 ),
                 (
-                    'floating recurring',
+                    "floating recurring",
                     parser.parse("2018-06-14 18:00:00 LOCAL", tzinfos=tzinfo),
                     parser.parse("2018-06-14 20:00:00 LOCAL", tzinfos=tzinfo),
                 ),
                 (
-                    'floating recurring',
+                    "floating recurring",
                     parser.parse("2018-06-15 18:00:00 LOCAL", tzinfos=tzinfo),
                     parser.parse("2018-06-15 20:00:00 LOCAL", tzinfos=tzinfo),
                 ),
@@ -169,46 +167,46 @@ class TestListCalendarEvents:
             assert [(e.summary, e.start, e.end) for e in events] == expected
 
     def test_floating_time_other_dst(self, datadir) -> None:
-        with (datadir / 'floating.ics').open('rb') as f:
+        with (datadir / "floating.ics").open("rb") as f:
             start = parser.parse("2018-12-09 00:00:00 +0200")
             end = start + timedelta(weeks=1)
             events = list_calendar_events(f, start, end)
 
-            tzinfo = {'LOCAL': tzlocal()}
+            tzinfo = {"LOCAL": tzlocal()}
 
             expected = [
                 (
-                    'floating recurring',
+                    "floating recurring",
                     parser.parse("2018-12-09 18:00:00 LOCAL", tzinfos=tzinfo),
                     parser.parse("2018-12-09 20:00:00 LOCAL", tzinfos=tzinfo),
                 ),
                 (
-                    'floating recurring',
+                    "floating recurring",
                     parser.parse("2018-12-10 18:00:00 LOCAL", tzinfos=tzinfo),
                     parser.parse("2018-12-10 20:00:00 LOCAL", tzinfos=tzinfo),
                 ),
                 (
-                    'floating recurring',
+                    "floating recurring",
                     parser.parse("2018-12-11 18:00:00 LOCAL", tzinfos=tzinfo),
                     parser.parse("2018-12-11 20:00:00 LOCAL", tzinfos=tzinfo),
                 ),
                 (
-                    'floating recurring',
+                    "floating recurring",
                     parser.parse("2018-12-12 18:00:00 LOCAL", tzinfos=tzinfo),
                     parser.parse("2018-12-12 20:00:00 LOCAL", tzinfos=tzinfo),
                 ),
                 (
-                    'floating recurring',
+                    "floating recurring",
                     parser.parse("2018-12-13 18:00:00 LOCAL", tzinfos=tzinfo),
                     parser.parse("2018-12-13 20:00:00 LOCAL", tzinfos=tzinfo),
                 ),
                 (
-                    'floating recurring',
+                    "floating recurring",
                     parser.parse("2018-12-14 18:00:00 LOCAL", tzinfos=tzinfo),
                     parser.parse("2018-12-14 20:00:00 LOCAL", tzinfos=tzinfo),
                 ),
                 (
-                    'floating recurring',
+                    "floating recurring",
                     parser.parse("2018-12-15 18:00:00 LOCAL", tzinfos=tzinfo),
                     parser.parse("2018-12-15 20:00:00 LOCAL", tzinfos=tzinfo),
                 ),
@@ -217,7 +215,7 @@ class TestListCalendarEvents:
             assert [(e.summary, e.start, e.end) for e in events] == expected
 
     def test_exclusions(self, datadir) -> None:
-        with (datadir / 'exclusions.ics').open('rb') as f:
+        with (datadir / "exclusions.ics").open("rb") as f:
             start = parser.parse("2018-06-09 04:00:00 UTC")
             end = start + timedelta(weeks=2)
             events = list_calendar_events(f, start, end)
@@ -234,7 +232,7 @@ class TestListCalendarEvents:
             assert expected_start_times == [e.start for e in events]
 
     def test_reucrring_single_changes(self, datadir) -> None:
-        with (datadir / 'single-change.ics').open('rb') as f:
+        with (datadir / "single-change.ics").open("rb") as f:
             start = parser.parse("2018-06-11 00:00:00 UTC")
             end = start + timedelta(weeks=1)
             events = list_calendar_events(f, start, end)
@@ -252,7 +250,7 @@ class TestListCalendarEvents:
             assert expected_start_times == [e.start for e in events]
 
     def test_reucrring_change_dst(self, datadir) -> None:
-        with (datadir / 'recurring-change-dst.ics').open('rb') as f:
+        with (datadir / "recurring-change-dst.ics").open("rb") as f:
             start = parser.parse("2018-12-10 00:00:00 UTC")
             end = start + timedelta(weeks=1)
             events = list_calendar_events(f, start, end)
@@ -269,7 +267,7 @@ class TestListCalendarEvents:
             assert expected_start_times == [e.start for e in events]
 
     def test_recurring_start_and_end_inclusive(self, datadir) -> None:
-        with (datadir / 'issue-41.ics').open('rb') as f:
+        with (datadir / "issue-41.ics").open("rb") as f:
             start = parser.parse("2018-06-26 15:13:51 UTC")
             end = start + timedelta(weeks=1)
             events = list_calendar_events(f, start, end)
@@ -288,7 +286,7 @@ class TestListCalendarEvents:
             assert expected_start_times == [e.start for e in events]
 
     def test_single_start_end_inclusive(self, datadir) -> None:
-        with (datadir / 'old-event.ics').open('rb') as f:
+        with (datadir / "old-event.ics").open("rb") as f:
             start = parser.parse("2004-06-05 11:15:00 UTC")
             end = start + timedelta(hours=1)
             events = list_calendar_events(f, start, end)
@@ -300,7 +298,7 @@ class TestListCalendarEvents:
             assert expected_start_times == [e.start for e in events]
 
     def test_single_all_day_start_end_inclusive(self, datadir) -> None:
-        with (datadir / 'all-day-starts.ics').open('rb') as f:
+        with (datadir / "all-day-starts.ics").open("rb") as f:
             start = parser.parse("2018-06-25 10:00:00 UTC")
             end = start + timedelta(hours=2)
             events = list_calendar_events(f, start, end)
@@ -318,7 +316,7 @@ class TestListCalendarEvents:
             assert expected_end_times == [e.end for e in events]
 
     def test_longer_single_all_day_start_end_inclusive(self, datadir) -> None:
-        with (datadir / 'all-day-starts.ics').open('rb') as f:
+        with (datadir / "all-day-starts.ics").open("rb") as f:
             start = parser.parse("2018-06-29 10:00:00 UTC")
             end = start + timedelta(hours=2)
             events = list_calendar_events(f, start, end)
@@ -330,7 +328,7 @@ class TestListCalendarEvents:
             assert expected_start_times == [e.start for e in events]
 
     def test_recurring_all_day_start_end_inclusive(self, datadir) -> None:
-        with (datadir / 'all-day-recurring.ics').open('rb') as f:
+        with (datadir / "all-day-recurring.ics").open("rb") as f:
             start = parser.parse("2018-06-29 10:00:00 UTC")
             end = start + timedelta(hours=2)
             events = list_calendar_events(f, start, end)
@@ -348,7 +346,7 @@ class TestListCalendarEvents:
             assert expected_end_times == [e.end for e in events]
 
     def test_recurring_all_day_start_in_between(self, datadir) -> None:
-        with (datadir / 'all-day-recurring.ics').open('rb') as f:
+        with (datadir / "all-day-recurring.ics").open("rb") as f:
             start = parser.parse("2018-06-29 00:00:00 UTC")
             end = start + timedelta(days=1)
             events = list_calendar_events(f, start, end)
@@ -361,7 +359,7 @@ class TestListCalendarEvents:
             assert expected_start_times == [e.start for e in events]
 
     def test_recurring_all_day_exclusions(self, datadir) -> None:
-        with (datadir / 'all-day-recurring-exclusions.ics').open('rb') as f:
+        with (datadir / "all-day-recurring-exclusions.ics").open("rb") as f:
             start = parser.parse("2018-06-27 00:00:00 UTC")
             end = start + timedelta(days=4)
             events = list_calendar_events(f, start, end)
@@ -376,7 +374,7 @@ class TestListCalendarEvents:
             assert expected_start_times == [e.start for e in events]
 
     def test_recurring_all_day_exclusions_end(self, datadir) -> None:
-        with (datadir / 'all-day-recurring-exclusions.ics').open('rb') as f:
+        with (datadir / "all-day-recurring-exclusions.ics").open("rb") as f:
             start = parser.parse("2018-06-26 00:00:00 UTC")
             end = start + timedelta(days=4)
             events = list_calendar_events(f, start, end)

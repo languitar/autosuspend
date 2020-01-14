@@ -6,26 +6,24 @@ class DummyClass:
 
 
 class TestLoggerByClass:
-
     def test_smoke(self) -> None:
         logger = logger_by_class(DummyClass)
         assert logger is not None
-        assert logger.name == 'tests.test_util.DummyClass'
+        assert logger.name == "tests.test_util.DummyClass"
 
     def test_name(self) -> None:
-        logger = logger_by_class(DummyClass, 'foo')
+        logger = logger_by_class(DummyClass, "foo")
         assert logger is not None
-        assert logger.name == 'tests.test_util.DummyClass.foo'
+        assert logger.name == "tests.test_util.DummyClass.foo"
 
 
 class TestLoggerByClassInstance:
-
     def test_smoke(self) -> None:
         logger = logger_by_class_instance(DummyClass())
         assert logger is not None
-        assert logger.name == 'tests.test_util.DummyClass'
+        assert logger.name == "tests.test_util.DummyClass"
 
     def test_name(self) -> None:
-        logger = logger_by_class_instance(DummyClass(), 'foo')
+        logger = logger_by_class_instance(DummyClass(), "foo")
         assert logger is not None
-        assert logger.name == 'tests.test_util.DummyClass.foo'
+        assert logger.name == "tests.test_util.DummyClass.foo"

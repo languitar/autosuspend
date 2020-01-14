@@ -5,8 +5,9 @@ if TYPE_CHECKING:
     import dbus
 
 
-def _get_bus() -> 'dbus.SystemBus':
+def _get_bus() -> "dbus.SystemBus":
     import dbus
+
     return dbus.SystemBus()
 
 
@@ -19,20 +20,19 @@ def list_logind_sessions() -> Iterable[Tuple[str, dict]]:
             represented as dicts.
     """
     import dbus
-    bus = _get_bus()
-    login1 = bus.get_object("org.freedesktop.login1",
-                            "/org/freedesktop/login1")
 
-    sessions = login1.ListSessions(
-        dbus_interface='org.freedesktop.login1.Manager')
+    bus = _get_bus()
+    login1 = bus.get_object("org.freedesktop.login1", "/org/freedesktop/login1")
+
+    sessions = login1.ListSessions(dbus_interface="org.freedesktop.login1.Manager")
 
     results = []
     for session_id, path in [(s[0], s[4]) for s in sessions]:
-        session = bus.get_object('org.freedesktop.login1', path)
+        session = bus.get_object("org.freedesktop.login1", path)
         properties_interface = dbus.Interface(
-            session, 'org.freedesktop.DBus.Properties')
-        properties = properties_interface.GetAll(
-            'org.freedesktop.login1.Session')
+            session, "org.freedesktop.DBus.Properties"
+        )
+        properties = properties_interface.GetAll("org.freedesktop.login1.Session")
         results.append((session_id, properties))
 
     return results
