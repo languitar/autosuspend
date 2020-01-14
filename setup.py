@@ -23,7 +23,10 @@ extras_require = {
         'pytest-cov',
         'pytest-mock',
         'freezegun',
-        'pytest-freezegun',
+        'python-dbusmock',
+        'PyGObject',
+        'pytest-datadir',
+        'pytest-httpserver',
     ],
 }
 extras_require['test'].extend(

@@ -261,7 +261,6 @@ class Mpd(Activity):
             else:
                 return None
         except (ConnectionError,
-                ConnectionRefusedError,
                 socket.timeout,
                 socket.gaierror) as error:
             raise TemporaryCheckError(error) from error
@@ -705,14 +704,14 @@ class LogindSessionsIdle(Activity):
 
             if properties['Type'] not in self._types:
                 self.logger.debug('Ignoring session of wrong type %s',
-                                  properties['type'])
+                                  properties['Type'])
                 continue
             if properties['State'] not in self._states:
                 self.logger.debug('Ignoring session because its state is %s',
                                   properties['State'])
                 continue
 
-            if properties['IdleHint'] == 'no':
+            if not properties['IdleHint']:
                 return 'Login session {} is not idle'.format(
                     session_id)
 

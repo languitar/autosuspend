@@ -1,5 +1,9 @@
 name: CI build
-on: [push]
+on:
+  push: {}
+  pull_request: {}
+  schedule:
+    - cron: '* * * * 0'
 
 jobs:
   lint:
@@ -12,8 +16,8 @@ jobs:
         uses: actions/setup-python@v1
         with:
           python-version: 3.8
-      - name: Install dbus
-        run: sudo apt-get -y install libdbus-1-dev
+      - name: Install native dependencies
+        run: sudo apt-get -y install libdbus-1-dev libgirepository1.0-dev
       - name: Install tox
         run: |
           python -m pip install --upgrade pip
@@ -31,8 +35,8 @@ jobs:
         uses: actions/setup-python@v1
         with:
           python-version: 3.8
-      - name: Install dbus
-        run: sudo apt-get -y install libdbus-1-dev
+      - name: Install native dependencies
+        run: sudo apt-get -y install libdbus-1-dev libgirepository1.0-dev
       - name: Install tox
         run: |
           python -m pip install --upgrade pip
@@ -72,8 +76,8 @@ jobs:
         uses: actions/setup-python@v1
         with:
           python-version: ${{ matrix.python-version }}
-      - name: Install dbus
-        run: sudo apt-get -y install libdbus-1-dev
+      - name: Install native dependencies
+        run: sudo apt-get -y install libdbus-1-dev libgirepository1.0-dev
       - name: Install Python dependencies
         run: |
           python -m pip install --upgrade pip

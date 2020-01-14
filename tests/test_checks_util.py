@@ -88,9 +88,10 @@ class TestNetworkMixin:
                                timeout=xx''')
             NetworkMixin.collect_init_args(parser['section'])
 
-    def test_request(self, stub_server) -> None:
-        address = stub_server.resource_address('xml_with_encoding.xml')
-        reply = NetworkMixin(address, 5).request()
+    def test_request(self, datadir, serve_file) -> None:
+        reply = NetworkMixin(
+            serve_file(datadir / 'xml_with_encoding.xml'), 5,
+        ).request()
         assert reply is not None
         assert reply.status_code == 200
 
@@ -101,24 +102,24 @@ class TestNetworkMixin:
 
             NetworkMixin('url', timeout=5).request()
 
-    def test_smoke(self, stub_server) -> None:
-        response = NetworkMixin(stub_server.resource_address('data.txt'),
+    def test_smoke(self, datadir, serve_file) -> None:
+        response = NetworkMixin(serve_file(datadir / 'data.txt'),
                                 timeout=5).request()
         assert response is not None
         assert response.text == 'iamhere\n'
 
-    def test_exception_404(self, stub_server) -> None:
+    def test_exception_404(self, httpserver) -> None:
         with pytest.raises(TemporaryCheckError):
-            NetworkMixin(stub_server.resource_address('doesnotexist'),
+            NetworkMixin(httpserver.url_for('/does/not/exist'),
                          timeout=5).request()
 
-    def test_authentication(self, stub_auth_server) -> None:
-        NetworkMixin(stub_auth_server.resource_address('data.txt'),
-                     5, username='user', password='pass').request()
+    def test_authentication(self, datadir, serve_protected) -> None:
+        url, username, password = serve_protected(datadir / 'data.txt')
+        NetworkMixin(url, 5, username=username, password=password).request()
 
-    def test_invalid_authentication(self, stub_auth_server) -> None:
+    def test_invalid_authentication(self, datadir, serve_protected) -> None:
         with pytest.raises(TemporaryCheckError):
-            NetworkMixin(stub_auth_server.resource_address('data.txt'),
+            NetworkMixin(serve_protected(datadir / 'data.txt')[0],
                          5, username='userx', password='pass').request()
 
     def test_file_url(self) -> None:
@@ -137,10 +138,13 @@ class _XPathMixinSub(XPathMixin, Activity):
 
 class TestXPathMixin:
 
-    def test_smoke(self, stub_server) -> None:
-        address = stub_server.resource_address('xml_with_encoding.xml')
+    def test_smoke(self, datadir, serve_file) -> None:
         result = _XPathMixinSub(
-            'foo', xpath='/b', url=address, timeout=5).evaluate()
+            'foo',
+            xpath='/b',
+            url=serve_file(datadir / 'xml_with_encoding.xml'),
+            timeout=5,
+        ).evaluate()
         assert result is not None
         assert len(result) == 0
 
