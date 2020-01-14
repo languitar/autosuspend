@@ -9,6 +9,7 @@ import logging
 import logging.config
 import os
 import os.path
+import pathlib
 import subprocess
 import time
 from typing import (Callable,
@@ -20,6 +21,8 @@ from typing import (Callable,
                     Type,
                     TypeVar,
                     Union)
+
+import portalocker
 
 from .checks import (Activity,
                      Check,
@@ -294,7 +297,9 @@ class Processor:
 def loop(processor: Processor,
          interval: float,
          run_for: Optional[int],
-         woke_up_file: str) -> None:
+         woke_up_file: str,
+         lock_file: str,
+         lock_timeout: float) -> None:
     """Run the main loop of the daemon.
 
     Args:
@@ -302,14 +307,17 @@ def loop(processor: Processor,
             the processor to use for handling the suspension computations
         interval:
             the length of one iteration of the main loop in seconds
-        idle_time:
-            the required amount of time the system has to be idle before
-            suspension is triggered
-        sleep_fn:
-            a callable that triggers suspension
         run_for:
             if specified, run the main loop for the specified amount of seconds
             before terminating (approximately)
+        woke_up_file:
+            path of a file that marks that the system was sleeping since the
+            last processing iterations
+        lock_file:
+            path of a file used for locking modifications to the `woke_up_file`
+            to ensure consistency
+        lock_timeout:
+            time in seconds to wait for acquiring the lock file
     """
 
     start_time = datetime.datetime.now(datetime.timezone.utc)
@@ -317,12 +325,27 @@ def loop(processor: Processor,
                                 (start_time + datetime.timedelta(
                                     seconds=run_for))):
 
-        just_woke_up = os.path.isfile(woke_up_file)
-        if just_woke_up:
-            os.remove(woke_up_file)
+        try:
+            _logger.debug('New iteration, trying to acquire lock')
+            with portalocker.Lock(lock_file, timeout=lock_timeout):
+                _logger.debug('Acquired lock')
 
-        processor.iteration(datetime.datetime.now(datetime.timezone.utc),
-                            just_woke_up)
+                just_woke_up = os.path.isfile(woke_up_file)
+                if just_woke_up:
+                    _logger.debug('Removing woke up file at %s', woke_up_file)
+                    try:
+                        os.remove(woke_up_file)
+                    except FileNotFoundError:
+                        _logger.warning('Just woke up file disappeared',
+                                        exc_info=True)
+
+                processor.iteration(
+                    datetime.datetime.now(datetime.timezone.utc),
+                    just_woke_up)
+
+        except portalocker.LockException:
+            _logger.warning('Failed to acquire lock, skipping iteration',
+                            exc_info=True)
 
         time.sleep(interval)
 
@@ -446,7 +469,30 @@ def parse_arguments(args: Optional[Sequence[str]]) -> argparse.Namespace:
         required=default_config is None,
         metavar='FILE',
         help='The config file to use')
-    parser.add_argument(
+
+    logging_group = parser.add_mutually_exclusive_group()
+    logging_group.add_argument(
+        '-l', '--logging',
+        type=argparse.FileType('r'),
+        default=None,
+        metavar='FILE',
+        help='Configures the python logging system from the specified '
+             'configuration file.')
+    logging_group.add_argument(
+        '-d', '--debug',
+        action='store_true',
+        default=False,
+        help='Configures the logging system to provide full debug output '
+             'on stdout.')
+
+    subparsers = parser.add_subparsers(title='subcommands',
+                                       dest='subcommand')
+    subparsers.required = True
+
+    parser_daemon = subparsers.add_parser(
+        'daemon', help='Execute the continuously operating daemon')
+    parser_daemon.set_defaults(func=main_daemon)
+    parser_daemon.add_argument(
         '-a', '--allchecks',
         dest='all_checks',
         default=False,
@@ -454,7 +500,7 @@ def parse_arguments(args: Optional[Sequence[str]]) -> argparse.Namespace:
         help='Execute all checks even if one has already prevented '
              'the system from going to sleep. Useful to debug individual '
              'checks.')
-    parser.add_argument(
+    parser_daemon.add_argument(
         '-r', '--runfor',
         dest='run_for',
         type=float,
@@ -462,17 +508,10 @@ def parse_arguments(args: Optional[Sequence[str]]) -> argparse.Namespace:
         metavar='SEC',
         help="If set, run for the specified amount of seconds before exiting "
              "instead of endless execution.")
-    parser.add_argument(
-        '-l', '--logging',
-        type=argparse.FileType('r'),
-        nargs='?',
-        default=False,
-        const=True,
-        metavar='FILE',
-        help='Configures the python logging system. If used '
-             'without an argument, all logging is enabled to '
-             'the console. If used with an argument, the '
-             'configuration is read from the specified file.')
+
+    parser_hook = subparsers.add_parser(
+        'presuspend', help='Hook method to be called before suspending')
+    parser_hook.set_defaults(func=main_hook)
 
     result = parser.parse_args(args)
 
@@ -481,37 +520,72 @@ def parse_arguments(args: Optional[Sequence[str]]) -> argparse.Namespace:
     return result
 
 
-def configure_logging(file_or_flag: Union[bool, IO]) -> None:
+def configure_logging(config_file: Optional[IO], debug: bool) -> None:
     """Configure the python :mod:`logging` system.
 
-    If the provided argument is a `file` instance, try to use the
-    pointed to file as a configuration for the logging system. Otherwise,
-    if the given argument evaluates to :class:True:, use a default
-    configuration with many logging messages. If everything fails, just log
-    starting from the warning level.
+    Assumes that either a config file is provided, or debugging is enabled.
+    Both together are not possible.
 
     Args:
-        file_or_flag (file or bool):
-            either a configuration file pointed by a :ref:`file object
-            <python:bltin-file-objects>` instance or something that evaluates
-            to :class:`bool`.
+        config_file:
+            a configuration file pointed by a :ref:`file object
+            <python:bltin-file-objects>`
+        debug:
+            if ``True``, enable debug logging
     """
-    if isinstance(file_or_flag, bool):
-        if file_or_flag:
-            logging.basicConfig(level=logging.DEBUG)
-        else:
-            # at least configure warnings
-            logging.basicConfig(level=logging.WARNING)
-    else:
+    if config_file:
         try:
-            logging.config.fileConfig(file_or_flag)
+            logging.config.fileConfig(config_file)
         except Exception:
             # at least configure warnings
             logging.basicConfig(level=logging.WARNING)
             _logger.warning('Unable to configure logging from file %s. '
                             'Falling back to warning level.',
-                            file_or_flag,
+                            config_file,
                             exc_info=True)
+    else:
+        if debug:
+            logging.basicConfig(level=logging.DEBUG)
+        else:
+            # at least configure warnings
+            logging.basicConfig(level=logging.WARNING)
+
+
+def get_notify_and_suspend_func(config: configparser.ConfigParser) -> Callable:
+    return functools.partial(
+        notify_and_suspend,
+        config.get('general', 'suspend_cmd'),
+        config.get('general',  # type: ignore # python/typeshed#2093
+                   'notify_cmd_wakeup',
+                   fallback=None),
+        config.get('general',  # type: ignore # python/typeshed#2093
+                   'notify_cmd_no_wakeup',
+                   fallback=None))
+
+
+def get_schedule_wakeup_func(
+    config: configparser.ConfigParser,
+) -> Callable[[datetime.datetime], None]:
+    return functools.partial(schedule_wakeup,
+                             config.get('general', 'wakeup_cmd'))
+
+
+def get_woke_up_file(config: configparser.ConfigParser) -> str:
+    return config.get('general', 'woke_up_file',
+                      fallback='/var/run/autosuspend-just-woke-up')
+
+
+def get_lock_file(config: configparser.ConfigParser) -> str:
+    return config.get('general', 'lock_file',
+                      fallback='/var/lock/autosuspend.lock')
+
+
+def get_lock_timeout(config: configparser.ConfigParser) -> float:
+    return config.getfloat('general', 'lock_timeout', fallback=30.0)
+
+
+def get_wakeup_delta(config: configparser.ConfigParser) -> float:
+    return config.getfloat('general', 'wakeup_delta', fallback=30)
 
 
 def configure_processor(
@@ -524,26 +598,84 @@ def configure_processor(
         checks, wakeups,
         config.getfloat('general', 'idle_time', fallback=300),
         config.getfloat('general', 'min_sleep_time', fallback=1200),
-        config.getfloat('general', 'wakeup_delta', fallback=30),
-        functools.partial(notify_and_suspend,
-                          config.get('general', 'suspend_cmd'),
-                          config.get('general', 'notify_cmd_wakeup',
-                                     fallback=None),
-                          config.get('general', 'notify_cmd_no_wakeup',
-                                     fallback=None)),
-        functools.partial(schedule_wakeup,
-                          config.get('general', 'wakeup_cmd')),
+        get_wakeup_delta(config),
+        get_notify_and_suspend_func(config),
+        get_schedule_wakeup_func(config),
         all_activities=args.all_checks,
     )
 
 
-def main(argv: Optional[Sequence[str]] = None) -> None:
+def hook(
+    wakeups: List[Wakeup],
+    wakeup_delta: float,
+    wakeup_fn: Callable[[datetime.datetime], None],
+    woke_up_file: str,
+    lock_file: str,
+    lock_timeout: float,
+) -> None:
+    """Installs wake ups and notifies the daemon before suspending.
+
+    Args:
+        wakeups:
+            set of wakeup checks to use for determining the wake up time
+        wakeup_delta:
+            The amount of time in seconds to wake up before an event
+        wakeup_fn:
+            function to call with the next wake up time
+        woke_up_file:
+            location of the file that instructs the daemon that the system just
+            woke up
+        lock_file:
+            path of a file used for locking modifications to the `woke_up_file`
+            to ensure consistency
+        lock_timeout:
+            time in seconds to wait for acquiring the lock file
+    """
+    _logger.debug('Hook starting, trying to acquire lock')
+    try:
+        with portalocker.Lock(lock_file, timeout=lock_timeout):
+            _logger.debug('Hook acquired lock')
+
+            _logger.debug('Hook executing with configured wake ups: %s',
+                          wakeups)
+            wakeup_at = execute_wakeups(
+                wakeups, datetime.datetime.now(datetime.timezone.utc), _logger)
+            _logger.debug('Hook next wake up at %s', wakeup_at)
+
+            if wakeup_at:
+                wakeup_at -= datetime.timedelta(seconds=wakeup_delta)
+                _logger.info('Scheduling next wake up at %s', wakeup_at)
+                wakeup_fn(wakeup_at)
+
+            # create the just woke up file
+            pathlib.Path(woke_up_file).touch()
+    except portalocker.LockException:
+        _logger.warning('Hook unable to acquire lock. Not informing daemon.',
+                        exc_info=True)
+
+
+def main_hook(
+    args: argparse.Namespace,
+    config: configparser.ConfigParser,
+) -> None:
+    wakeups = set_up_checks(
+        config, 'wakeup', 'wakeup', Wakeup,  # type: ignore # python/mypy#5374
+    )
+    hook(
+        wakeups,
+        get_wakeup_delta(config),
+        get_schedule_wakeup_func(config),
+        get_woke_up_file(config),
+        get_lock_file(config),
+        get_lock_timeout(config),
+    )
+
+
+def main_daemon(
+    args: argparse.Namespace,
+    config: configparser.ConfigParser,
+) -> None:
     """Run the daemon."""
-    args = parse_arguments(argv)
-
-    configure_logging(args.logging)
-
-    config = parse_config(args.config_file)
 
     checks = set_up_checks(
         config,
@@ -560,8 +692,20 @@ def main(argv: Optional[Sequence[str]] = None) -> None:
     loop(processor,
          config.getfloat('general', 'interval', fallback=60),
          run_for=args.run_for,
-         woke_up_file=config.get('general', 'woke_up_file',
-                                 fallback='/var/run/autosuspend-just-woke-up'))
+         woke_up_file=get_woke_up_file(config),
+         lock_file=get_lock_file(config),
+         lock_timeout=get_lock_timeout(config))
+
+
+def main(argv: Optional[Sequence[str]] = None) -> None:
+    """Run the daemon."""
+    args = parse_arguments(argv)
+
+    configure_logging(args.logging, args.debug)
+
+    config = parse_config(args.config_file)
+
+    args.func(args, config)
 
 
 if __name__ == "__main__":

@@ -19,21 +19,14 @@ To start |project_program| via `systemd`_, execute:
 .. code-block:: bash
 
    systemctl enable autosuspend.service
+   systemctl enable autosuspend-detect-suspend.service
+
+.. note::
+
+   Do not forget the second ``enable`` call to ensure that wake ups are configured even if the system is manually placed into suspend.
 
 To start |project_program| automatically at system start, execute:
 
 .. code-block:: bash
 
    systemctl start autosuspend.service
-
-Preventing the system from sleeping immediately after waking up
----------------------------------------------------------------
-
-Unfortunately, |project_program| does not detect automatically if the system was placed into suspend mode manually.
-Therefore, it might happen that after waking up again, all checks have indicated inactivity for a long time (the whole phase of sleeping) and |project_program| might initiate suspending again immediately.
-To prevent this, `systemd`_ needs to inform |project_program| every time the system suspends.
-This is achieved by a seconds service file, which needs to be enabled (not started):
-
-.. code-block:: bash
-
-   systemctl enable autosuspend-detect-suspend.service

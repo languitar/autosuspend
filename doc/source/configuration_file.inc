@@ -14,6 +14,8 @@ A simple configuration file could look like:
    wakeup_cmd = echo {timestamp:.0f} > /sys/class/rtc/rtc0/wakealarm
    notify_cmd_wakeup = su myuser -c notify-send -a autosuspend 'Suspending the system. Wake up at {iso}'
    notify_cmd_no_wakeup = su myuser -c notify-send -a autosuspend 'Suspending the system.'
+   lock_file = /var/lock/autosuspend.lock
+   lock_timeout = 30
    
    [check.Ping]
    enabled = false
@@ -93,6 +95,16 @@ The ``[general]`` section contains options controlling the overall behavior of t
    This file is usually created by a `systemd`_ service.
    Thus, changing the location also requires adapting the respective service.
    Refer to :ref:`systemd-integration` for further details.
+
+.. option:: lock_file
+
+   Location of a file that is used to synchronize the continuously running daemon and the systemd callback.
+
+.. option:: lock_timeout
+
+   Timeout in seconds used when trying to acquire the lock.
+   This should be longer than the maximum run time of all configured checks.
+   In the worst cases, suspending the system is delayed by this amount of time because ``presuspend`` hook has to wait before all checks have passed.
 
 Activity check configuration
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~

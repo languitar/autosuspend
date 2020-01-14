@@ -5,7 +5,7 @@ Before=sleep.target
 
 [Service]
 Type=simple
-ExecStart=/usr/bin/touch /var/run/autosuspend-just-woke-up
+ExecStart=/usr/bin/autosuspend -l /etc/autosuspend-logging.conf presuspend
 
 [Install]
 WantedBy=sleep.target
