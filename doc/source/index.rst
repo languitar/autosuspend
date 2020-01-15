@@ -17,6 +17,8 @@
    debugging
    manpages
    changelog
+   faq
+   api
    support
 
 Indices and tables
