@@ -6,8 +6,12 @@ import os.path
 
 # needs_sphinx = '1.0'
 
-extensions = ['sphinx.ext.intersphinx', 'sphinx_issues']
-
+extensions = [
+    "sphinx.ext.intersphinx",
+    "sphinx.ext.autodoc",
+    "sphinx.ext.napoleon",
+    "sphinx_issues",
+]
 templates_path = ['_templates']
 source_suffix = '.rst'
 
@@ -97,3 +101,8 @@ man_pages = [
 
 # issues
 issues_github_path = 'languitar/autosuspend'
+
+# napoleon
+napoleon_google_docstring = True
+napoleon_numpye_docstring = False
+napoleon_include_init_with_doc = True
