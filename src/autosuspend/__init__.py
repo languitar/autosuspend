@@ -364,6 +364,11 @@ def loop(
 CheckType = TypeVar("CheckType", bound=Check)
 
 
+def config_section_string(section: configparser.SectionProxy) -> str:
+    data = {k: v if k != "password" else "<redacted>" for k, v in section.items()}
+    return f"{data}"
+
+
 def set_up_checks(
     config: configparser.ConfigParser,
     prefix: str,
@@ -412,10 +417,12 @@ def set_up_checks(
             import_module = "autosuspend.checks.{}".format(internal_module)
             import_class = class_name
         _logger.info(
-            "Configuring check {} with class {} from module {} "
-            "using config section items {}".format(
-                name, import_class, import_module, dict(config[section].items())
-            )
+            "Configuring check %s with class %s from module %s "
+            "using config parameters %s",
+            name,
+            import_class,
+            import_module,
+            config_section_string(config[section]),
         )
         try:
             klass = getattr(

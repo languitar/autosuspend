@@ -214,6 +214,29 @@ class TestSetUpChecks:
 
         mock_class.create.assert_called_once_with("Foo", parser["check.Foo"])
 
+    def test_passwords_redacted(self, mocker, caplog) -> None:
+        mock_class = mocker.patch("autosuspend.checks.activity.Mpd")
+        mock_class.create.return_value = mocker.MagicMock(
+            spec=autosuspend.checks.Activity
+        )
+
+        parser = configparser.ConfigParser()
+        parser.read_string(
+            """
+            [check.Foo]
+            class = Mpd
+            enabled = True
+            password = THEPASS
+            """
+        )
+
+        with caplog.at_level(logging.DEBUG):
+            autosuspend.set_up_checks(
+                parser, "check", "activity", autosuspend.Activity  # type: ignore
+            )
+
+            assert "THEPASS" not in caplog.text
+
 
 class TestExecuteChecks:
     def test_no_checks(self, mocker) -> None:
