@@ -249,10 +249,14 @@ class Processor:
         )
         # determine potential wake ups
         wakeup_at = execute_wakeups(self._wakeups, timestamp, self._logger)
-        self._logger.debug("Checks report, system should wake up at %s", wakeup_at)
         if wakeup_at is not None:
+            self._logger.debug("System wakeup required at %s", wakeup_at)
             wakeup_at -= datetime.timedelta(seconds=self._wakeup_delta)
-        self._logger.debug("With delta, system should wake up at %s", wakeup_at)
+            self._logger.debug(
+                "With delta applied, system should wake up at %s", wakeup_at,
+            )
+        else:
+            self._logger.debug("No automatic wakeup required")
 
         # exit in case something prevents suspension
         if just_woke_up:
