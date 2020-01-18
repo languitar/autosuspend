@@ -14,6 +14,7 @@ The minimal requirements are.
 
 * `Python 3`_
 * `psutil`_
+* `portalocker`_
 
 Additionally, the some checks need further dependencies to function properly.
 Please refer to :ref:`available-checks` for individual requirements.

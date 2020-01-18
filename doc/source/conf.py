@@ -61,6 +61,7 @@ rst_epilog = '''
 .. _tzlocal: https://pypi.org/project/tzlocal/
 .. _requests-file: https://github.com/dashea/requests-file
 .. _Plex: https://www.plex.tv/
+.. _portalocker: https://portalocker.readthedocs.io
 
 .. |project| replace:: {project}
 .. |project_bold| replace:: **{project}**
