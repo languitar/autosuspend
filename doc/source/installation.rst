@@ -3,6 +3,10 @@ Installation instructions
 
 |project_program| is designed for Python **3** and does not work with Python 2.
 
+.. note::
+
+   After installation, do not forget to enable and start |project| vis `systemd`_ as described in :ref:`systemd-integration`.
+
 Requirements
 ------------
 
