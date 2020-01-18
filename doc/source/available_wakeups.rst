@@ -1,7 +1,7 @@
 .. _available-wakeups:
 
 Available wake up checks
-------------------------
+########################
 
 The following checks for wake up times are currently implemented.
 Each of the checks is described with its available configuration options and required optional dependencies.
@@ -9,7 +9,7 @@ Each of the checks is described with its available configuration options and req
 .. _wakeup-calendar:
 
 Calendar
-~~~~~~~~
+********
 
 .. program:: wakeup-calendar
 
@@ -20,7 +20,7 @@ Remember that updates to the calendar can only be reflected in case the system c
 Changes to the calendar made while the system is sleeping will obviously not trigger an earlier wake up.
 
 Options
-^^^^^^^
+=======
 
 .. option:: url
 
@@ -47,7 +47,7 @@ Options
 
 
 Requirements
-^^^^^^^^^^^^
+============
 
 * `requests`_
 * `icalendar <python-icalendar_>`_
@@ -57,7 +57,7 @@ Requirements
 .. _wakeup-command:
 
 Command
-~~~~~~~
+*******
 
 .. program:: wakeup-command
 
@@ -69,7 +69,7 @@ The command is executed as is using shell execution.
 Beware of malicious commands in obtained configuration files.
 
 Options
-^^^^^^^
+=======
 
 .. option:: command
 
@@ -78,7 +78,7 @@ Options
 .. _wakeup-file:
 
 File
-~~~~
+****
 
 .. program:: wakeup-file
 
@@ -86,7 +86,7 @@ Determines the wake up time by reading a file from a configured location.
 The file has to contains the planned wake up time as an int or float in seconds UTC.
 
 Options
-^^^^^^^
+=======
 
 .. option:: path
 
@@ -95,7 +95,7 @@ Options
 .. _wakeup-periodic:
 
 Periodic
-~~~~~~~~
+********
 
 .. program:: wakeup-periodic
 
@@ -103,7 +103,7 @@ Always schedules a wake up at a specified delta from now on.
 Can be used to let the system wake up every once in a while, for instance, to refresh the calendar used in the :ref:`wakeup-calendar` check.
 
 Options
-^^^^^^^
+=======
 
 .. option:: unit
 
@@ -117,7 +117,7 @@ Options
 .. _wakeup-xpath:
 
 XPath
-~~~~~
+*****
 
 .. program:: wakeup-xpath
 
@@ -127,7 +127,7 @@ These are interpreted as the wake up times.
 In case multiple entries exist, the soonest one is used.
 
 Options
-^^^^^^^
+=======
 
 .. option:: url
 
@@ -155,7 +155,7 @@ Options
 .. _wakeup-xpath-delta:
 
 XPathDelta
-~~~~~~~~~~
+**********
 
 .. program:: wakeup-xpath-delta
 
@@ -166,7 +166,7 @@ This check can for instance be used for `tvheadend`_ with the following expressi
     //recording/next/text()
 
 Options
-^^^^^^^
+=======
 
 .. option:: url
 

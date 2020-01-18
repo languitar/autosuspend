@@ -1,5 +1,5 @@
 |project| - a daemon to automatically suspend and wake up a system
-==================================================================
+##################################################################
 
 .. include:: description.inc
 
@@ -82,7 +82,7 @@ The following diagram visualizes the periodic processing performed by |project|.
    changelog
 
 Indices and tables
-==================
+##################
 
 * :ref:`genindex`
 * :ref:`search`

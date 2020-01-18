@@ -1,5 +1,5 @@
 Installation instructions
-=========================
+#########################
 
 |project_program| is designed for Python **3** and does not work with Python 2.
 
@@ -8,7 +8,7 @@ Installation instructions
    After installation, do not forget to enable and start |project| vis `systemd`_ as described in :ref:`systemd-integration`.
 
 Requirements
-------------
+************
 
 The minimal requirements are.
 
@@ -22,10 +22,10 @@ Please refer to :ref:`available-checks` for individual requirements.
 If checks using URLs to load data should support ``file://`` URLs, `requests-file`_ is needed.
 
 Binary packages
----------------
+***************
 
 Debian (testing)
-~~~~~~~~~~~~~~~~~
+=================
 
 Installation from official package sources::
 
@@ -43,7 +43,7 @@ Installation via :program:`aurman`::
 Other `AUR helpers <https://wiki.archlinux.org/index.php/AUR_helpers>`_ may be used, too.
 
 Gentoo
-~~~~~~
+======
 
 Patrick Holthaus has provided an ebuild for Gentoo in `his overlay <https://github.com/pholthau/pholthaus-overlay>`_.
 You can use it as follows::
@@ -53,12 +53,12 @@ You can use it as follows::
     emerge sys-apps/autosuspend
 
 Other distributions
-~~~~~~~~~~~~~~~~~~~
+===================
 
 In case you want to generate a package for a different Linux distribution, I'd be glad to hear about that.
 
 From-source installation
-------------------------
+************************
 
 |project_program| provides a usual :file:`setup.py` file for installation using common `setuptools`_ methods.
 Briefly, the following steps are necessary to install |project_program|:

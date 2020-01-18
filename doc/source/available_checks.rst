@@ -1,7 +1,7 @@
 .. _available-checks:
 
 Available activity checks
--------------------------
+#########################
 
 The following checks for activity are currently implemented.
 Each of the is described with its available configuration options and required optional dependencies.
@@ -9,7 +9,7 @@ Each of the is described with its available configuration options and required o
 .. _check-active-calendar-event:
 
 ActiveCalendarEvent
-~~~~~~~~~~~~~~~~~~~
+*******************
 
 .. program:: check-active-calendar-event
 
@@ -19,7 +19,7 @@ Thus, a calendar can be provided with times at which the system should not go to
 If this calendar resides on an online service like a groupware it might even be possible to invite the system.
 
 Options
-^^^^^^^
+=======
 
 .. option:: url
 
@@ -40,7 +40,7 @@ Options
    If used, also a user name must be provided.
 
 Requirements
-^^^^^^^^^^^^
+============
 
 * `requests`_
 * `icalendar <python-icalendar_>`_
@@ -50,7 +50,7 @@ Requirements
 .. _check-active-connection:
 
 ActiveConnection
-~~~~~~~~~~~~~~~~
+****************
 
 .. program:: check-active-connection
 
@@ -58,19 +58,19 @@ Checks whether there is currently a client connected to a TCP server at certain 
 Can be used to e.g. block suspending the system in case SSH users are connected or a web server is used by clients.
 
 Options
-^^^^^^^
+=======
 
 .. option:: ports
 
    list of comma-separated port numbers
 
 Requirements
-^^^^^^^^^^^^
+============
 
 .. _check-external-command:
 
 ExternalCommand
-~~~~~~~~~~~~~~~
+***************
 
 .. program:: check-external-command
 
@@ -81,26 +81,26 @@ The command is executed as is using shell execution.
 Beware of malicious commands in obtained configuration files.
 
 Options
-^^^^^^^
+=======
 
 .. option:: command
 
    The command to execute including all arguments
 
 Requirements
-^^^^^^^^^^^^
+============
 
 .. _check-kodi:
 
 Kodi
-~~~~
+****
 
 .. program:: check-kodi
 
 Checks whether an instance of `Kodi`_ is currently playing.
 
 Options
-^^^^^^^
+=======
 
 .. option:: url
 
@@ -127,14 +127,14 @@ Options
    Default: ``false``
 
 Requirements
-^^^^^^^^^^^^
+============
 
 -  `requests`_
 
 .. _check-kodi-idle-time:
 
 KodiIdleTime
-~~~~~~~~~~~~
+************
 
 .. program:: check-kodi-idle-time
 
@@ -144,7 +144,7 @@ This check is redundant to :ref:`check-xidletime` on systems using an X server, 
 It does not replace the :ref:`check-kodi` check, as the idle time is not updated when media is playing.
 
 Options
-^^^^^^^
+=======
 
 .. option:: idle_time
 
@@ -170,33 +170,33 @@ Options
    If used, also a user name must be provided.
 
 Requirements
-^^^^^^^^^^^^
+============
 
 -  `requests`_
 
 .. _check-load:
 
 Load
-~~~~
+****
 
 .. program:: check-load
 
 Checks whether the `system load 5 <https://en.wikipedia.org/wiki/Load_(computing)>`__ is below a certain value.
 
 Options
-^^^^^^^
+=======
 
 .. option:: threshold
 
    a float for the maximum allowed load value, default: 2.5
 
 Requirements
-^^^^^^^^^^^^
+============
 
 .. _check-logind-session-idle:
 
 LogindSessionsIdle
-~~~~~~~~~~~~~~~~~~
+******************
 
 .. program:: check-logind-session-idle
 
@@ -205,7 +205,7 @@ Support for setting this hint currently varies greatly across display managers, 
 Thus, check exactly whether the hint is set on your system via ``loginctl show-session``.
 
 Options
-^^^^^^^
+=======
 
 .. option:: types
 
@@ -220,21 +220,21 @@ Options
    Default: ``active``, ``online``
 
 Requirements
-^^^^^^^^^^^^
+============
 
 -  `dbus-python`_
 
 .. _check-mpd:
 
 Mpd
-~~~
+***
 
 .. program:: check-mpd
 
 Checks whether an instance of `MPD`_ is currently playing music.
 
 Options
-^^^^^^^
+=======
 
 .. option:: host
 
@@ -251,14 +251,14 @@ Options
    Request timeout in seconds, default: ``5``
 
 Requirements
-^^^^^^^^^^^^
+============
 
 -  `python-mpd2`_
 
 .. _check-network-bandwidth:
 
 NetworkBandwidth
-~~~~~~~~~~~~~~~~
+****************
 
 .. program:: check-network-bandwidth
 
@@ -267,7 +267,7 @@ A set of specified interfaces is checked in this regard, each of the individuall
 This average is based on the global checking interval specified in the configuration file via the :option:`interval <config-general interval>` option.
 
 Options
-^^^^^^^
+=======
 
 .. option:: interfaces
 
@@ -282,19 +282,19 @@ Options
    If the average receive bandwidth of one of the specified interfaces is above this threshold, then activity is detected. Specified in bytes/s, default: ``100``
 
 Requirements
-^^^^^^^^^^^^
+============
 
 .. _check-ping:
 
 Ping
-~~~~
+****
 
 .. program:: check-ping
 
 Checks whether one or more hosts answer to ICMP requests.
 
 Options
-^^^^^^^
+=======
 
 .. option:: hosts
 
@@ -302,12 +302,12 @@ Options
 
 
 Requirements
-^^^^^^^^^^^^
+============
 
 .. _check-processes:
 
 Processes
-~~~~~~~~~
+*********
 
 .. program:: check-processes
 
@@ -315,38 +315,38 @@ If currently running processes match an expression, the suspend will be blocked.
 You might use this to hinder the system from suspending when for example your rsync runs.
 
 Options
-^^^^^^^
+=======
 
 .. option:: processes
 
    list of comma-separated process names to check for
 
 Requirements
-^^^^^^^^^^^^
+============
 
 .. _check-smb:
 
 Smb
-~~~
+***
 
 .. program:: check-smb
 
 Any active Samba connection will block suspend.
 
 Options
-^^^^^^^
+=======
 
 .. option:: smbstatus
 
    executable needs to be present.
 
 Requirements
-^^^^^^^^^^^^
+============
 
 .. _check-users:
 
 Users
-~~~~~
+*****
 
 .. program:: check-users
 
@@ -354,7 +354,7 @@ Checks whether a user currently logged in at the system matches several criteria
 All provided criteria must match to indicate activity on the host.
 
 Options
-^^^^^^^
+=======
 
 All regular expressions are applied against the full string.
 Capturing substrings needs to be explicitly enabled using wildcard matching.
@@ -372,12 +372,12 @@ Capturing substrings needs to be explicitly enabled using wildcard matching.
    A regular expression specifying the host from which a user needs to be logged in, default: ``.*``.
 
 Requirements
-^^^^^^^^^^^^
+============
 
 .. _check-xidletime:
 
 XIdleTime
-~~~~~~~~~
+*********
 
 .. program:: check-xidletime
 
@@ -388,7 +388,7 @@ Thus, multiple sources for active X serer instances are implemented for this che
 They can be changed using the provided configuration option.
 
 Options
-^^^^^^^
+=======
 
 .. option:: timeout
 
@@ -418,14 +418,14 @@ Options
    Do not check sessions of users matching this regular expressions.
 
 Requirements
-^^^^^^^^^^^^
+============
 
 * `dbus-python`_ for the ``logind`` method
 
 .. _check-xpath:
 
 XPath
-~~~~~
+*****
 
 .. program:: check-xpath
 
@@ -457,7 +457,7 @@ Some common applications and their respective configuration are:
         /MediaContainer[@size > 2]
 
 Options
-^^^^^^^
+=======
 
 .. option:: url
 
@@ -483,7 +483,7 @@ Options
    If used, also a user name must be provided.
 
 Requirements
-^^^^^^^^^^^^
+============
 
 * `requests`_
 * `lxml`_

@@ -1,5 +1,5 @@
 Configuration file
-==================
+##################
 
 .. include:: configuration_file.inc
 

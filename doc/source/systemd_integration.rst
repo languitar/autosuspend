@@ -1,7 +1,7 @@
 .. _systemd-integration:
 
 systemd integration
-===================
+###################
 
 Even though it is possible to run |project_program| manually (cf. :ref:`the manpage <man-command>`), in production use cases, the daemon will usually be run from `systemd`_.
 For this purpose, the package ships with `service definition files <systemd service files>`_ for `systemd`_, so that you should be able to manage |project_program| via `systemd`_.
