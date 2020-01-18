@@ -98,6 +98,7 @@ man_pages = [
      [author],
      5),
 ]
+man_show_urls = True
 
 # issues
 issues_github_path = 'languitar/autosuspend'

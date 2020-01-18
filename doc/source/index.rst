@@ -5,9 +5,10 @@
 
 .. toctree::
    :maxdepth: 2
-   :caption: Contents:
+   :caption: Contents
 
    installation
+   options
    configuration_file
    available_checks
    available_wakeups
@@ -15,7 +16,6 @@
    wakeup
    usecases
    debugging
-   manpages
    changelog
    faq
    api
