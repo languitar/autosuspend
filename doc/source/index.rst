@@ -5,7 +5,7 @@
 
 .. toctree::
    :maxdepth: 2
-   :caption: Contents
+   :caption: Usage
 
    installation
    options
@@ -13,9 +13,13 @@
    available_checks
    available_wakeups
    systemd_integration
-   usecases
-   faq
    api
+
+.. toctree::
+   :maxdepth: 2
+   :caption: Support
+
+   faq
    debugging
    support
    changelog
