@@ -7,7 +7,7 @@ Changelog
 New features
 ~~~~~~~~~~~~
 
-* The ``KodiIdleTime`` activity check can now be parameterized whether to indicate activity on a paused player or not (:issue:`59`, :issue:`60`).
+* The :ref:`check-kodi-idle-time` activity check can now be parameterized whether to indicate activity on a paused player or not (:issue:`59`, :issue:`60`).
 
 Fixed bugs
 ~~~~~~~~~~
@@ -33,7 +33,7 @@ This is a minor bug fix release.
 Fixed bugs
 ~~~~~~~~~~
 
-* ``ActiveConnection`` did not handle local IPv6 addresses with scope such as ``fe80::5193:518c:5c69:aedb%enp3s0`` (:issue:`50`)
+* :ref:`check-active-connection` did not handle local IPv6 addresses with scope such as ``fe80::5193:518c:5c69:aedb%enp3s0`` (:issue:`50`)
 
 2.0.3
 -----
@@ -43,7 +43,7 @@ This is a minor bug fix release.
 Fixed bugs
 ~~~~~~~~~~
 
-* ``NetworkBandwidth`` did not update its internal state and therefore did not work as documented (:issue:`49`)
+* :ref:`check-network-bandwidth` did not update its internal state and therefore did not work as documented (:issue:`49`)
 
 2.0.2
 -----
@@ -53,8 +53,8 @@ This is a minor bug fix release.
 Fixed bugs
 ~~~~~~~~~~
 
-* ``Kodi`` and ``KodiIdleTime`` checks now catch ``JSONDecodeErrors`` (:issue:`45`)
-* ``Kodi`` and ``KodiIdleTime`` checks now support authentication (:issue:`47`)
+* :ref:`check-kodi` and :ref:`check-kodi-idle-time` checks now catch ``JSONDecodeErrors`` (:issue:`45`)
+* :ref:`check-kodi` and :ref:`check-kodi-idle-time` checks now support authentication (:issue:`47`)
 
 2.0
 ---
@@ -77,17 +77,17 @@ New features
 New activity checks
 ^^^^^^^^^^^^^^^^^^^
 
-* ``ActiveCalendarEvent``: Uses an `iCalendar`_ file (via network request) to prevent suspending in case an event in the calendar is currently active (:issue:`24`).
-* ``KodiIdleTime``: Checks the idle time of `Kodi`_ to prevent suspending in case the menu is used (:issue:`33`).
+* :ref:`check-active-calendar-event`: Uses an `iCalendar`_ file (via network request) to prevent suspending in case an event in the calendar is currently active (:issue:`24`).
+* :ref:`check-kodi-idle-time`: Checks the idle time of `Kodi`_ to prevent suspending in case the menu is used (:issue:`33`).
 
 New wakeup checks
 ^^^^^^^^^^^^^^^^^
 
-* ``Calendar``: Wake up the system at the next event in an `iCalendar`_ file (requested via network, :issue:`30`).
-* ``Command``: Call an external command to determine the next wake up time (:issue:`26`).
-* ``File``: Read the next wake up time from a file (:issue:`9`).
-* ``Periodic``: Wake up at a defined interval, for instance, to refresh calendars for the ``Calendar`` check (:issue:`34`).
-* ``XPath`` and ``XPathDelta``: Request an XML document and use `XPath`_ to extract the next wakeup time.
+* :ref:`wakeup-calendar`: Wake up the system at the next event in an `iCalendar`_ file (requested via network, :issue:`30`).
+* :ref:`wakeup-command`: Call an external command to determine the next wake up time (:issue:`26`).
+* :ref:`wakeup-file`: Read the next wake up time from a file (:issue:`9`).
+* :ref:`wakeup-periodic`: Wake up at a defined interval, for instance, to refresh calendars for the :ref:`wakeup-calendar` check (:issue:`34`).
+* :ref:`wakeup-xpath` and :ref:`wakeup-xpath-delta`: Request an XML document and use `XPath`_ to extract the next wakeup time.
 
 Fixed bugs
 ~~~~~~~~~~

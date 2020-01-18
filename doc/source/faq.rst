@@ -9,7 +9,7 @@ How do I add custom checks?
 
 Two options:
 
-* Use a script with the ``ExternalCommand`` check.
+* Use a script with the :ref:`check-external-command` check.
 
 * Implement a Python module with you check being a subclass of
   :class:`autosuspend.checks.Activity` or
@@ -49,7 +49,7 @@ How do I keep a system active at daytime
 Imagine you want to have a NAS that is always available between 7 a.m. and 8 p.m.
 After 8 p.m. the system should go to sleep in case no one else is using it.
 Every morning at 7 a.m. it should wake up automatically.
-This workflow can be realized using the ``Calendar`` wakeup check and the ``ActiveCalendarEvent`` activity check based on an `iCalendar`_ file residing on the local file system of the NAS.
+This workflow can be realized using the :ref:`wakeup-calendar` wakeup check and the :ref:`check-active-calendar-event` activity check based on an `iCalendar`_ file residing on the local file system of the NAS.
 The former check ensures that the system wakes up at the desired time of the day while the latter ensure that it stays active at daytime.
 
 The first step is to create the `iCalendar`_ file, which can conveniently and graphically be edited with `Thunderbird Lightning <https://addons.thunderbird.net/de/thunderbird/addon/lightning/>`_ or any other calendar frontend.

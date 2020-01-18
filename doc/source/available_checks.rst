@@ -6,6 +6,8 @@ Available activity checks
 The following checks for activity are currently implemented.
 Each of the is described with its available configuration options and required optional dependencies.
 
+.. _check-active-calendar-event:
+
 ActiveCalendarEvent
 ~~~~~~~~~~~~~~~~~~~
 
@@ -45,10 +47,12 @@ Requirements
 * `dateutil`_
 * `tzlocal`_
 
+.. _check-active-connection:
+
 ActiveConnection
 ~~~~~~~~~~~~~~~~
 
-.. program:: check-active-connections
+.. program:: check-active-connection
 
 Checks whether there is currently a client connected to a TCP server at certain ports.
 Can be used to e.g. block suspending the system in case SSH users are connected or a web server is used by clients.
@@ -62,6 +66,8 @@ Options
 
 Requirements
 ^^^^^^^^^^^^
+
+.. _check-external-command:
 
 ExternalCommand
 ~~~~~~~~~~~~~~~
@@ -83,6 +89,8 @@ Options
 
 Requirements
 ^^^^^^^^^^^^
+
+.. _check-kodi:
 
 Kodi
 ~~~~
@@ -123,6 +131,8 @@ Requirements
 
 -  `requests`_
 
+.. _check-kodi-idle-time:
+
 KodiIdleTime
 ~~~~~~~~~~~~
 
@@ -130,8 +140,8 @@ KodiIdleTime
 
 Checks whether there has been interaction with the Kodi user interface recently.
 This prevents suspending the system in case someone is currently browsing collections etc.
-This check is redundant to ``XIdleTime`` on systems using an X server, but might be necessary in case Kodi is used standalone.
-It does not replace the ``Kodi`` check, as the idle time is not updated when media is playing.
+This check is redundant to :ref:`check-xidletime` on systems using an X server, but might be necessary in case Kodi is used standalone.
+It does not replace the :ref:`check-kodi` check, as the idle time is not updated when media is playing.
 
 Options
 ^^^^^^^
@@ -164,6 +174,8 @@ Requirements
 
 -  `requests`_
 
+.. _check-load:
+
 Load
 ~~~~
 
@@ -181,10 +193,12 @@ Options
 Requirements
 ^^^^^^^^^^^^
 
+.. _check-logind-session-idle:
+
 LogindSessionsIdle
 ~~~~~~~~~~~~~~~~~~
 
-.. program:: check-logind-idle
+.. program:: check-logind-session-idle
 
 Prevents suspending in case ``IdleHint`` for one of the running sessions `logind`_ sessions is set to ``no``.
 Support for setting this hint currently varies greatly across display managers, screen lockers etc.
@@ -209,6 +223,8 @@ Requirements
 ^^^^^^^^^^^^
 
 -  `dbus-python`_
+
+.. _check-mpd:
 
 Mpd
 ~~~
@@ -239,6 +255,7 @@ Requirements
 
 -  `python-mpd2`_
 
+.. _check-network-bandwidth:
 
 NetworkBandwidth
 ~~~~~~~~~~~~~~~~
@@ -267,6 +284,8 @@ Options
 Requirements
 ^^^^^^^^^^^^
 
+.. _check-ping:
+
 Ping
 ~~~~
 
@@ -284,6 +303,8 @@ Options
 
 Requirements
 ^^^^^^^^^^^^
+
+.. _check-processes:
 
 Processes
 ~~~~~~~~~
@@ -303,6 +324,8 @@ Options
 Requirements
 ^^^^^^^^^^^^
 
+.. _check-smb:
+
 Smb
 ~~~
 
@@ -319,6 +342,8 @@ Options
 
 Requirements
 ^^^^^^^^^^^^
+
+.. _check-users:
 
 Users
 ~~~~~
@@ -348,6 +373,8 @@ Capturing substrings needs to be explicitly enabled using wildcard matching.
 
 Requirements
 ^^^^^^^^^^^^
+
+.. _check-xidletime:
 
 XIdleTime
 ~~~~~~~~~
@@ -394,6 +421,8 @@ Requirements
 ^^^^^^^^^^^^
 
 * `dbus-python`_ for the ``logind`` method
+
+.. _check-xpath:
 
 XPath
 ~~~~~

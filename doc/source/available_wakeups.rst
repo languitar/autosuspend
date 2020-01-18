@@ -6,6 +6,8 @@ Available wake up checks
 The following checks for wake up times are currently implemented.
 Each of the checks is described with its available configuration options and required optional dependencies.
 
+.. _wakeup-calendar:
+
 Calendar
 ~~~~~~~~
 
@@ -52,6 +54,8 @@ Requirements
 * `dateutil`_
 * `tzlocal`_
 
+.. _wakeup-command:
+
 Command
 ~~~~~~~
 
@@ -71,6 +75,8 @@ Options
 
    The command to execute including all arguments
 
+.. _wakeup-file:
+
 File
 ~~~~
 
@@ -86,6 +92,7 @@ Options
 
    path of the file to read in case it is present
 
+.. _wakeup-periodic:
 
 Periodic
 ~~~~~~~~
@@ -93,7 +100,7 @@ Periodic
 .. program:: wakeup-periodic
 
 Always schedules a wake up at a specified delta from now on.
-Can be used to let the system wake up every once in a while, for instance, to refresh the calendar used in the ``Calendar`` check.
+Can be used to let the system wake up every once in a while, for instance, to refresh the calendar used in the :ref:`wakeup-calendar` check.
 
 Options
 ^^^^^^^
@@ -106,6 +113,8 @@ Options
 .. option:: value
 
    The value of the delta as an int.
+
+.. _wakeup-xpath:
 
 XPath
 ~~~~~
@@ -143,12 +152,14 @@ Options
    Optional password to use for authenticating at a server requiring authentication.
    If used, also a user name must be provided.
 
+.. _wakeup-xpath-delta:
+
 XPathDelta
 ~~~~~~~~~~
 
 .. program:: wakeup-xpath-delta
 
-Comparable to ``XPath``, but expects that the returned results represent the wake up time as a delta to the current time in a configurable unit.
+Comparable to :ref:`wakeup-xpath`, but expects that the returned results represent the wake up time as a delta to the current time in a configurable unit.
 
 This check can for instance be used for `tvheadend`_ with the following expression::
 
