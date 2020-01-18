@@ -10,6 +10,7 @@ extensions = [
     "sphinx.ext.intersphinx",
     "sphinx.ext.autodoc",
     "sphinx.ext.napoleon",
+    "sphinxcontrib.plantuml",
     "sphinx_issues",
 ]
 templates_path = ['_templates']
