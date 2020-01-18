@@ -8,8 +8,9 @@ import os.path
 
 extensions = [
     "sphinx.ext.intersphinx",
-    "sphinx.ext.autodoc",
     "sphinx.ext.napoleon",
+    "sphinx.ext.autodoc",
+    "sphinx_autodoc_typehints",
     "sphinxcontrib.plantuml",
     "sphinx_issues",
 ]
@@ -109,3 +110,5 @@ issues_github_path = 'languitar/autosuspend'
 napoleon_google_docstring = True
 napoleon_numpye_docstring = False
 napoleon_include_init_with_doc = True
+
+typehints_fully_qualified = True

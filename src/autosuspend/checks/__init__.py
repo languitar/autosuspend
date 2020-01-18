@@ -49,9 +49,9 @@ class Check(abc.ABC):
         """Create a new check instance from the provided configuration.
 
         Args:
-            name (str):
+            name:
                 user-defined name for the check
-            config (configparser.SectionProxy):
+            config:
                 config parser section with the configuration for this check
 
         Raises:
@@ -94,9 +94,7 @@ class Activity(Check):
         """Determine if system activity exists that prevents suspending.
 
         Returns:
-            str:
-                A string describing which condition currently prevents sleep,
-                else ``None``.
+            A string describing which condition currently prevents sleep, else ``None``.
 
         Raises:
             TemporaryCheckError:
