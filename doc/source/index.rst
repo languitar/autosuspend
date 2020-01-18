@@ -13,13 +13,12 @@
    available_checks
    available_wakeups
    systemd_integration
-   wakeup
    usecases
-   debugging
-   changelog
    faq
    api
+   debugging
    support
+   changelog
 
 Indices and tables
 ==================
