@@ -1,3 +1,4 @@
 sphinx_issues
 sphinx
 sphinx_rtd_theme
+sphinxcontrib-plantuml

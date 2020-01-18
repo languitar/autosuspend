@@ -1,4 +1,4 @@
-Python API Documentation
+Python API documentation
 ########################
 
 In case custom checks are required, the following classes have to be subclassed.

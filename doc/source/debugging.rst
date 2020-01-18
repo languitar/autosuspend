@@ -1,5 +1,5 @@
 Debugging
-=========
+#########
 
 In case you need to track configuration issues to understand why a system suspends or does not, the extensive logging output of |project_program| might be used.
 Each iteration of the daemon logs exactly which condition detected activity or not.

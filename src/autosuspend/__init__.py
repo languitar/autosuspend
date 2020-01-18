@@ -242,26 +242,16 @@ class Processor:
     def iteration(self, timestamp: datetime.datetime, just_woke_up: bool) -> None:
         self._logger.info("Starting new check iteration")
 
+        # exit in case something prevents suspension
+        if just_woke_up:
+            self._reset_state("Just woke up from suspension.")
+            return
+
         # determine system activity
         active = execute_checks(self._activities, self._all_activities, self._logger)
         self._logger.debug(
             "All activity checks have been executed. " "Active: %s", active
         )
-        # determine potential wake ups
-        wakeup_at = execute_wakeups(self._wakeups, timestamp, self._logger)
-        if wakeup_at is not None:
-            self._logger.debug("System wakeup required at %s", wakeup_at)
-            wakeup_at -= datetime.timedelta(seconds=self._wakeup_delta)
-            self._logger.debug(
-                "With delta applied, system should wake up at %s", wakeup_at,
-            )
-        else:
-            self._logger.debug("No automatic wakeup required")
-
-        # exit in case something prevents suspension
-        if just_woke_up:
-            self._reset_state("Just woke up from suspension")
-            return
         if active:
             self._reset_state("System is active")
             return
@@ -278,6 +268,17 @@ class Processor:
         )
         if (timestamp - self._idle_since).total_seconds() > self._idle_time:
             self._logger.info("System is idle long enough.")
+
+            # determine potential wake ups
+            wakeup_at = execute_wakeups(self._wakeups, timestamp, self._logger)
+            if wakeup_at is not None:
+                self._logger.debug("System wakeup required at %s", wakeup_at)
+                wakeup_at -= datetime.timedelta(seconds=self._wakeup_delta)
+                self._logger.debug(
+                    "With delta applied, system should wake up at %s", wakeup_at,
+                )
+            else:
+                self._logger.debug("No automatic wakeup required")
 
             # idle time would be reached, handle wake up
             if wakeup_at is not None:
