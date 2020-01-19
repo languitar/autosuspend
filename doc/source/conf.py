@@ -7,6 +7,7 @@ import os.path
 # needs_sphinx = '1.0'
 
 extensions = [
+    "sphinx.ext.ifconfig",
     "sphinx.ext.intersphinx",
     "sphinx.ext.napoleon",
     "sphinx.ext.autodoc",
@@ -112,3 +113,11 @@ napoleon_numpye_docstring = False
 napoleon_include_init_with_doc = True
 
 typehints_fully_qualified = True
+
+
+def setup(app):
+    app.add_config_value(
+        'is_preview',
+        os.environ.get('READTHEDOCS_VERSION', 'latest') == '',
+        'env',
+    )

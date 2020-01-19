@@ -1,6 +1,12 @@
 |project| - a daemon to automatically suspend and wake up a system
 ##################################################################
 
+.. ifconfig:: is_preview
+
+   .. warning::
+
+      This is the documentation for an unreleased preview version of |project|.
+
 .. include:: description.inc
 
 The following diagram visualizes the periodic processing performed by |project|.
