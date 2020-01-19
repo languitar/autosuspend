@@ -4,15 +4,22 @@ Changelog
 3.0
 ***
 
+This version splits the executable into two distinct subcommands, one for activity checking and one for scheduling wake ups.
+This way, the wake up scheduling mechanism can be hooked into system tools such as `systemd`_ to ensure that wake ups are scheduled correctly every time the system suspends.
+This increases the reliability of the mechanism but also changes the way |project_program| has to be called.
+You now need to enable two `systemd`_ units as describe in :ref:`systemd-integration` and the command line interface has changed.
+
 New features
 ============
 
 * The :ref:`check-kodi-idle-time` activity check can now be parameterized whether to indicate activity on a paused player or not (:issue:`59`, :issue:`60`).
+* New structure as described above in the version introduction (:issue:`43`).
 
 Fixed bugs
 ==========
 
 * Documented default URL for the ``Kodi*`` checks did not actually exist in code, which has been fixed now (:issue:`58`, :issue:`61`).
+* A bug in :ref:`check-logind-session-idle` has been fixed (:issue:`71`, :issue:`72`).
 
 Notable changes
 ===============
@@ -24,6 +31,9 @@ Notable changes
   This change prevents nasty subtleties and issues when parsing the command line and became mandatory to support subcommands after the general configuration arguments such as logging.
 * Dropped support for Python 3.6 and included Python 3.8 in CI infrastructure.
   Everything works on Python 3.8.
+* The documentation has been restructured and improved. For instance, there is now a :ref:`faq` section.
+* Some build and test dependencies have changed.
+* CI-builds have been converted to Github Actions.
 
 2.0.4
 *****
