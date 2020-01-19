@@ -38,7 +38,7 @@ The following diagram visualizes the periodic processing performed by |project|.
        if (Is a wake up required soon?) then (yes)
          stop
        else
-         if (Is any wake up requiredj?) then (yes)
+         if (Is any wake up required?) then (yes)
            #BBFFBB:Schedule the earliest wake up;
          else (no)
          endif
