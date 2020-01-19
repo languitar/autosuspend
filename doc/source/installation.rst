@@ -24,8 +24,8 @@ If checks using URLs to load data should support ``file://`` URLs, `requests-fil
 Binary packages
 ***************
 
-Debian (testing)
-=================
+Debian
+======
 
 Installation from official package sources::
 
