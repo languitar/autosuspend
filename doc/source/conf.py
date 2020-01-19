@@ -118,6 +118,6 @@ typehints_fully_qualified = True
 def setup(app):
     app.add_config_value(
         'is_preview',
-        os.environ.get('READTHEDOCS_VERSION', 'latest') == '',
+        os.environ.get('READTHEDOCS_VERSION', '') == 'latest',
         'env',
     )
