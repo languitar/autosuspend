@@ -675,7 +675,7 @@ def hook(
         lock_timeout:
             time in seconds to wait for acquiring the lock file
     """
-    _logger.debug("Hook starting, trying to acquire lock")
+    _logger.info("Pre-suspend hook starting, trying to acquire lock")
     try:
         with portalocker.Lock(lock_file, timeout=lock_timeout):
             _logger.debug("Hook acquired lock")
@@ -690,6 +690,8 @@ def hook(
                 wakeup_at -= datetime.timedelta(seconds=wakeup_delta)
                 _logger.info("Scheduling next wake up at %s", wakeup_at)
                 wakeup_fn(wakeup_at)
+            else:
+                _logger.info("No wake up required. Terminating")
 
             # create the just woke up file
             pathlib.Path(woke_up_file).touch()
