@@ -12,7 +12,7 @@ Requirements
 
 The minimal requirements are.
 
-* `Python 3`_
+* `Python 3`_ >= 3.7
 * `psutil`_
 * `portalocker`_
 
