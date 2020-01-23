@@ -196,7 +196,7 @@ class TestXPathMixin:
             )
             _XPathMixinSub.create("name", parser["section"])
 
-    @pytest.mark.parametrize("entry,", ["xpath", "url"])
+    @pytest.mark.parametrize("entry", ["xpath", "url"])
     def test_missing_config_entry(self, entry) -> None:
         with pytest.raises(ConfigurationError, match=r"^Lacks '" + entry + "'.*"):
             parser = configparser.ConfigParser()

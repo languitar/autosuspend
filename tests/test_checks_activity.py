@@ -604,12 +604,12 @@ class TestNetworkBandwidth(CheckTest):
         requests.get(serve_data_url)
         assert check.check() is not None
 
-    @pytest.fixture
-    def mock_interfaces(self, mocker):
+    @pytest.fixture()
+    def _mock_interfaces(self, mocker):
         mock = mocker.patch("psutil.net_if_addrs")
         mock.return_value = {"foo": None, "bar": None, "baz": None}
 
-    def test_create(self, mock_interfaces) -> None:
+    def test_create(self, _mock_interfaces) -> None:
         parser = configparser.ConfigParser()
         parser.read_string(
             """
@@ -624,7 +624,7 @@ threshold_receive = 300
         assert check._threshold_send == 200
         assert check._threshold_receive == 300
 
-    def test_create_default(self, mock_interfaces) -> None:
+    def test_create_default(self, _mock_interfaces) -> None:
         parser = configparser.ConfigParser()
         parser.read_string(
             """
@@ -638,7 +638,7 @@ interfaces = foo, baz
         assert check._threshold_receive == 100
 
     @pytest.mark.parametrize(
-        "config,error_match",
+        ("config", "error_match"),
         [
             (
                 """
@@ -684,14 +684,14 @@ threshold_receive = xxx
             ),
         ],
     )
-    def test_create_error(self, mock_interfaces, config, error_match) -> None:
+    def test_create_error(self, _mock_interfaces, config, error_match) -> None:
         parser = configparser.ConfigParser()
         parser.read_string(config)
         with pytest.raises(ConfigurationError, match=error_match):
             NetworkBandwidth.create("name", parser["section"])
 
     @pytest.mark.parametrize(
-        "send_threshold,receive_threshold,match",
+        ("send_threshold", "receive_threshold", "match"),
         [(sys.float_info.max, 0, "receive"), (0, sys.float_info.max, "sending")],
     )
     def test_with_activity(

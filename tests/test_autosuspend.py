@@ -480,7 +480,7 @@ class _StubCheck(autosuspend.Activity):
         return self.match
 
 
-@pytest.fixture
+@pytest.fixture()
 def sleep_fn():
     class Func:
         def __init__(self):
@@ -498,7 +498,7 @@ def sleep_fn():
     return Func()
 
 
-@pytest.fixture
+@pytest.fixture()
 def wakeup_fn():
     class Func:
         def __init__(self):

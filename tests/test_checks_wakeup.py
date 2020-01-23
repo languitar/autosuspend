@@ -355,7 +355,7 @@ class TestXPathDelta(CheckTest):
         return XPathDelta(name, xpath="/a", url="nourl", timeout=5, unit="days")
 
     @pytest.mark.parametrize(
-        "unit,factor",
+        ("unit", "factor"),
         [
             ("microseconds", 0.000001),
             ("milliseconds", 0.001),

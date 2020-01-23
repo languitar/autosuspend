@@ -8,7 +8,7 @@ from werkzeug.wrappers import Request, Response
 from autosuspend.util import systemd as util_systemd
 
 
-@pytest.fixture
+@pytest.fixture()
 def serve_file(httpserver) -> Callable[[Path], str]:
     """
     Serve a file via HTTP.
@@ -26,7 +26,7 @@ def serve_file(httpserver) -> Callable[[Path], str]:
     return serve
 
 
-@pytest.fixture
+@pytest.fixture()
 def serve_protected(httpserver) -> Callable[[Path], Tuple[str, str, str]]:
     """
     Serve a file behind basic authentication.
