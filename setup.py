@@ -44,6 +44,8 @@ setup(
 
     zip_safe=False,
 
+    python_requires='>=3.7',
+
     setup_requires=[
         'pytest-runner',
     ],
