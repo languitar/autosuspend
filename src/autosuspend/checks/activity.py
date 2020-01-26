@@ -244,13 +244,15 @@ class Mpd(Activity):
         return state
 
     def check(self) -> Optional[str]:
+        from mpd import MPDError
+
         try:
             state = self._get_state()
             if state["state"] == "play":
                 return "MPD currently playing"
             else:
                 return None
-        except (ConnectionError, socket.timeout, socket.gaierror) as error:
+        except (MPDError, ConnectionError, socket.timeout, socket.gaierror) as error:
             raise TemporaryCheckError(error) from error
 
 

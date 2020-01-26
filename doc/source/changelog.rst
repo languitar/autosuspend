@@ -8,6 +8,11 @@ interface, etc. will result in a new major release of |project|.
 Pending
 *******
 
+Fixed bugs
+==========
+
+* Connection errors are now properly handled by :ref:`check-mpd` (:issue:`77`).
+
 Notable changes
 ===============
 

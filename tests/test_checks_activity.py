@@ -10,6 +10,7 @@ import subprocess
 import sys
 
 from freezegun import freeze_time
+import mpd
 import psutil
 import pytest
 import requests
@@ -530,12 +531,13 @@ class TestMpd(CheckTest):
         mock_instance.close.assert_called_once_with()
         mock_instance.disconnect.assert_called_once_with()
 
-    def test_handle_connection_errors(self) -> None:
+    @pytest.mark.parametrize("exception_type", [ConnectionError, mpd.ConnectionError])
+    def test_handle_connection_errors(self, exception_type) -> None:
 
         check = Mpd("test", None, None, None)  # type: ignore
 
         def _get_state():
-            raise ConnectionError()
+            raise exception_type()
 
         check._get_state = _get_state  # type: ignore
 
