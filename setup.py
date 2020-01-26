@@ -44,9 +44,8 @@ setup(
 
     zip_safe=False,
 
-    setup_requires=[
-        'pytest-runner',
-    ],
+    python_requires='>=3.7',
+
     install_requires=[
         'psutil>=5.0',
         'portalocker',
