@@ -43,6 +43,7 @@ todo_include_todos = False
 rst_epilog = '''
 .. _autosuspend: https://github.com/languitar/autosuspend
 .. _Python 3: https://docs.python.org/3/
+.. _Python: https://docs.python.org/3/
 .. _setuptools: https://setuptools.readthedocs.io
 .. _configparser: https://docs.python.org/3/library/configparser.html
 .. _psutil: https://github.com/giampaolo/psutil

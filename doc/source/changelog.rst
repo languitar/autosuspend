@@ -1,6 +1,18 @@
 Changelog
 #########
 
+|project| follows `Semantic Versioning <https://semver.org/>`_.
+Hence, any breaking change to the configuration, command line interface, `systemd`_
+interface, etc. will result in a new major release of |project|.
+
+Pending
+*******
+
+Notable changes
+===============
+
+* The required `Python`_ version is now declared in the :ref:`installation` and :file:`setup.py` (:issue:`76`)
+
 3.0
 ***
 
