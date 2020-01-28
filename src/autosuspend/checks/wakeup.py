@@ -4,8 +4,8 @@ from io import BytesIO
 import subprocess
 from typing import Optional
 
+from . import ConfigurationError, SevereCheckError, TemporaryCheckError, Wakeup
 from .util import CommandMixin, NetworkMixin, XPathMixin
-from .. import ConfigurationError, TemporaryCheckError, Wakeup
 
 
 class Calendar(NetworkMixin, Wakeup):
@@ -63,7 +63,9 @@ class File(Wakeup):
             # this is ok
             return None
         except (ValueError, IOError) as error:
-            raise TemporaryCheckError(error) from error
+            raise TemporaryCheckError(
+                "Next wakeup time cannot be read despite a file being present"
+            ) from error
 
 
 class Command(CommandMixin, Wakeup):
@@ -90,8 +92,17 @@ class Command(CommandMixin, Wakeup):
             else:
                 return None
 
-        except (subprocess.CalledProcessError, ValueError) as error:
-            raise TemporaryCheckError(error) from error
+        except subprocess.CalledProcessError as error:
+            if error.returncode == 127:
+                # see http://tldp.org/LDP/abs/html/exitcodes.html
+                raise SevereCheckError("Command f'{self._command}' does not exist")
+            raise TemporaryCheckError(
+                "Unable to call the configured command"
+            ) from error
+        except ValueError as error:
+            raise TemporaryCheckError(
+                "Return value cannot be interpreted as a timestamp"
+            ) from error
 
 
 class Periodic(Wakeup):

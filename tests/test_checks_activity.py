@@ -67,6 +67,12 @@ class TestSmb(CheckTest):
             side_effect=subprocess.CalledProcessError(2, "cmd"),
         )
 
+        with pytest.raises(TemporaryCheckError):
+            Smb("foo").check()
+
+    def test_missing_executable(self, mocker) -> None:
+        mocker.patch("subprocess.check_output", side_effect=FileNotFoundError)
+
         with pytest.raises(SevereCheckError):
             Smb("foo").check()
 
@@ -1048,6 +1054,13 @@ class TestPing(CheckTest):
         for (args, _), host in zip(mock.call_args_list, hosts):
             assert args[0][-1] == host
 
+    def test_missing_ping_binary(self, mocker) -> None:
+        mock = mocker.patch("subprocess.call")
+        mock.side_effect = FileNotFoundError()
+
+        with pytest.raises(SevereCheckError):
+            Ping("name", ["test"]).check()
+
     def test_matching(self, mocker) -> None:
         mock = mocker.patch("subprocess.call")
         mock.return_value = 0
@@ -1248,6 +1261,17 @@ class TestXIdleTime(CheckTest):
             (42, this_user.pw_name),
         ]
 
+    def test_sudo_not_found(self, mocker) -> None:
+        check = XIdleTime("name", 100, "logind", re.compile(r"a^"), re.compile(r"a^"))
+        mocker.patch.object(check, "_provide_sessions").return_value = [
+            ("42", "auser"),
+        ]
+
+        mocker.patch("subprocess.check_output").side_effect = FileNotFoundError
+
+        with pytest.raises(SevereCheckError):
+            check.check()
+
 
 class TestExternalCommand(CheckTest):
     def create_instance(self, name):
@@ -1281,6 +1305,17 @@ class TestExternalCommand(CheckTest):
             ExternalCommand.create("name", parser["section"]).check() is None  # type: ignore
         )
         mock.assert_called_once_with("foo bar", shell=True)
+
+    def test_command_not_found(self) -> None:
+        parser = configparser.ConfigParser()
+        parser.read_string(
+            """
+            [section]
+            command = thisreallydoesnotexist bar
+            """
+        )
+        with pytest.raises(SevereCheckError):
+            ExternalCommand.create("name", parser["section"]).check()  # type: ignore
 
 
 class TestXPath(CheckTest):
