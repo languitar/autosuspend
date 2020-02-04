@@ -1,17 +1,11 @@
 """Provides the basic types used for checks."""
 
 import abc
-import configparser
 import datetime
-from typing import Any, Mapping, Optional
+from typing import Optional
 
-from autosuspend.util import logger_by_class_instance
-
-
-class ConfigurationError(RuntimeError):
-    """Indicates an error in the configuration of a :class:`Check`."""
-
-    pass
+from .config import Configuration, ConfigurationError, Options
+from ..util import logger_by_class_instance
 
 
 class TemporaryCheckError(RuntimeError):
@@ -36,48 +30,44 @@ class SevereCheckError(RuntimeError):
 
 
 class Check(abc.ABC):
-    """Base class for all kinds of checks.
+    """
+    Base class for all kinds of checks.
 
     Subclasses must call this class' ``__init__`` method.
+
+    Check instances need to be configured with a call to ``configure`` before being
+    usable. The caller/user guarantees this fact.
 
     Args:
         name (str):
             Configured name of the check
     """
 
-    @classmethod
-    @abc.abstractmethod
-    def create(cls, name: str, config: configparser.SectionProxy) -> "Check":
-        """Create a new check instance from the provided configuration.
-
-        Args:
-            name:
-                user-defined name for the check
-            config:
-                config parser section with the configuration for this check
-
-        Raises:
-            ConfigurationError:
-                Configuration for this check is inappropriate
-
-        """
-        pass
-
     def __init__(self, name: str = None) -> None:
-        if name:
-            self.name = name
-        else:
-            self.name = self.__class__.__name__
+        self.name = name or self.__class__.__name__
         self.logger = logger_by_class_instance(self, name)
 
-    def options(self) -> Mapping[str, Any]:
-        """Return the configured options as a mapping.
+    @classmethod
+    @property
+    def options(cls) -> Options:
+        options = Options()
+        cls._provide_options(options)
+        return options
+
+    @classmethod
+    @abc.abstractmethod
+    def _provide_options(cls, holder: Options) -> None:
+        pass
+
+    @property
+    def configuration(self) -> Configuration:
+        """
+        Return the current configuration of the check.
 
         This is used for debugging purposes only.
         """
-        return {
-            k: v for k, v in self.__dict__.items() if not callable(v) and k != "logger"
-        }
+        assert self._configuration
+        return self._configuration
 
     def __str__(self) -> str:
         return "{name}[class={clazz}]".format(
@@ -86,7 +76,8 @@ class Check(abc.ABC):
 
 
 class Activity(Check):
-    """Base class for activity checks.
+    """
+    Base class for activity checks.
 
     Subclasses must call this class' __init__ method.
     """
@@ -105,11 +96,6 @@ class Activity(Check):
                 Check executions fails severely
         """
         pass
-
-    def __str__(self) -> str:
-        return "{name}[class={clazz}]".format(
-            name=self.name, clazz=self.__class__.__name__
-        )
 
 
 class Wakeup(Check):

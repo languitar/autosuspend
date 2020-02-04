@@ -282,7 +282,7 @@ class TestActiveConnection(CheckTest):
     MY_ADDRESS_IPV6_SCOPED = "fe80::5193:518c:5c69:cccc%eth0"
 
     def create_instance(self, name):
-        return ActiveConnection(name, [10])
+        return ActiveConnection(name)
 
     def test_smoke(self) -> None:
         ActiveConnection("foo", [22]).check()

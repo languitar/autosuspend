@@ -15,7 +15,14 @@ import warnings
 
 import psutil
 
-from . import Activity, Check, ConfigurationError, SevereCheckError, TemporaryCheckError
+from . import (
+    Activity,
+    Check,
+    CheckConfiguration,
+    ConfigurationError,
+    SevereCheckError,
+    TemporaryCheckError,
+)
 from .util import CommandMixin, NetworkMixin, XPathMixin
 from ..util.systemd import list_logind_sessions
 
@@ -49,10 +56,7 @@ class ActiveCalendarEvent(NetworkMixin, Activity):
 class ActiveConnection(Activity):
     """Checks if a client connection exists on specified ports."""
 
-    @classmethod
-    def create(
-        cls, name: str, config: configparser.SectionProxy,
-    ) -> "ActiveConnection":
+    def _configure(self, config: configparser.SectionProxy) -> CheckConfiguration:
         try:
             split_ports = config["ports"].split(",")
             ports = {int(p.strip()) for p in split_ports}

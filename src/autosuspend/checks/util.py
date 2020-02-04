@@ -1,7 +1,14 @@
 import configparser
 from typing import Any, Dict, Optional, Sequence, TYPE_CHECKING
 
-from . import Check, ConfigurationError, SevereCheckError, TemporaryCheckError
+from . import (
+    Check,
+    CheckConfiguration,
+    CheckOptions,
+    ConfigurationError,
+    SevereCheckError,
+    TemporaryCheckError,
+)
 
 
 if TYPE_CHECKING:
@@ -23,25 +30,25 @@ class CommandMixin:
 
 
 class NetworkMixin:
-    @classmethod
-    def collect_init_args(cls, config: configparser.SectionProxy) -> Dict[str, Any]:
-        try:
-            args = {}  # type: Dict[str, Any]
-            args["timeout"] = config.getint("timeout", fallback=5)
-            args["url"] = config["url"]
-            args["username"] = config.get("username")
-            args["password"] = config.get("password")
-            if (args["username"] is None) != (args["password"] is None):
-                raise ConfigurationError("Username and password must be set")
-            return args
-        except ValueError as error:
-            raise ConfigurationError("Configuration error " + str(error)) from error
-        except KeyError as error:
-            raise ConfigurationError("Lacks " + str(error) + " config entry") from error
-
-    @classmethod
-    def create(cls, name: str, config: configparser.SectionProxy) -> Check:
-        return cls(name, **cls.collect_init_args(config))  # type: ignore
+    # @classmethod
+    # def collect_init_args(cls, config: configparser.SectionProxy) -> Dict[str, Any]:
+    #     try:
+    #         args = {}  # type: Dict[str, Any]
+    #         args["timeout"] = config.getint("timeout", fallback=5)
+    #         args["url"] = config["url"]
+    #         args["username"] = config.get("username")
+    #         args["password"] = config.get("password")
+    #         if (args["username"] is None) != (args["password"] is None):
+    #             raise ConfigurationError("Username and password must be set")
+    #         return args
+    #     except ValueError as error:
+    #         raise ConfigurationError("Configuration error " + str(error)) from error
+    #     except KeyError as error:
+    #         raise ConfigurationError("Lacks " + str(error) + " config entry") from error
+    #
+    # @classmethod
+    # def create(cls, name: str, config: configparser.SectionProxy) -> Check:
+    #     return cls(name, **cls.collect_init_args(config))  # type: ignore
 
     def __init__(
         self,
@@ -54,6 +61,27 @@ class NetworkMixin:
         self._timeout = timeout
         self._username = username
         self._password = password
+
+    @staticmethod
+    def provide_options(cls, holder: CheckOptions) -> None:
+        holder.add_option(
+            "timeout", lambda _, config: config.getint("timeout", fallback=5),
+        )
+        holder.add_option(
+            "url", lambda _, config: config["url"], required=True,
+        )
+        holder.add_option(
+            "username", lambda _, config: config.get("username"),
+        )
+        holder.add_option(
+            "password", lambda _, config: config.get("password"), redact=True,
+        )
+
+        def username_and_password_set(config: CheckConfiguration) -> None:
+            if (config.get("username") is None) != (config.get("password") is None):
+                raise ConfigurationError("Username and password must be set")
+
+        holder.add_validator(username_and_password_set)
 
     def request(self) -> "requests.model.Response":
         import requests
