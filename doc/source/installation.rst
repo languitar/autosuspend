@@ -40,7 +40,7 @@ Archlinux (AUR)
 
 Installation via :program:`aurman`::
 
-    aurman -S autosuspend
+    aurman|yay -S autosuspend
 
 Other `AUR helpers <https://wiki.archlinux.org/index.php/AUR_helpers>`_ may be used, too.
 
@@ -59,20 +59,15 @@ Other distributions
 
 In case you want to generate a package for a different Linux distribution, I'd be glad to hear about that.
 
-From-source installation
-************************
+Manual installation
+*******************
 
-|project_program| provides a usual :file:`setup.py` file for installation using common `setuptools`_ methods.
-Briefly, the following steps are necessary to install |project_program|:
-
-.. code-block:: bash
-
-   git clone https://github.com/languitar/autosuspend.git
-   cd autosuspend
-   python3 setup.py install # with desired options
-
-To build the documentation, the following command can be used:
+|project_program| is a usual Python_ package and hence can be installed using the common Python_ packaging tools.
+Briefly, the following steps can be used to install |project_program| from source in a system-wide location (as ``root`` user):
 
 .. code-block:: bash
 
-   python3 setup.py build_sphinx
+   python3 -m venv /opt/autosuspend
+   /opt/autosuspend/bin/pip install git+https://github.com/languitar/autosuspend.git
+
+Afterwards, copy the systemd_ unit files found in ``/opt/autosuspend/lib/systemd/system/`` to ``/etc/systemd`` and adapt the contained paths to the installation location.
