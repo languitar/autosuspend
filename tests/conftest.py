@@ -81,3 +81,26 @@ def logind(monkeypatch):
 
     mock.terminate()
     mock.wait()
+
+
+@pytest.fixture()
+def logind_dbus_error(monkeypatch):
+    pytest.importorskip("dbus")
+    pytest.importorskip("gi")
+
+    test_case = dbusmock.DBusTestCase()
+    test_case.start_system_bus()
+
+    mock, obj = test_case.spawn_server_template("logind")
+
+    def get_bus():
+        import dbus
+
+        raise dbus.exceptions.ValidationException("Test")
+
+    monkeypatch.setattr(util_systemd, "_get_bus", get_bus)
+
+    yield obj
+
+    mock.terminate()
+    mock.wait()

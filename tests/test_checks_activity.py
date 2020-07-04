@@ -33,6 +33,7 @@ from autosuspend.checks.activity import (
     XIdleTime,
     XPath,
 )
+from autosuspend.util.systemd import LogindDBusException
 from . import CheckTest
 
 
@@ -1224,6 +1225,16 @@ class TestXIdleTime(CheckTest):
         check = XIdleTime.create("name", parser["section"])
         assert check._list_sessions_logind() == [(3, "hello")]
 
+    def test_list_sessions_logind_dbus_error(self, mocker) -> None:
+        mock = mocker.patch("autosuspend.checks.activity.list_logind_sessions")
+        mock.side_effect = LogindDBusException()
+
+        parser = configparser.ConfigParser()
+        parser.read_string("""[section]""")
+        check = XIdleTime.create("name", parser["section"])
+        with pytest.raises(TemporaryCheckError):
+            check._list_sessions_logind()
+
     def test_list_sessions_socket(self, mocker) -> None:
         mock_glob = mocker.patch("glob.glob")
         mock_glob.return_value = [
@@ -1397,3 +1408,9 @@ class TestLogindSessionsIdle(CheckTest):
         )
         check = LogindSessionsIdle.create("name", parser["section"])
         assert check._states == ["test", "bla", "foo"]
+
+    def test_dbus_error(self, logind_dbus_error) -> None:
+        check = LogindSessionsIdle("test", ["test"], ["active", "online"])
+
+        with pytest.raises(TemporaryCheckError):
+            check.check()

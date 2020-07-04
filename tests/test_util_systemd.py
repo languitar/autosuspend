@@ -1,4 +1,6 @@
-from autosuspend.util.systemd import list_logind_sessions
+import pytest
+
+from autosuspend.util.systemd import list_logind_sessions, LogindDBusException
 
 
 def test_list_logind_sessions_empty(logind) -> None:
@@ -8,3 +10,8 @@ def test_list_logind_sessions_empty(logind) -> None:
     sessions = list(list_logind_sessions())
     assert len(sessions) == 1
     assert sessions[0][0] == "c1"
+
+
+def test_list_logind_sessions_dbus_error(logind_dbus_error) -> None:
+    with pytest.raises(LogindDBusException):
+        list_logind_sessions()
