@@ -17,7 +17,7 @@ import psutil
 
 from . import Activity, Check, ConfigurationError, SevereCheckError, TemporaryCheckError
 from .util import CommandMixin, NetworkMixin, XPathMixin
-from ..util.systemd import list_logind_sessions
+from ..util.systemd import list_logind_sessions, LogindDBusException
 
 
 class ActiveCalendarEvent(NetworkMixin, Activity):
@@ -484,6 +484,13 @@ class Users(Activity):
         return None
 
 
+def _list_logind_sessions() -> Iterable[Tuple[str, dict]]:
+    try:
+        return list_logind_sessions()
+    except LogindDBusException as error:
+        raise TemporaryCheckError(error) from error
+
+
 class XIdleTime(Activity):
     """Check that local X display have been idle long enough."""
 
@@ -571,7 +578,7 @@ class XIdleTime(Activity):
         sessions.
         """
         results = []
-        for session_id, properties in list_logind_sessions():
+        for session_id, properties in _list_logind_sessions():
             if "Name" in properties and "Display" in properties:
                 try:
                     results.append(
@@ -693,7 +700,7 @@ class LogindSessionsIdle(Activity):
         self._states = states
 
     def check(self) -> Optional[str]:
-        for session_id, properties in list_logind_sessions():
+        for session_id, properties in _list_logind_sessions():
             self.logger.debug("Session %s properties: %s", session_id, properties)
 
             if properties["Type"] not in self._types:
