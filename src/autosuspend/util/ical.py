@@ -10,7 +10,10 @@ import tzlocal
 
 class CalendarEvent:
     def __init__(
-        self, summary: str, start: Union[datetime, date], end: Union[datetime, date],
+        self,
+        summary: str,
+        start: Union[datetime, date],
+        end: Union[datetime, date],
     ) -> None:
         self.summary = summary
         self.start = start

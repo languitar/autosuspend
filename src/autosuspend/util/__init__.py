@@ -13,6 +13,7 @@ def logger_by_class(klass: Type, name: Optional[str] = None) -> logging.Logger:
 
 
 def logger_by_class_instance(
-    instance: Any, name: Optional[str] = None,
+    instance: Any,
+    name: Optional[str] = None,
 ) -> logging.Logger:
     return logger_by_class(instance.__class__, name=name)

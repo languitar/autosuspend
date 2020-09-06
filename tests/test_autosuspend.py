@@ -141,7 +141,10 @@ class TestSetUpChecks:
         )
 
         assert not autosuspend.set_up_checks(
-            parser, "check", "activity", autosuspend.Activity,  # type: ignore
+            parser,
+            "check",
+            "activity",
+            autosuspend.Activity,  # type: ignore
         )
 
         with pytest.raises(autosuspend.ConfigurationError):
@@ -174,7 +177,10 @@ class TestSetUpChecks:
         assert (
             len(
                 autosuspend.set_up_checks(
-                    parser, "check", "activity", autosuspend.Activity,  # type: ignore
+                    parser,
+                    "check",
+                    "activity",
+                    autosuspend.Activity,  # type: ignore
                 )
             )
             == 1
@@ -324,7 +330,8 @@ class TestExecuteWakeups:
         )
 
     @pytest.mark.parametrize(
-        "illegal", [None, dateutil.parser.parse("20040605T090000Z")],
+        "illegal",
+        [None, dateutil.parser.parse("20040605T090000Z")],
     )
     def test_skips_none_outdated_and_continues(self, mocker, illegal) -> None:
         wakeup_none = mocker.MagicMock(spec=autosuspend.Wakeup)
@@ -335,7 +342,9 @@ class TestExecuteWakeups:
         wakeup_real.check.return_value = wake_up_at
         assert (
             autosuspend.execute_wakeups(
-                [wakeup_none, wakeup_real], now, mocker.MagicMock(),
+                [wakeup_none, wakeup_real],
+                now,
+                mocker.MagicMock(),
             )
             == wake_up_at
         )
@@ -584,7 +593,10 @@ class TestProcessor:
         assert wakeup_fn.call_arg is None
 
     def test_wakeup_exact_hit_does_not_block(
-        self, mocker, sleep_fn, wakeup_fn,
+        self,
+        mocker,
+        sleep_fn,
+        wakeup_fn,
     ) -> None:
         start = datetime.now(timezone.utc)
         wakeup = mocker.MagicMock(spec=autosuspend.Wakeup)

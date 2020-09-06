@@ -36,7 +36,8 @@ _logger = logging.getLogger("autosuspend")
 
 
 def execute_suspend(
-    command: Union[str, Sequence[str]], wakeup_at: Optional[datetime.datetime],
+    command: Union[str, Sequence[str]],
+    wakeup_at: Optional[datetime.datetime],
 ) -> None:
     """Suspend the system by calling the specified command.
 
@@ -275,7 +276,8 @@ class Processor:
                 self._logger.debug("System wakeup required at %s", wakeup_at)
                 wakeup_at -= datetime.timedelta(seconds=self._wakeup_delta)
                 self._logger.debug(
-                    "With delta applied, system should wake up at %s", wakeup_at,
+                    "With delta applied, system should wake up at %s",
+                    wakeup_at,
                 )
             else:
                 self._logger.debug("No automatic wakeup required")
@@ -703,7 +705,10 @@ def hook(
 
 def main_hook(args: argparse.Namespace, config: configparser.ConfigParser) -> None:
     wakeups = set_up_checks(
-        config, "wakeup", "wakeup", Wakeup,  # type: ignore # python/mypy#5374
+        config,
+        "wakeup",
+        "wakeup",
+        Wakeup,  # type: ignore # python/mypy#5374
     )
     hook(
         wakeups,
@@ -726,7 +731,10 @@ def main_daemon(args: argparse.Namespace, config: configparser.ConfigParser) -> 
         error_none=True,
     )
     wakeups = set_up_checks(
-        config, "wakeup", "wakeup", Wakeup,  # type: ignore
+        config,
+        "wakeup",
+        "wakeup",
+        Wakeup,  # type: ignore
     )
 
     processor = configure_processor(args, config, checks, wakeups)
