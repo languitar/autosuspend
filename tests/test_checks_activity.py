@@ -219,7 +219,9 @@ class TestActiveCalendarEvent(CheckTest):
 
     def test_smoke(self, datadir, serve_file) -> None:
         result = ActiveCalendarEvent(
-            "test", url=serve_file(datadir / "long-event.ics"), timeout=3,
+            "test",
+            url=serve_file(datadir / "long-event.ics"),
+            timeout=3,
         ).check()
         assert result is not None
         assert "long-event" in result
@@ -227,7 +229,9 @@ class TestActiveCalendarEvent(CheckTest):
     def test_exact_range(self, datadir, serve_file) -> None:
         with freeze_time("2016-06-05 13:00:00", tz_offset=-2):
             result = ActiveCalendarEvent(
-                "test", url=serve_file(datadir / "long-event.ics"), timeout=3,
+                "test",
+                url=serve_file(datadir / "long-event.ics"),
+                timeout=3,
             ).check()
             assert result is not None
             assert "long-event" in result
@@ -235,14 +239,18 @@ class TestActiveCalendarEvent(CheckTest):
     def test_before_exact_range(self, datadir, serve_file) -> None:
         with freeze_time("2016-06-05 12:58:00", tz_offset=-2):
             result = ActiveCalendarEvent(
-                "test", url=serve_file(datadir / "long-event.ics"), timeout=3,
+                "test",
+                url=serve_file(datadir / "long-event.ics"),
+                timeout=3,
             ).check()
             assert result is None
 
     def test_no_event(self, datadir, serve_file) -> None:
         assert (
             ActiveCalendarEvent(
-                "test", url=serve_file(datadir / "old-event.ics"), timeout=3,
+                "test",
+                url=serve_file(datadir / "old-event.ics"),
+                timeout=3,
             ).check()
             is None
         )
@@ -259,7 +267,8 @@ class TestActiveCalendarEvent(CheckTest):
             """
         )
         check: ActiveCalendarEvent = ActiveCalendarEvent.create(
-            "name", parser["section"],
+            "name",
+            parser["section"],
         )  # type: ignore
         assert check._url == "foobar"
         assert check._username == "user"

@@ -51,7 +51,9 @@ class ActiveConnection(Activity):
 
     @classmethod
     def create(
-        cls, name: str, config: configparser.SectionProxy,
+        cls,
+        name: str,
+        config: configparser.SectionProxy,
     ) -> "ActiveConnection":
         try:
             split_ports = config["ports"].split(",")
@@ -259,7 +261,9 @@ class Mpd(Activity):
 class NetworkBandwidth(Activity):
     @classmethod
     def create(
-        cls, name: str, config: configparser.SectionProxy,
+        cls,
+        name: str,
+        config: configparser.SectionProxy,
     ) -> "NetworkBandwidth":
         try:
             interfaces = config["interfaces"].split(",")
@@ -367,7 +371,9 @@ class Ping(Activity):
             cmd = ["ping", "-q", "-c", "1", host]
             if (
                 subprocess.call(  # noqa: S603 we know the input from the config
-                    cmd, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
+                    cmd,
+                    stdout=subprocess.DEVNULL,
+                    stderr=subprocess.DEVNULL,
                 )
                 == 0
             ):
@@ -686,7 +692,9 @@ class LogindSessionsIdle(Activity):
 
     @classmethod
     def create(
-        cls, name: str, config: configparser.SectionProxy,
+        cls,
+        name: str,
+        config: configparser.SectionProxy,
     ) -> "LogindSessionsIdle":
         types = config.get("types", fallback="tty,x11,wayland").split(",")
         types = [t.strip() for t in types]

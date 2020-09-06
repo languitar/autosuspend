@@ -34,7 +34,8 @@ class TestCalendar(CheckTest):
             """
         )
         check: Calendar = Calendar.create(
-            "name", parser["section"],
+            "name",
+            parser["section"],
         )  # type: ignore
         assert check._url == "url"
         assert check._username == "user"
@@ -45,7 +46,9 @@ class TestCalendar(CheckTest):
         timestamp = dateutil.parser.parse("20050605T130000Z")
         assert (
             Calendar(
-                "test", url=serve_file(datadir / "old-event.ics"), timeout=3,
+                "test",
+                url=serve_file(datadir / "old-event.ics"),
+                timeout=3,
             ).check(timestamp)
             is None
         )
@@ -56,7 +59,9 @@ class TestCalendar(CheckTest):
 
         assert (
             Calendar(
-                "test", url=serve_file(datadir / "old-event.ics"), timeout=3,
+                "test",
+                url=serve_file(datadir / "old-event.ics"),
+                timeout=3,
             ).check(timestamp)
             == desired_start
         )
@@ -67,7 +72,9 @@ class TestCalendar(CheckTest):
 
         assert (
             Calendar(
-                "test", url=serve_file(datadir / "multiple.ics"), timeout=3,
+                "test",
+                url=serve_file(datadir / "multiple.ics"),
+                timeout=3,
             ).check(timestamp)
             == desired_start
         )
@@ -85,14 +92,18 @@ class TestCalendar(CheckTest):
 
         assert (
             Calendar(
-                "test", url=serve_file(datadir / "after-horizon.ics"), timeout=3,
+                "test",
+                url=serve_file(datadir / "after-horizon.ics"),
+                timeout=3,
             ).check(timestamp)
             is None
         )
 
         assert (
             Calendar(
-                "test", url=serve_file(datadir / "before-horizon.ics"), timeout=3,
+                "test",
+                url=serve_file(datadir / "before-horizon.ics"),
+                timeout=3,
             ).check(timestamp)
             is not None
         )

@@ -26,7 +26,8 @@ class TestCommandMixin:
             """
         )
         check: _CommandMixinSub = _CommandMixinSub.create(
-            "name", parser["section"],
+            "name",
+            parser["section"],
         )  # type: ignore
         assert check._command == "narf bla"
 
@@ -105,7 +106,8 @@ class TestNetworkMixin:
 
     def test_request(self, datadir, serve_file) -> None:
         reply = NetworkMixin(
-            serve_file(datadir / "xml_with_encoding.xml"), 5,
+            serve_file(datadir / "xml_with_encoding.xml"),
+            5,
         ).request()
         assert reply is not None
         assert reply.status_code == 200

@@ -80,7 +80,8 @@ class Command(CommandMixin, Wakeup):
     def check(self, timestamp: datetime) -> Optional[datetime]:
         try:
             output = subprocess.check_output(
-                self._command, shell=True,  # noqa: S602
+                self._command,
+                shell=True,  # noqa: S602
             ).splitlines()[0]
             self.logger.debug(
                 "Command %s succeeded with output %s", self._command, output
