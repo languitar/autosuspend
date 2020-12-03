@@ -289,7 +289,7 @@ class TestXPath(CheckTest):
             datetime.now(timezone.utc)
         ) == datetime.fromtimestamp(42.3, timezone.utc)
 
-        mock_method.assert_called_once_with(url, timeout=5)
+        mock_method.assert_called_once_with(url, timeout=5, headers=None)
         content_property.assert_called_once_with()
 
     def test_not_matching(self, mocker) -> None:

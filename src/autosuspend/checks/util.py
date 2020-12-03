@@ -49,11 +49,13 @@ class NetworkMixin:
         timeout: int,
         username: Optional[str] = None,
         password: Optional[str] = None,
+        accept: Optional[str] = None,
     ) -> None:
         self._url = url
         self._timeout = timeout
         self._username = username
         self._password = password
+        self._accept = accept
 
     def request(self) -> "requests.model.Response":
         import requests
@@ -74,7 +76,12 @@ class NetworkMixin:
             pass
 
         try:
-            reply = session.get(self._url, timeout=self._timeout)
+
+            headers: Optional[Dict[str, str]] = None
+            if self._accept:
+                headers = {"Accept": self._accept}
+
+            reply = session.get(self._url, timeout=self._timeout, headers=headers)
 
             # replace reply with an authenticated version if credentials are
             # available and the server has requested authentication
@@ -85,7 +92,9 @@ class NetworkMixin:
                         "Unsupported authentication scheme {}".format(auth_scheme)
                     )
                 auth = auth_map[auth_scheme](self._username, self._password)
-                reply = session.get(self._url, timeout=self._timeout, auth=auth)
+                reply = session.get(
+                    self._url, timeout=self._timeout, auth=auth, headers=headers
+                )
 
             reply.raise_for_status()
             return reply
