@@ -8,8 +8,10 @@ import re
 import socket
 import subprocess
 import sys
+from typing import Any
 
 from freezegun import freeze_time
+from jsonpath_ng import parse
 import mpd
 import psutil
 import pytest
@@ -20,6 +22,7 @@ from autosuspend.checks.activity import (
     ActiveCalendarEvent,
     ActiveConnection,
     ExternalCommand,
+    JsonPath,
     Kodi,
     KodiIdleTime,
     Load,
@@ -1324,7 +1327,7 @@ class TestXPath(CheckTest):
         url = "nourl"
         assert XPath("foo", xpath="/a", url=url, timeout=5).check() is not None
 
-        mock_method.assert_called_once_with(url, timeout=5)
+        mock_method.assert_called_once_with(url, timeout=5, headers=None)
         content_property.assert_called_once_with()
 
     def test_not_matching(self, mocker) -> None:
@@ -1423,3 +1426,114 @@ class TestLogindSessionsIdle(CheckTest):
 
         with pytest.raises(TemporaryCheckError):
             check.check()
+
+
+class TestJsonPath(CheckTest):
+    def create_instance(self, name) -> JsonPath:
+        return JsonPath(
+            name=name,
+            url="url",
+            timeout=5,
+            username="userx",
+            password="pass",
+            jsonpath="/b",
+        )
+
+    @staticmethod
+    @pytest.fixture()
+    def json_get_mock(mocker) -> Any:
+        mock_reply = mocker.MagicMock()
+        mock_reply.json.return_value = {"a": {"b": 42, "c": "ignore"}}
+        return mocker.patch("requests.Session.get", return_value=mock_reply)
+
+    def test_matching(self, json_get_mock) -> None:
+        url = "nourl"
+        assert (
+            JsonPath("foo", jsonpath=parse("a.b"), url=url, timeout=5).check()
+            is not None
+        )
+
+        json_get_mock.assert_called_once_with(
+            url, timeout=5, headers={"Accept": "application/json"}
+        )
+        json_get_mock().json.assert_called_once()
+
+    def test_not_matching(self, json_get_mock) -> None:
+        url = "nourl"
+        assert (
+            JsonPath("foo", jsonpath=parse("not.there"), url=url, timeout=5).check()
+            is None
+        )
+
+        json_get_mock.assert_called_once_with(
+            url, timeout=5, headers={"Accept": "application/json"}
+        )
+        json_get_mock().json.assert_called_once()
+
+    def test_network_errors_are_passed(self, datadir, serve_protected) -> None:
+        with pytest.raises(TemporaryCheckError):
+            JsonPath(
+                name="name",
+                url=serve_protected(datadir / "data.txt")[0],
+                timeout=5,
+                username="wrong",
+                password="wrong",
+                jsonpath=parse("b"),
+            ).check()
+
+    def test_not_json(self, datadir, serve_file) -> None:
+        with pytest.raises(TemporaryCheckError):
+            JsonPath(
+                name="name",
+                url=serve_file(datadir / "invalid.json"),
+                timeout=5,
+                jsonpath=parse("b"),
+            ).check()
+
+    def test_create(self) -> None:
+        parser = configparser.ConfigParser()
+        parser.read_string(
+            """
+            [section]
+            url = url
+            jsonpath = a.b
+            username = user
+            password = pass
+            timeout = 42
+            """
+        )
+        check: JsonPath = JsonPath.create("name", parser["section"])  # type: ignore
+        assert check._jsonpath == parse("a.b")
+        assert check._url == "url"
+        assert check._username == "user"
+        assert check._password == "pass"
+        assert check._timeout == 42
+
+    def test_create_missing_path(self) -> None:
+        with pytest.raises(ConfigurationError):
+            parser = configparser.ConfigParser()
+            parser.read_string(
+                """
+                [section]
+                url = url
+                username = user
+                password = pass
+                timeout = 42
+                """
+            )
+            JsonPath.create("name", parser["section"])
+
+    def test_create_invalid_path(self) -> None:
+        with pytest.raises(ConfigurationError):
+            parser = configparser.ConfigParser()
+            parser.read_string(
+                """
+                [section]
+                url = url
+                jsonpath = ,.asdfjasdklf
+                username = user
+                password = pass
+                timeout = 42
+                """
+            )
+            JsonPath.create("name", parser["section"])

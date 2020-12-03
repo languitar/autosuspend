@@ -10,7 +10,16 @@ import re
 import socket
 import subprocess
 import time
-from typing import Any, Dict, Iterable, Optional, Pattern, Sequence, Tuple
+from typing import (
+    Any,
+    Dict,
+    Iterable,
+    Optional,
+    Pattern,
+    Sequence,
+    Tuple,
+    TYPE_CHECKING,
+)
 import warnings
 
 import psutil
@@ -18,6 +27,10 @@ import psutil
 from . import Activity, Check, ConfigurationError, SevereCheckError, TemporaryCheckError
 from .util import CommandMixin, NetworkMixin, XPathMixin
 from ..util.systemd import list_logind_sessions, LogindDBusException
+
+
+if TYPE_CHECKING:
+    from jsonpath_ng import JSONPath
 
 
 class ActiveCalendarEvent(NetworkMixin, Activity):
@@ -738,3 +751,38 @@ class XPath(XPathMixin, Activity):
             return "XPath matches for url " + self._url
         else:
             return None
+
+
+class JsonPath(NetworkMixin, Activity):
+    """Requests a URL and evaluates whether a JSONPath expression matches."""
+
+    @classmethod
+    def collect_init_args(cls, config: configparser.SectionProxy) -> Dict[str, Any]:
+        from jsonpath_ng import parse
+
+        try:
+            args = NetworkMixin.collect_init_args(config)
+            args["jsonpath"] = parse(config["jsonpath"])
+            return args
+        except KeyError as error:
+            raise ConfigurationError(f"Property jsonpath is missing") from error
+        except Exception as error:
+            raise ConfigurationError(f"JSONPath error {str(error)}") from error
+
+    def __init__(self, name: str, jsonpath: "JSONPath", **kwargs) -> None:
+        Activity.__init__(self, name)
+        NetworkMixin.__init__(self, accept="application/json", **kwargs)
+        self._jsonpath = jsonpath
+
+    def check(self) -> Optional[str]:
+        import requests
+        import requests.exceptions
+
+        try:
+            reply = self.request().json()
+            matched = self._jsonpath.find(reply)
+            if matched:
+                return f"JSONPath {self._jsonpath} found elements {matched}"
+            return None
+        except (json.JSONDecodeError, requests.exceptions.RequestException) as error:
+            raise TemporaryCheckError(error) from error

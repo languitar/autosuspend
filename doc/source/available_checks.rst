@@ -90,6 +90,48 @@ Options
 Requirements
 ============
 
+.. _check-jsonpath:
+
+JsonPath
+********
+
+.. program:: check-jsonpath
+
+A generic check which queries a configured URL and expects the reply to contain JSON data.
+The returned JSON document is checked against a configured `JSONPath`_ expression and in case the expression matches, the system is assumed to be active.
+
+Options
+=======
+
+.. option:: url
+
+   The URL to query for the XML reply.
+
+.. option:: jsonpath
+
+   The `JSONPath`_ query to execute.
+   In case it returns a result, the system is assumed to be active.
+
+.. option:: timeout
+
+   Timeout for executed requests in seconds. Default: 5.
+
+.. option:: username
+
+   Optional user name to use for authenticating at a server requiring authentication.
+   If used, also a password must be provided.
+
+.. option:: password
+
+   Optional password to use for authenticating at a server requiring authentication.
+   If used, also a user name must be provided.
+
+Requirements
+============
+
+-  `requests`_
+-  `jsonpath-ng`_
+
 .. _check-kodi:
 
 Kodi
