@@ -17,6 +17,7 @@ Notable changes
 ===============
 
 * The required `Python`_ version is now declared in the :ref:`installation` and :file:`setup.py` (:issue:`76`)
+* Python 3.9 is officially supported and tested (:issue:`89`).
 
 3.0
 ***
