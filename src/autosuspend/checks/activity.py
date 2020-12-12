@@ -9,6 +9,7 @@ import pwd
 import re
 import socket
 import subprocess
+from textwrap import shorten
 import time
 from typing import (
     Any,
@@ -782,7 +783,10 @@ class JsonPath(NetworkMixin, Activity):
             reply = self.request().json()
             matched = self._jsonpath.find(reply)
             if matched:
-                return f"JSONPath {self._jsonpath} found elements {matched}"
+                # shorten to avoid excessive logging output
+                return f"JSONPath {self._jsonpath} found elements " + shorten(
+                    str(matched), 24
+                )
             return None
         except (json.JSONDecodeError, requests.exceptions.RequestException) as error:
             raise TemporaryCheckError(error) from error
