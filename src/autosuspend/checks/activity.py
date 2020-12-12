@@ -560,14 +560,15 @@ class XIdleTime(Activity):
         This method assumes that X servers are run under the users using the
         server.
         """
-        sockets = glob.glob("/tmp/.X11-unix/X*")
+        prefix = "/tmp/.X11-unix/X"  # noqa: S108 expected path
+        sockets = glob.glob(f"{prefix}*")
         self.logger.debug("Found sockets: %s", sockets)
 
         results = []
         for sock in sockets:
             # determine the number of the X display
             try:
-                display = int(sock[len("/tmp/.X11-unix/X") :])
+                display = int(sock[len(prefix) :])
             except ValueError:
                 self.logger.warning(
                     "Cannot parse display number from socket %s. Skipping.",
