@@ -1,4 +1,5 @@
 import configparser
+from unittest.mock import ANY
 
 import pytest
 import requests
@@ -143,6 +144,16 @@ class TestNetworkMixin:
 
     def test_file_url(self) -> None:
         NetworkMixin("file://" + __file__, 5).request()
+
+    def test_content_type(self, mocker) -> None:
+        mock_method = mocker.patch("requests.Session.get")
+
+        content_type = "foo/bar"
+        NetworkMixin("url", timeout=5, accept=content_type).request()
+
+        mock_method.assert_called_with(
+            ANY, timeout=ANY, headers={"Accept": content_type}
+        )
 
 
 class _XPathMixinSub(XPathMixin, Activity):

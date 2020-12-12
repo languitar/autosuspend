@@ -8,6 +8,14 @@ interface, etc. will result in a new major release of |project|.
 Pending
 *******
 
+New features
+============
+
+New activity checks
+-------------------
+
+* :ref:`check-jsonpath`: Similar to the existing :ref`check-xpath`, the new checks requests a JSON URL and evaluates it against a `JSONPath`_ expression to determine activity (:issue:`81`).
+
 Fixed bugs
 ==========
 

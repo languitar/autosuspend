@@ -66,6 +66,8 @@ rst_epilog = '''
 .. _requests-file: https://github.com/dashea/requests-file
 .. _Plex: https://www.plex.tv/
 .. _portalocker: https://portalocker.readthedocs.io
+.. _jsonpath-ng: https://github.com/h2non/jsonpath-ng
+.. _JSONPath: https://goessner.net/articles/JsonPath/
 
 .. |project| replace:: {project}
 .. |project_bold| replace:: **{project}**

@@ -37,7 +37,7 @@ def serve_protected(httpserver) -> Callable[[Path], Tuple[str, str, str]]:
     """
     realm = "the_realm"
     username = "the_user"
-    password = "the_password"
+    password = "the_password"  # noqa: S105 only for testing
 
     def serve(the_file: Path) -> Tuple[str, str, str]:
         def handler(request: Request) -> Response:

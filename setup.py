@@ -15,6 +15,7 @@ extras_require = {
     'Mpd': ['python-mpd2'],
     'Kodi': ['requests'],
     'XPath': ['lxml', 'requests'],
+    'JSONPath': ['jsonpath-ng', 'requests'],
     'Logind': ['dbus-python'],
     'ical': ['requests', 'icalendar', 'python-dateutil', 'tzlocal'],
     'localfiles': ['requests-file'],
