@@ -1,10 +1,11 @@
 import abc
-from typing import Any
+
+from autosuspend.checks import Check
 
 
 class CheckTest(abc.ABC):
     @abc.abstractmethod
-    def create_instance(self, name: str) -> Any:
+    def create_instance(self, name: str) -> Check:
         pass
 
     def test_name_passing(self) -> None:

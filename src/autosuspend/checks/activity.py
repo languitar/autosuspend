@@ -37,7 +37,7 @@ if TYPE_CHECKING:
 class ActiveCalendarEvent(NetworkMixin, Activity):
     """Determines activity by checking against events in an icalendar file."""
 
-    def __init__(self, name: str, **kwargs) -> None:
+    def __init__(self, name: str, **kwargs: Any) -> None:
         NetworkMixin.__init__(self, **kwargs)
         Activity.__init__(self, name)
 
@@ -139,7 +139,7 @@ class Kodi(NetworkMixin, Activity):
         return cls(name, **cls.collect_init_args(config))
 
     def __init__(
-        self, name: str, url: str, suspend_while_paused: bool = False, **kwargs
+        self, name: str, url: str, suspend_while_paused: bool = False, **kwargs: Any
     ) -> None:
         self._suspend_while_paused = suspend_while_paused
         if self._suspend_while_paused:
@@ -185,7 +185,7 @@ class KodiIdleTime(NetworkMixin, Activity):
     def create(cls, name: str, config: configparser.SectionProxy) -> "KodiIdleTime":
         return cls(name, **cls.collect_init_args(config))
 
-    def __init__(self, name: str, url: str, idle_time: int, **kwargs) -> None:
+    def __init__(self, name: str, url: str, idle_time: int, **kwargs: Any) -> None:
         request = url + (
             '?request={{"jsonrpc": "2.0", "id": 1, '
             '"method": "XBMC.GetInfoBooleans",'
@@ -744,7 +744,7 @@ class LogindSessionsIdle(Activity):
 
 
 class XPath(XPathMixin, Activity):
-    def __init__(self, name: str, **kwargs) -> None:
+    def __init__(self, name: str, **kwargs: Any) -> None:
         Activity.__init__(self, name)
         XPathMixin.__init__(self, **kwargs)
 
@@ -771,7 +771,7 @@ class JsonPath(NetworkMixin, Activity):
         except Exception as error:
             raise ConfigurationError(f"JSONPath error {str(error)}") from error
 
-    def __init__(self, name: str, jsonpath: "JSONPath", **kwargs) -> None:
+    def __init__(self, name: str, jsonpath: "JSONPath", **kwargs: Any) -> None:
         Activity.__init__(self, name)
         NetworkMixin.__init__(self, accept="application/json", **kwargs)
         self._jsonpath = jsonpath

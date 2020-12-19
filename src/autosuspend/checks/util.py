@@ -125,7 +125,7 @@ class XPathMixin(NetworkMixin):
     def create(cls, name: str, config: configparser.SectionProxy) -> Check:
         return cls(name, **cls.collect_init_args(config))  # type: ignore
 
-    def __init__(self, xpath: str, **kwargs) -> None:
+    def __init__(self, xpath: str, **kwargs: Any) -> None:
         NetworkMixin.__init__(self, **kwargs)
         self._xpath = xpath
         from lxml import etree  # noqa: S410 required flag set

@@ -1,12 +1,14 @@
 import configparser
 from datetime import datetime, timedelta, timezone
-import os
+from pathlib import Path
 import subprocess
+from typing import Callable
 
 import dateutil.parser
 import pytest
+from pytest_mock import MockFixture
 
-from autosuspend.checks import ConfigurationError, TemporaryCheckError
+from autosuspend.checks import Check, ConfigurationError, TemporaryCheckError
 from autosuspend.checks.wakeup import (
     Calendar,
     Command,
@@ -42,7 +44,7 @@ class TestCalendar(CheckTest):
         assert check._password == "pass"
         assert check._timeout == 42
 
-    def test_empty(self, datadir, serve_file) -> None:
+    def test_empty(self, datadir: Path, serve_file: Callable[[Path], str]) -> None:
         timestamp = dateutil.parser.parse("20050605T130000Z")
         assert (
             Calendar(
@@ -53,7 +55,7 @@ class TestCalendar(CheckTest):
             is None
         )
 
-    def test_smoke(self, datadir, serve_file) -> None:
+    def test_smoke(self, datadir: Path, serve_file: Callable[[Path], str]) -> None:
         timestamp = dateutil.parser.parse("20040605T090000Z")
         desired_start = dateutil.parser.parse("20040605T110000Z")
 
@@ -66,7 +68,9 @@ class TestCalendar(CheckTest):
             == desired_start
         )
 
-    def test_select_earliest(self, datadir, serve_file) -> None:
+    def test_select_earliest(
+        self, datadir: Path, serve_file: Callable[[Path], str]
+    ) -> None:
         timestamp = dateutil.parser.parse("20040401T090000Z")
         desired_start = dateutil.parser.parse("20040405T110000Z")
 
@@ -79,7 +83,9 @@ class TestCalendar(CheckTest):
             == desired_start
         )
 
-    def test_ignore_running(self, datadir, serve_file) -> None:
+    def test_ignore_running(
+        self, datadir: Path, serve_file: Callable[[Path], str]
+    ) -> None:
         url = serve_file(datadir / "old-event.ics")
         timestamp = dateutil.parser.parse("20040605T110000Z")
         # events are taken if start hits exactly the current time
@@ -87,7 +93,9 @@ class TestCalendar(CheckTest):
         timestamp = timestamp + timedelta(seconds=1)
         assert Calendar("test", url=url, timeout=3).check(timestamp) is None
 
-    def test_limited_horizon(self, datadir, serve_file) -> None:
+    def test_limited_horizon(
+        self, datadir: Path, serve_file: Callable[[Path], str]
+    ) -> None:
         timestamp = dateutil.parser.parse("20040101T000000Z")
 
         assert (
@@ -110,7 +118,7 @@ class TestCalendar(CheckTest):
 
 
 class TestFile(CheckTest):
-    def create_instance(self, name):
+    def create_instance(self, name: str) -> Check:
         return File(name, "asdf")
 
     def test_create(self) -> None:
@@ -128,42 +136,42 @@ class TestFile(CheckTest):
         with pytest.raises(ConfigurationError):
             File.create("name", parser["section"])
 
-    def test_smoke(self, tmpdir) -> None:
-        test_file = tmpdir.join("file")
-        test_file.write("42\n\n")
+    def test_smoke(self, tmp_path: Path) -> None:
+        test_file = tmp_path / "file"
+        test_file.write_text("42\n\n")
         assert File("name", str(test_file)).check(
             datetime.now(timezone.utc)
         ) == datetime.fromtimestamp(42, timezone.utc)
 
-    def test_no_file(self, tmpdir) -> None:
+    def test_no_file(self, tmp_path: Path) -> None:
         assert (
-            File("name", str(tmpdir.join("narf"))).check(datetime.now(timezone.utc))
+            File("name", str(tmp_path / "narf")).check(datetime.now(timezone.utc))
             is None
         )
 
-    def test_handle_permission_error(self, tmpdir) -> None:
-        file_path = tmpdir / "test"
-        file_path.write(b"2314898")
-        os.chmod(file_path, 0)
+    def test_handle_permission_error(self, tmp_path: Path) -> None:
+        file_path = tmp_path / "test"
+        file_path.write_bytes(b"2314898")
+        file_path.chmod(0)
         with pytest.raises(TemporaryCheckError):
             File("name", str(file_path)).check(datetime.now(timezone.utc))
 
-    def test_handle_io_error(self, tmpdir, mocker) -> None:
-        file_path = tmpdir / "test"
-        file_path.write(b"2314898")
+    def test_handle_io_error(self, tmp_path: Path, mocker: MockFixture) -> None:
+        file_path = tmp_path / "test"
+        file_path.write_bytes(b"2314898")
         mocker.patch("builtins.open").side_effect = IOError
         with pytest.raises(TemporaryCheckError):
             File("name", str(file_path)).check(datetime.now(timezone.utc))
 
-    def test_invalid_number(self, tmpdir) -> None:
-        test_file = tmpdir.join("filexxx")
-        test_file.write("nonumber\n\n")
+    def test_invalid_number(self, tmp_path: Path) -> None:
+        test_file = tmp_path / "filexxx"
+        test_file.write_text("nonumber\n\n")
         with pytest.raises(TemporaryCheckError):
             File("name", str(test_file)).check(datetime.now(timezone.utc))
 
 
 class TestCommand(CheckTest):
-    def create_instance(self, name):
+    def create_instance(self, name: str) -> Check:
         return Command(name, "asdf")
 
     def test_smoke(self) -> None:
@@ -181,7 +189,7 @@ class TestCommand(CheckTest):
         with pytest.raises(TemporaryCheckError):
             check.check(datetime.now(timezone.utc))
 
-    def test_multiple_lines(self, mocker) -> None:
+    def test_multiple_lines(self, mocker: MockFixture) -> None:
         mock = mocker.patch("subprocess.check_output")
         mock.return_value = "1234\nignore\n"
         check = Command("test", "echo bla")
@@ -189,13 +197,13 @@ class TestCommand(CheckTest):
             1234, timezone.utc
         )
 
-    def test_multiple_lines_but_empty(self, mocker) -> None:
+    def test_multiple_lines_but_empty(self, mocker: MockFixture) -> None:
         mock = mocker.patch("subprocess.check_output")
         mock.return_value = "   \nignore\n"
         check = Command("test", "echo bla")
         assert check.check(datetime.now(timezone.utc)) is None
 
-    def test_process_error(self, mocker) -> None:
+    def test_process_error(self, mocker: MockFixture) -> None:
         mock = mocker.patch("subprocess.check_output")
         mock.side_effect = subprocess.CalledProcessError(2, "foo bar")
         check = Command("test", "echo bla")
@@ -204,7 +212,7 @@ class TestCommand(CheckTest):
 
 
 class TestPeriodic(CheckTest):
-    def create_instance(self, name):
+    def create_instance(self, name: str) -> Check:
         delta = timedelta(seconds=10, minutes=42)
         return Periodic(name, delta)
 
@@ -274,10 +282,10 @@ class TestPeriodic(CheckTest):
 
 
 class TestXPath(CheckTest):
-    def create_instance(self, name):
+    def create_instance(self, name: str) -> Check:
         return XPath(name, xpath="/a", url="nourl", timeout=5)
 
-    def test_matching(self, mocker) -> None:
+    def test_matching(self, mocker: MockFixture) -> None:
         mock_reply = mocker.MagicMock()
         content_property = mocker.PropertyMock()
         type(mock_reply).content = content_property
@@ -292,7 +300,7 @@ class TestXPath(CheckTest):
         mock_method.assert_called_once_with(url, timeout=5, headers=None)
         content_property.assert_called_once_with()
 
-    def test_not_matching(self, mocker) -> None:
+    def test_not_matching(self, mocker: MockFixture) -> None:
         mock_reply = mocker.MagicMock()
         content_property = mocker.PropertyMock()
         type(mock_reply).content = content_property
@@ -306,7 +314,7 @@ class TestXPath(CheckTest):
             is None
         )
 
-    def test_not_a_string(self, mocker) -> None:
+    def test_not_a_string(self, mocker: MockFixture) -> None:
         mock_reply = mocker.MagicMock()
         content_property = mocker.PropertyMock()
         type(mock_reply).content = content_property
@@ -318,7 +326,7 @@ class TestXPath(CheckTest):
                 datetime.now(timezone.utc)
             )
 
-    def test_not_a_number(self, mocker) -> None:
+    def test_not_a_number(self, mocker: MockFixture) -> None:
         mock_reply = mocker.MagicMock()
         content_property = mocker.PropertyMock()
         type(mock_reply).content = content_property
@@ -330,7 +338,7 @@ class TestXPath(CheckTest):
                 datetime.now(timezone.utc)
             )
 
-    def test_multiple_min(self, mocker) -> None:
+    def test_multiple_min(self, mocker: MockFixture) -> None:
         mock_reply = mocker.MagicMock()
         content_property = mocker.PropertyMock()
         type(mock_reply).content = content_property
@@ -362,7 +370,7 @@ class TestXPath(CheckTest):
 
 
 class TestXPathDelta(CheckTest):
-    def create_instance(self, name):
+    def create_instance(self, name: str) -> Check:
         return XPathDelta(name, xpath="/a", url="nourl", timeout=5, unit="days")
 
     @pytest.mark.parametrize(
@@ -377,7 +385,7 @@ class TestXPathDelta(CheckTest):
             ("weeks", 60 * 60 * 24 * 7),
         ],
     )
-    def test_smoke(self, mocker, unit, factor) -> None:
+    def test_smoke(self, mocker: MockFixture, unit: str, factor: float) -> None:
         mock_reply = mocker.MagicMock()
         content_property = mocker.PropertyMock()
         type(mock_reply).content = content_property

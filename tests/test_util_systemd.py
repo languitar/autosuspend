@@ -1,9 +1,10 @@
+from dbus.proxies import ProxyObject
 import pytest
 
 from autosuspend.util.systemd import list_logind_sessions, LogindDBusException
 
 
-def test_list_logind_sessions_empty(logind) -> None:
+def test_list_logind_sessions_empty(logind: ProxyObject) -> None:
     assert len(list(list_logind_sessions())) == 0
 
     logind.AddSession("c1", "seat0", 1042, "auser", True)
@@ -12,6 +13,6 @@ def test_list_logind_sessions_empty(logind) -> None:
     assert sessions[0][0] == "c1"
 
 
-def test_list_logind_sessions_dbus_error(logind_dbus_error) -> None:
+def test_list_logind_sessions_dbus_error(logind_dbus_error: ProxyObject) -> None:
     with pytest.raises(LogindDBusException):
         list_logind_sessions()

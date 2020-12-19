@@ -61,7 +61,7 @@ class Check(abc.ABC):
         """
         pass
 
-    def __init__(self, name: str = None) -> None:
+    def __init__(self, name: Optional[str] = None) -> None:
         if name:
             self.name = name
         else:

@@ -2,7 +2,7 @@ import configparser
 from datetime import datetime, timedelta, timezone
 from io import BytesIO
 import subprocess
-from typing import Optional
+from typing import Any, Optional
 
 from .util import CommandMixin, NetworkMixin, XPathMixin
 from .. import ConfigurationError, TemporaryCheckError, Wakeup
@@ -11,7 +11,7 @@ from .. import ConfigurationError, TemporaryCheckError, Wakeup
 class Calendar(NetworkMixin, Wakeup):
     """Uses an ical calendar to wake up on the next scheduled event."""
 
-    def __init__(self, name: str, **kwargs) -> None:
+    def __init__(self, name: str, **kwargs: Any) -> None:
         NetworkMixin.__init__(self, **kwargs)
         Wakeup.__init__(self, name)
 
@@ -124,7 +124,7 @@ class XPath(XPathMixin, Wakeup):
     The matched results are expected to represent timestamps in seconds UTC.
     """
 
-    def __init__(self, name: str, **kwargs) -> None:
+    def __init__(self, name: str, **kwargs: Any) -> None:
         Wakeup.__init__(self, name)
         XPathMixin.__init__(self, **kwargs)
 
@@ -167,7 +167,7 @@ class XPathDelta(XPath):
         except ValueError as error:
             raise ConfigurationError(str(error))
 
-    def __init__(self, name: str, unit: str, **kwargs) -> None:
+    def __init__(self, name: str, unit: str, **kwargs: Any) -> None:
         if unit not in self.UNITS:
             raise ValueError("Unsupported unit")
         XPath.__init__(self, name, **kwargs)
