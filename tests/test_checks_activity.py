@@ -616,7 +616,8 @@ class TestNetworkBandwidth(CheckTest):
         mock = mocker.patch("psutil.net_if_addrs")
         mock.return_value = {"foo": None, "bar": None, "baz": None}
 
-    def test_create(self, _mock_interfaces: None) -> None:
+    @pytest.mark.usefixtures("_mock_interfaces")
+    def test_create(self) -> None:
         parser = configparser.ConfigParser()
         parser.read_string(
             """
@@ -631,7 +632,8 @@ threshold_receive = 300
         assert check._threshold_send == 200
         assert check._threshold_receive == 300
 
-    def test_create_default(self, _mock_interfaces: None) -> None:
+    @pytest.mark.usefixtures("_mock_interfaces")
+    def test_create_default(self) -> None:
         parser = configparser.ConfigParser()
         parser.read_string(
             """
@@ -691,9 +693,8 @@ threshold_receive = xxx
             ),
         ],
     )
-    def test_create_error(
-        self, _mock_interfaces: None, config: str, error_match: str
-    ) -> None:
+    @pytest.mark.usefixtures("_mock_interfaces")
+    def test_create_error(self, config: str, error_match: str) -> None:
         parser = configparser.ConfigParser()
         parser.read_string(config)
         with pytest.raises(ConfigurationError, match=error_match):
@@ -1476,30 +1477,30 @@ class TestJsonPath(CheckTest):
         assert check._timeout == 42
 
     def test_create_missing_path(self) -> None:
+        parser = configparser.ConfigParser()
+        parser.read_string(
+            """
+            [section]
+            url = url
+            username = user
+            password = pass
+            timeout = 42
+            """
+        )
         with pytest.raises(ConfigurationError):
-            parser = configparser.ConfigParser()
-            parser.read_string(
-                """
-                [section]
-                url = url
-                username = user
-                password = pass
-                timeout = 42
-                """
-            )
             JsonPath.create("name", parser["section"])
 
     def test_create_invalid_path(self) -> None:
+        parser = configparser.ConfigParser()
+        parser.read_string(
+            """
+            [section]
+            url = url
+            jsonpath = ,.asdfjasdklf
+            username = user
+            password = pass
+            timeout = 42
+            """
+        )
         with pytest.raises(ConfigurationError):
-            parser = configparser.ConfigParser()
-            parser.read_string(
-                """
-                [section]
-                url = url
-                jsonpath = ,.asdfjasdklf
-                username = user
-                password = pass
-                timeout = 42
-                """
-            )
             JsonPath.create("name", parser["section"])

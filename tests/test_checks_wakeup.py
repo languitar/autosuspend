@@ -425,5 +425,5 @@ class TestXPathDelta(CheckTest):
             XPathDelta.create("name", parser["section"])
 
     def test_init_wrong_unit(self) -> None:
-        with pytest.raises(ValueError):
+        with pytest.raises(ValueError, match=r".*unit.*"):
             XPathDelta("name", url="url", xpath="/a", timeout=5, unit="unknownunit")
