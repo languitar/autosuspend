@@ -482,7 +482,7 @@ def test_notify_and_suspend(mocker: MockFixture) -> None:
 
 class _StubCheck(autosuspend.Activity):
     @classmethod
-    def create(cls, name: str, config: configparser.SectionProxy) -> autosuspend.Check:
+    def create(cls, name: str, config: configparser.SectionProxy) -> "_StubCheck":
         raise NotImplementedError()
 
     def __init__(self, name: str, match: Optional[str]) -> None:

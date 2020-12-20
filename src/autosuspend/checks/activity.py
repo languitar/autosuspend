@@ -13,6 +13,7 @@ from textwrap import shorten
 import time
 from typing import (
     Any,
+    Callable,
     Dict,
     Iterable,
     Optional,
@@ -545,6 +546,7 @@ class XIdleTime(Activity):
     ) -> None:
         Activity.__init__(self, name)
         self._timeout = timeout
+        self._provide_sessions: Callable[[], Sequence[Tuple[int, str]]]
         if method == "sockets":
             self._provide_sessions = self._list_sessions_sockets
         elif method == "logind":

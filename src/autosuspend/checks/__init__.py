@@ -3,7 +3,7 @@
 import abc
 import configparser
 import datetime
-from typing import Any, Mapping, Optional
+from typing import Any, Mapping, Optional, Type, TypeVar
 
 from autosuspend.util import logger_by_class_instance
 
@@ -33,6 +33,9 @@ class SevereCheckError(RuntimeError):
     pass
 
 
+CheckType = TypeVar("CheckType", bound="Check")
+
+
 class Check(abc.ABC):
     """Base class for all kinds of checks.
 
@@ -45,7 +48,9 @@ class Check(abc.ABC):
 
     @classmethod
     @abc.abstractmethod
-    def create(cls, name: str, config: configparser.SectionProxy) -> "Check":
+    def create(
+        cls: Type[CheckType], name: str, config: configparser.SectionProxy
+    ) -> CheckType:
         """Create a new check instance from the provided configuration.
 
         Args:

@@ -20,13 +20,18 @@ from typing import (
     Optional,
     Sequence,
     Type,
-    TypeVar,
     Union,
 )
 
 import portalocker
 
-from .checks import Activity, Check, ConfigurationError, TemporaryCheckError, Wakeup
+from .checks import (
+    Activity,
+    CheckType,
+    ConfigurationError,
+    TemporaryCheckError,
+    Wakeup,
+)
 from .util import logger_by_class_instance
 
 
@@ -364,9 +369,6 @@ def loop(
         time.sleep(interval)
 
 
-CheckType = TypeVar("CheckType", bound=Check)
-
-
 def config_section_string(section: configparser.SectionProxy) -> str:
     data = {k: v if k != "password" else "<redacted>" for k, v in section.items()}
     return f"{data}"
@@ -395,7 +397,7 @@ def set_up_checks(
         error_none:
             Raise an error if nothing was configured?
     """
-    configured_checks = []  # type: List[CheckType]
+    configured_checks = []
 
     check_section = [s for s in config.sections() if s.startswith("{}.".format(prefix))]
     for section in check_section:

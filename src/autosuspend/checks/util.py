@@ -5,7 +5,7 @@ from . import Check, ConfigurationError, SevereCheckError, TemporaryCheckError
 
 
 if TYPE_CHECKING:
-    import requests.model
+    import requests.models
 
 
 class CommandMixin:
@@ -57,7 +57,7 @@ class NetworkMixin:
         self._password = password
         self._accept = accept
 
-    def request(self) -> "requests.model.Response":
+    def request(self) -> "requests.models.Response":
         import requests
         from requests.auth import HTTPBasicAuth, HTTPDigestAuth
         import requests.exceptions

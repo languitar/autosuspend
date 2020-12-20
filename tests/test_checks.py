@@ -7,7 +7,9 @@ from autosuspend.checks import Check
 class TestCheck:
     class DummyCheck(Check):
         @classmethod
-        def create(cls, name: str, config: configparser.SectionProxy) -> Check:
+        def create(
+            cls, name: str, config: configparser.SectionProxy
+        ) -> "TestCheck.DummyCheck":
             raise NotImplementedError()
 
         def check(self) -> Optional[str]:
