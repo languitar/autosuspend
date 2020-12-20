@@ -1,15 +1,18 @@
 from pathlib import Path
-from typing import Callable, Tuple
+from typing import Any, Callable, Iterable, Tuple
 
+from dbus import Bus
+from dbus.proxies import ProxyObject
 import dbusmock
 import pytest
+from pytest_httpserver import HTTPServer
 from werkzeug.wrappers import Request, Response
 
 from autosuspend.util import systemd as util_systemd
 
 
 @pytest.fixture()
-def serve_file(httpserver) -> Callable[[Path], str]:
+def serve_file(httpserver: HTTPServer) -> Callable[[Path], str]:
     """
     Serve a file via HTTP.
 
@@ -27,7 +30,7 @@ def serve_file(httpserver) -> Callable[[Path], str]:
 
 
 @pytest.fixture()
-def serve_protected(httpserver) -> Callable[[Path], Tuple[str, str, str]]:
+def serve_protected(httpserver: HTTPServer) -> Callable[[Path], Tuple[str, str, str]]:
     """
     Serve a file behind basic authentication.
 
@@ -63,7 +66,7 @@ def serve_protected(httpserver) -> Callable[[Path], Tuple[str, str, str]]:
 
 
 @pytest.fixture()
-def logind(monkeypatch):
+def logind(monkeypatch: Any) -> Iterable[ProxyObject]:
     pytest.importorskip("dbus")
     pytest.importorskip("gi")
 
@@ -72,7 +75,7 @@ def logind(monkeypatch):
 
     mock, obj = test_case.spawn_server_template("logind")
 
-    def get_bus():
+    def get_bus() -> Bus:
         return test_case.get_dbus(system_bus=True)
 
     monkeypatch.setattr(util_systemd, "_get_bus", get_bus)
@@ -84,7 +87,7 @@ def logind(monkeypatch):
 
 
 @pytest.fixture()
-def logind_dbus_error(monkeypatch):
+def logind_dbus_error(monkeypatch: Any) -> Iterable[ProxyObject]:
     pytest.importorskip("dbus")
     pytest.importorskip("gi")
 
@@ -93,7 +96,7 @@ def logind_dbus_error(monkeypatch):
 
     mock, obj = test_case.spawn_server_template("logind")
 
-    def get_bus():
+    def get_bus() -> Bus:
         import dbus
 
         raise dbus.exceptions.ValidationException("Test")

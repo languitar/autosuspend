@@ -3,21 +3,30 @@ import configparser
 import json
 import os
 import os.path
+from pathlib import Path
 import pwd
 import re
 import socket
 import subprocess
 import sys
-from typing import Any
+from typing import Any, Callable, Dict, Tuple
 
+from dbus.proxies import ProxyObject
 from freezegun import freeze_time
 from jsonpath_ng import parse
 import mpd
 import psutil
 import pytest
+from pytest_httpserver import HTTPServer
+from pytest_mock import MockFixture
 import requests
 
-from autosuspend.checks import ConfigurationError, SevereCheckError, TemporaryCheckError
+from autosuspend.checks import (
+    Check,
+    ConfigurationError,
+    SevereCheckError,
+    TemporaryCheckError,
+)
 from autosuspend.checks.activity import (
     ActiveCalendarEvent,
     ActiveConnection,
@@ -44,28 +53,26 @@ snic = namedtuple("snic", ["family", "address", "netmask", "broadcast", "ptp"])
 
 
 class TestSmb(CheckTest):
-    def create_instance(self, name):
+    def create_instance(self, name: str) -> Check:
         return Smb(name)
 
-    def test_no_connections(self, datadir, monkeypatch) -> None:
-        def return_data(*args, **kwargs):
-            return (datadir / "smbstatus_no_connections").read_bytes()
-
-        monkeypatch.setattr(subprocess, "check_output", return_data)
+    def test_no_connections(self, datadir: Path, mocker: MockFixture) -> None:
+        mocker.patch("subprocess.check_output").return_value = (
+            datadir / "smbstatus_no_connections"
+        ).read_bytes()
 
         assert Smb("foo").check() is None
 
-    def test_with_connections(self, datadir, monkeypatch) -> None:
-        def return_data(*args, **kwargs):
-            return (datadir / "smbstatus_with_connections").read_bytes()
-
-        monkeypatch.setattr(subprocess, "check_output", return_data)
+    def test_with_connections(self, datadir: Path, mocker: MockFixture) -> None:
+        mocker.patch("subprocess.check_output").return_value = (
+            datadir / "smbstatus_with_connections"
+        ).read_bytes()
 
         res = Smb("foo").check()
         assert res is not None
         assert len(res.splitlines()) == 3
 
-    def test_call_error(self, mocker) -> None:
+    def test_call_error(self, mocker: MockFixture) -> None:
         mocker.patch(
             "subprocess.check_output",
             side_effect=subprocess.CalledProcessError(2, "cmd"),
@@ -79,18 +86,17 @@ class TestSmb(CheckTest):
 
 
 class TestUsers(CheckTest):
-    def create_instance(self, name):
+    def create_instance(self, name: str) -> Check:
         return Users(name, re.compile(".*"), re.compile(".*"), re.compile(".*"))
 
     @staticmethod
-    def create_suser(name, terminal, host, started, pid):
+    def create_suser(
+        name: str, terminal: str, host: str, started: float, pid: int
+    ) -> psutil._common.suser:
         return psutil._common.suser(name, terminal, host, started, pid)
 
-    def test_no_users(self, monkeypatch) -> None:
-        def data():
-            return []
-
-        monkeypatch.setattr(psutil, "users", data)
+    def test_no_users(self, mocker: MockFixture) -> None:
+        mocker.patch("psutil.users").return_value = []
 
         assert (
             Users("users", re.compile(".*"), re.compile(".*"), re.compile(".*")).check()
@@ -100,22 +106,20 @@ class TestUsers(CheckTest):
     def test_smoke(self) -> None:
         Users("users", re.compile(".*"), re.compile(".*"), re.compile(".*")).check()
 
-    def test_matching_users(self, monkeypatch) -> None:
-        def data():
-            return [self.create_suser("foo", "pts1", "host", 12345, 12345)]
-
-        monkeypatch.setattr(psutil, "users", data)
+    def test_matching_users(self, mocker: MockFixture) -> None:
+        mocker.patch("psutil.users").return_value = [
+            self.create_suser("foo", "pts1", "host", 12345, 12345)
+        ]
 
         assert (
             Users("users", re.compile(".*"), re.compile(".*"), re.compile(".*")).check()
             is not None
         )
 
-    def test_non_matching_user(self, monkeypatch) -> None:
-        def data():
-            return [self.create_suser("foo", "pts1", "host", 12345, 12345)]
-
-        monkeypatch.setattr(psutil, "users", data)
+    def test_non_matching_user(self, mocker: MockFixture) -> None:
+        mocker.patch("psutil.users").return_value = [
+            self.create_suser("foo", "pts1", "host", 12345, 12345)
+        ]
 
         assert (
             Users(
@@ -157,41 +161,38 @@ class TestUsers(CheckTest):
 
 
 class TestProcesses(CheckTest):
-    def create_instance(self, name):
+    def create_instance(self, name: str) -> Check:
         return Processes(name, ["foo"])
 
     class StubProcess:
-        def __init__(self, name):
+        def __init__(self, name: str) -> None:
             self._name = name
 
-        def name(self):
+        def name(self) -> str:
             return self._name
 
     class RaisingProcess:
-        def name(self):
+        def name(self) -> str:
             raise psutil.NoSuchProcess(42)
 
-    def test_matching_process(self, monkeypatch) -> None:
-        def data():
-            return [self.StubProcess("blubb"), self.StubProcess("nonmatching")]
-
-        monkeypatch.setattr(psutil, "process_iter", data)
+    def test_matching_process(self, mocker: MockFixture) -> None:
+        mocker.patch("psutil.process_iter").return_value = [
+            self.StubProcess("blubb"),
+            self.StubProcess("nonmatching"),
+        ]
 
         assert Processes("foo", ["dummy", "blubb", "other"]).check() is not None
 
-    def test_ignore_no_such_process(self, monkeypatch) -> None:
-        def data():
-            return [self.RaisingProcess()]
-
-        monkeypatch.setattr(psutil, "process_iter", data)
+    def test_ignore_no_such_process(self, mocker: MockFixture) -> None:
+        mocker.patch("psutil.process_iter").return_value = [self.RaisingProcess()]
 
         Processes("foo", ["dummy"]).check()
 
-    def test_non_matching_process(self, monkeypatch) -> None:
-        def data():
-            return [self.StubProcess("asdfasdf"), self.StubProcess("nonmatching")]
-
-        monkeypatch.setattr(psutil, "process_iter", data)
+    def test_non_matching_process(self, mocker: MockFixture) -> None:
+        mocker.patch("psutil.process_iter").return_value = [
+            self.StubProcess("asdfasdf"),
+            self.StubProcess("nonmatching"),
+        ]
 
         assert Processes("foo", ["dummy", "blubb", "other"]).check() is None
 
@@ -217,10 +218,10 @@ class TestProcesses(CheckTest):
 
 
 class TestActiveCalendarEvent(CheckTest):
-    def create_instance(self, name):
+    def create_instance(self, name: str) -> Check:
         return ActiveCalendarEvent(name, url="asdfasdf", timeout=5)
 
-    def test_smoke(self, datadir, serve_file) -> None:
+    def test_smoke(self, datadir: Path, serve_file: Callable[[Path], str]) -> None:
         result = ActiveCalendarEvent(
             "test",
             url=serve_file(datadir / "long-event.ics"),
@@ -229,7 +230,9 @@ class TestActiveCalendarEvent(CheckTest):
         assert result is not None
         assert "long-event" in result
 
-    def test_exact_range(self, datadir, serve_file) -> None:
+    def test_exact_range(
+        self, datadir: Path, serve_file: Callable[[Path], str]
+    ) -> None:
         with freeze_time("2016-06-05 13:00:00", tz_offset=-2):
             result = ActiveCalendarEvent(
                 "test",
@@ -239,7 +242,9 @@ class TestActiveCalendarEvent(CheckTest):
             assert result is not None
             assert "long-event" in result
 
-    def test_before_exact_range(self, datadir, serve_file) -> None:
+    def test_before_exact_range(
+        self, datadir: Path, serve_file: Callable[[Path], str]
+    ) -> None:
         with freeze_time("2016-06-05 12:58:00", tz_offset=-2):
             result = ActiveCalendarEvent(
                 "test",
@@ -248,7 +253,7 @@ class TestActiveCalendarEvent(CheckTest):
             ).check()
             assert result is None
 
-    def test_no_event(self, datadir, serve_file) -> None:
+    def test_no_event(self, datadir: Path, serve_file: Callable[[Path], str]) -> None:
         assert (
             ActiveCalendarEvent(
                 "test",
@@ -288,7 +293,7 @@ class TestActiveConnection(CheckTest):
     # https://superuser.com/a/99753/227177
     MY_ADDRESS_IPV6_SCOPED = "fe80::5193:518c:5c69:cccc%eth0"
 
-    def create_instance(self, name):
+    def create_instance(self, name: str) -> Check:
         return ActiveConnection(name, [10])
 
     def test_smoke(self) -> None:
@@ -329,33 +334,29 @@ class TestActiveConnection(CheckTest):
             ),
         ],
     )
-    def test_connected(self, monkeypatch, connection) -> None:
-        def addresses():
-            return {
-                "dummy": [
-                    snic(socket.AF_INET, self.MY_ADDRESS, "255.255.255.0", None, None),
-                    snic(
-                        socket.AF_INET6,
-                        self.MY_ADDRESS_IPV6,
-                        "ffff:ffff:ffff:ffff::",
-                        None,
-                        None,
-                    ),
-                    snic(
-                        socket.AF_INET6,
-                        self.MY_ADDRESS_IPV6_SCOPED,
-                        "ffff:ffff:ffff:ffff::",
-                        None,
-                        None,
-                    ),
-                ],
-            }
-
-        def connections():
-            return [connection]
-
-        monkeypatch.setattr(psutil, "net_if_addrs", addresses)
-        monkeypatch.setattr(psutil, "net_connections", connections)
+    def test_connected(
+        self, mocker: MockFixture, connection: psutil._common.sconn
+    ) -> None:
+        mocker.patch("psutil.net_if_addrs").return_value = {
+            "dummy": [
+                snic(socket.AF_INET, self.MY_ADDRESS, "255.255.255.0", None, None),
+                snic(
+                    socket.AF_INET6,
+                    self.MY_ADDRESS_IPV6,
+                    "ffff:ffff:ffff:ffff::",
+                    None,
+                    None,
+                ),
+                snic(
+                    socket.AF_INET6,
+                    self.MY_ADDRESS_IPV6_SCOPED,
+                    "ffff:ffff:ffff:ffff::",
+                    None,
+                    None,
+                ),
+            ],
+        }
+        mocker.patch("psutil.net_connections").return_value = [connection]
 
         assert ActiveConnection("foo", [10, self.MY_PORT, 30]).check() is not None
 
@@ -404,19 +405,15 @@ class TestActiveConnection(CheckTest):
             ),
         ],
     )
-    def test_not_connected(self, monkeypatch, connection) -> None:
-        def addresses():
-            return {
-                "dummy": [
-                    snic(socket.AF_INET, self.MY_ADDRESS, "255.255.255.0", None, None)
-                ]
-            }
-
-        def connections():
-            return [connection]
-
-        monkeypatch.setattr(psutil, "net_if_addrs", addresses)
-        monkeypatch.setattr(psutil, "net_connections", connections)
+    def test_not_connected(
+        self, mocker: MockFixture, connection: psutil._common.sconn
+    ) -> None:
+        mocker.patch("psutil.net_if_addrs").return_value = {
+            "dummy": [
+                snic(socket.AF_INET, self.MY_ADDRESS, "255.255.255.0", None, None)
+            ]
+        }
+        mocker.patch("psutil.net_connections").return_value = [connection]
 
         assert ActiveConnection("foo", [10, self.MY_PORT, 30]).check() is None
 
@@ -449,28 +446,18 @@ class TestActiveConnection(CheckTest):
 
 
 class TestLoad(CheckTest):
-    def create_instance(self, name):
+    def create_instance(self, name: str) -> Check:
         return Load(name, 0.4)
 
-    def test_below(self, monkeypatch) -> None:
-
+    def test_below(self, mocker: Any) -> None:
         threshold = 1.34
-
-        def data():
-            return [0, threshold - 0.2, 0]
-
-        monkeypatch.setattr(os, "getloadavg", data)
+        mocker.patch("os.getloadavg").return_value = [0, threshold - 0.2, 0]
 
         assert Load("foo", threshold).check() is None
 
-    def test_above(self, monkeypatch) -> None:
-
+    def test_above(self, mocker: MockFixture) -> None:
         threshold = 1.34
-
-        def data():
-            return [0, threshold + 0.2, 0]
-
-        monkeypatch.setattr(os, "getloadavg", data)
+        mocker.patch("os.getloadavg").return_value = [0, threshold + 0.2, 0]
 
         assert Load("foo", threshold).check() is not None
 
@@ -497,32 +484,33 @@ class TestLoad(CheckTest):
 
 
 class TestMpd(CheckTest):
-    def create_instance(self, name):
-        return Mpd(name, None, None, None)
+    def create_instance(self, name: str) -> Check:
+        # concrete values are never used in the tests
+        return Mpd(name, None, None, None)  # type: ignore
 
-    def test_playing(self, monkeypatch) -> None:
+    def test_playing(self, monkeypatch: Any) -> None:
 
         check = Mpd("test", None, None, None)  # type: ignore
 
-        def get_state():
+        def get_state() -> Dict:
             return {"state": "play"}
 
         monkeypatch.setattr(check, "_get_state", get_state)
 
         assert check.check() is not None
 
-    def test_not_playing(self, monkeypatch) -> None:
+    def test_not_playing(self, monkeypatch: Any) -> None:
 
         check = Mpd("test", None, None, None)  # type: ignore
 
-        def get_state():
+        def get_state() -> Dict:
             return {"state": "pause"}
 
         monkeypatch.setattr(check, "_get_state", get_state)
 
         assert check.check() is None
 
-    def test_correct_mpd_interaction(self, mocker) -> None:
+    def test_correct_mpd_interaction(self, mocker: MockFixture) -> None:
         import mpd
 
         mock_instance = mocker.MagicMock(spec=mpd.MPDClient)
@@ -545,13 +533,14 @@ class TestMpd(CheckTest):
         mock_instance.disconnect.assert_called_once_with()
 
     @pytest.mark.parametrize("exception_type", [ConnectionError, mpd.ConnectionError])
-    def test_handle_connection_errors(self, exception_type) -> None:
+    def test_handle_connection_errors(self, exception_type: type) -> None:
 
         check = Mpd("test", None, None, None)  # type: ignore
 
-        def _get_state():
+        def _get_state() -> Dict:
             raise exception_type()
 
+        # https://github.com/python/mypy/issues/2427
         check._get_state = _get_state  # type: ignore
 
         with pytest.raises(TemporaryCheckError):
@@ -604,27 +593,27 @@ class TestMpd(CheckTest):
 
 
 class TestNetworkBandwidth(CheckTest):
-    def create_instance(self, name):
+    def create_instance(self, name: str) -> Check:
         return NetworkBandwidth(name, psutil.net_if_addrs().keys(), 0, 0)
 
     @staticmethod
     @pytest.fixture()
-    def serve_data_url(httpserver) -> str:
+    def serve_data_url(httpserver: HTTPServer) -> str:
         httpserver.expect_request("").respond_with_json({"foo": "bar"})
         return httpserver.url_for("")
 
-    def test_smoke(self, serve_data_url) -> None:
+    def test_smoke(self, serve_data_url: str) -> None:
         check = NetworkBandwidth("name", psutil.net_if_addrs().keys(), 0, 0)
         # make some traffic
         requests.get(serve_data_url)
         assert check.check() is not None
 
     @pytest.fixture()
-    def _mock_interfaces(self, mocker):
+    def _mock_interfaces(self, mocker: MockFixture) -> None:
         mock = mocker.patch("psutil.net_if_addrs")
         mock.return_value = {"foo": None, "bar": None, "baz": None}
 
-    def test_create(self, _mock_interfaces) -> None:
+    def test_create(self, _mock_interfaces: None) -> None:
         parser = configparser.ConfigParser()
         parser.read_string(
             """
@@ -639,7 +628,7 @@ threshold_receive = 300
         assert check._threshold_send == 200
         assert check._threshold_receive == 300
 
-    def test_create_default(self, _mock_interfaces) -> None:
+    def test_create_default(self, _mock_interfaces: None) -> None:
         parser = configparser.ConfigParser()
         parser.read_string(
             """
@@ -699,7 +688,9 @@ threshold_receive = xxx
             ),
         ],
     )
-    def test_create_error(self, _mock_interfaces, config, error_match) -> None:
+    def test_create_error(
+        self, _mock_interfaces: None, config: str, error_match: str
+    ) -> None:
         parser = configparser.ConfigParser()
         parser.read_string(config)
         with pytest.raises(ConfigurationError, match=error_match):
@@ -710,7 +701,11 @@ threshold_receive = xxx
         [(sys.float_info.max, 0, "receive"), (0, sys.float_info.max, "sending")],
     )
     def test_with_activity(
-        self, send_threshold, receive_threshold, match, serve_data_url
+        self,
+        send_threshold: float,
+        receive_threshold: float,
+        match: str,
+        serve_data_url: str,
     ) -> None:
         check = NetworkBandwidth(
             "name", psutil.net_if_addrs().keys(), send_threshold, receive_threshold
@@ -721,7 +716,7 @@ threshold_receive = xxx
         assert res is not None
         assert match in res
 
-    def test_no_activity(self, serve_data_url) -> None:
+    def test_no_activity(self, serve_data_url: str) -> None:
         check = NetworkBandwidth(
             "name", psutil.net_if_addrs().keys(), sys.float_info.max, sys.float_info.max
         )
@@ -729,7 +724,7 @@ threshold_receive = xxx
         requests.get(serve_data_url)
         assert check.check() is None
 
-    def test_internal_state_updated(self, serve_data_url) -> None:
+    def test_internal_state_updated(self, serve_data_url: str) -> None:
         check = NetworkBandwidth(
             "name", psutil.net_if_addrs().keys(), sys.float_info.max, sys.float_info.max
         )
@@ -739,7 +734,7 @@ threshold_receive = xxx
         check.check()
         assert old_state != check._previous_values
 
-    def test_delta_calculation_send(self, mocker) -> None:
+    def test_delta_calculation_send(self, mocker: MockFixture) -> None:
         first = mocker.MagicMock()
         type(first).bytes_sent = mocker.PropertyMock(return_value=1000)
         type(first).bytes_recv = mocker.PropertyMock(return_value=800)
@@ -762,7 +757,7 @@ threshold_receive = xxx
             assert res is not None
             assert " 222.0 " in res
 
-    def test_delta_calculation_receive(self, mocker) -> None:
+    def test_delta_calculation_receive(self, mocker: MockFixture) -> None:
         first = mocker.MagicMock()
         type(first).bytes_sent = mocker.PropertyMock(return_value=1000)
         type(first).bytes_recv = mocker.PropertyMock(return_value=800)
@@ -787,10 +782,10 @@ threshold_receive = xxx
 
 
 class TestKodi(CheckTest):
-    def create_instance(self, name):
+    def create_instance(self, name: str) -> Check:
         return Kodi(name, url="url", timeout=10)
 
-    def test_playing(self, mocker) -> None:
+    def test_playing(self, mocker: MockFixture) -> None:
         mock_reply = mocker.MagicMock()
         mock_reply.json.return_value = {
             "id": 1,
@@ -803,7 +798,7 @@ class TestKodi(CheckTest):
 
         mock_reply.json.assert_called_once_with()
 
-    def test_not_playing(self, mocker) -> None:
+    def test_not_playing(self, mocker: MockFixture) -> None:
         mock_reply = mocker.MagicMock()
         mock_reply.json.return_value = {"id": 1, "jsonrpc": "2.0", "result": []}
         mocker.patch("requests.Session.get", return_value=mock_reply)
@@ -812,7 +807,7 @@ class TestKodi(CheckTest):
 
         mock_reply.json.assert_called_once_with()
 
-    def test_playing_suspend_while_paused(self, mocker) -> None:
+    def test_playing_suspend_while_paused(self, mocker: MockFixture) -> None:
         mock_reply = mocker.MagicMock()
         mock_reply.json.return_value = {
             "id": 1,
@@ -828,7 +823,7 @@ class TestKodi(CheckTest):
 
         mock_reply.json.assert_called_once_with()
 
-    def test_not_playing_suspend_while_paused(self, mocker) -> None:
+    def test_not_playing_suspend_while_paused(self, mocker: MockFixture) -> None:
         mock_reply = mocker.MagicMock()
         mock_reply.json.return_value = {
             "id": 1,
@@ -844,7 +839,7 @@ class TestKodi(CheckTest):
 
         mock_reply.json.assert_called_once_with()
 
-    def test_assertion_no_result(self, mocker) -> None:
+    def test_assertion_no_result(self, mocker: MockFixture) -> None:
         mock_reply = mocker.MagicMock()
         mock_reply.json.return_value = {"id": 1, "jsonrpc": "2.0"}
         mocker.patch("requests.Session.get", return_value=mock_reply)
@@ -852,7 +847,7 @@ class TestKodi(CheckTest):
         with pytest.raises(TemporaryCheckError):
             Kodi("foo", url="url", timeout=10).check()
 
-    def test_request_error(self, mocker) -> None:
+    def test_request_error(self, mocker: MockFixture) -> None:
         mocker.patch(
             "requests.Session.get", side_effect=requests.exceptions.RequestException()
         )
@@ -860,7 +855,7 @@ class TestKodi(CheckTest):
         with pytest.raises(TemporaryCheckError):
             Kodi("foo", url="url", timeout=10).check()
 
-    def test_json_error(self, mocker) -> None:
+    def test_json_error(self, mocker: MockFixture) -> None:
         mock_reply = mocker.MagicMock()
         mock_reply.json.side_effect = json.JSONDecodeError("test", "test", 42)
         mocker.patch("requests.Session.get", return_value=mock_reply)
@@ -922,7 +917,7 @@ class TestKodi(CheckTest):
 
 
 class TestKodiIdleTime(CheckTest):
-    def create_instance(self, name):
+    def create_instance(self, name: str) -> Check:
         return KodiIdleTime(name, url="url", timeout=10, idle_time=10)
 
     def test_create(self) -> None:
@@ -976,7 +971,7 @@ class TestKodiIdleTime(CheckTest):
         with pytest.raises(ConfigurationError):
             KodiIdleTime.create("name", parser["section"])
 
-    def test_no_result(self, mocker) -> None:
+    def test_no_result(self, mocker: MockFixture) -> None:
         mock_reply = mocker.MagicMock()
         mock_reply.json.return_value = {"id": 1, "jsonrpc": "2.0"}
         mocker.patch("requests.Session.get", return_value=mock_reply)
@@ -984,7 +979,7 @@ class TestKodiIdleTime(CheckTest):
         with pytest.raises(TemporaryCheckError):
             KodiIdleTime("foo", url="url", timeout=10, idle_time=42).check()
 
-    def test_result_is_list(self, mocker) -> None:
+    def test_result_is_list(self, mocker: MockFixture) -> None:
         mock_reply = mocker.MagicMock()
         mock_reply.json.return_value = {"id": 1, "jsonrpc": "2.0", "result": []}
         mocker.patch("requests.Session.get", return_value=mock_reply)
@@ -992,7 +987,7 @@ class TestKodiIdleTime(CheckTest):
         with pytest.raises(TemporaryCheckError):
             KodiIdleTime("foo", url="url", timeout=10, idle_time=42).check()
 
-    def test_result_no_entry(self, mocker) -> None:
+    def test_result_no_entry(self, mocker: MockFixture) -> None:
         mock_reply = mocker.MagicMock()
         mock_reply.json.return_value = {"id": 1, "jsonrpc": "2.0", "result": {}}
         mocker.patch("requests.Session.get", return_value=mock_reply)
@@ -1000,7 +995,7 @@ class TestKodiIdleTime(CheckTest):
         with pytest.raises(TemporaryCheckError):
             KodiIdleTime("foo", url="url", timeout=10, idle_time=42).check()
 
-    def test_result_wrong_entry(self, mocker) -> None:
+    def test_result_wrong_entry(self, mocker: MockFixture) -> None:
         mock_reply = mocker.MagicMock()
         mock_reply.json.return_value = {
             "id": 1,
@@ -1012,7 +1007,7 @@ class TestKodiIdleTime(CheckTest):
         with pytest.raises(TemporaryCheckError):
             KodiIdleTime("foo", url="url", timeout=10, idle_time=42).check()
 
-    def test_active(self, mocker) -> None:
+    def test_active(self, mocker: MockFixture) -> None:
         mock_reply = mocker.MagicMock()
         mock_reply.json.return_value = {
             "id": 1,
@@ -1025,7 +1020,7 @@ class TestKodiIdleTime(CheckTest):
             KodiIdleTime("foo", url="url", timeout=10, idle_time=42).check() is not None
         )
 
-    def test_inactive(self, mocker) -> None:
+    def test_inactive(self, mocker: MockFixture) -> None:
         mock_reply = mocker.MagicMock()
         mock_reply.json.return_value = {
             "id": 1,
@@ -1036,7 +1031,7 @@ class TestKodiIdleTime(CheckTest):
 
         assert KodiIdleTime("foo", url="url", timeout=10, idle_time=42).check() is None
 
-    def test_request_error(self, mocker) -> None:
+    def test_request_error(self, mocker: MockFixture) -> None:
         mocker.patch(
             "requests.Session.get", side_effect=requests.exceptions.RequestException()
         )
@@ -1046,10 +1041,10 @@ class TestKodiIdleTime(CheckTest):
 
 
 class TestPing(CheckTest):
-    def create_instance(self, name):
+    def create_instance(self, name: str) -> Check:
         return Ping(name, "8.8.8.8")
 
-    def test_smoke(self, mocker) -> None:
+    def test_smoke(self, mocker: MockFixture) -> None:
         mock = mocker.patch("subprocess.call")
         mock.return_value = 1
 
@@ -1061,7 +1056,7 @@ class TestPing(CheckTest):
         for (args, _), host in zip(mock.call_args_list, hosts):
             assert args[0][-1] == host
 
-    def test_matching(self, mocker) -> None:
+    def test_matching(self, mocker: MockFixture) -> None:
         mock = mocker.patch("subprocess.call")
         mock.return_value = 0
         assert Ping("name", ["foo"]).check() is not None
@@ -1085,10 +1080,11 @@ class TestPing(CheckTest):
 
 
 class TestXIdleTime(CheckTest):
-    def create_instance(self, name):
-        return XIdleTime(name, 10, "sockets", None, None)
+    def create_instance(self, name: str) -> Check:
+        # concrete values are never used in the test
+        return XIdleTime(name, 10, "sockets", None, None)  # type: ignore
 
-    def test_smoke(self, mocker) -> None:
+    def test_smoke(self, mocker: MockFixture) -> None:
         check = XIdleTime("name", 100, "logind", re.compile(r"a^"), re.compile(r"a^"))
         mocker.patch.object(check, "_provide_sessions").return_value = [
             ("42", "auser"),
@@ -1106,7 +1102,7 @@ class TestXIdleTime(CheckTest):
         assert kwargs["env"]["DISPLAY"] == ":42"
         assert "auser" in kwargs["env"]["XAUTHORITY"]
 
-    def test_no_activity(self, mocker) -> None:
+    def test_no_activity(self, mocker: MockFixture) -> None:
         check = XIdleTime("name", 100, "logind", re.compile(r"a^"), re.compile(r"a^"))
         mocker.patch.object(check, "_provide_sessions").return_value = [
             ("42", "auser"),
@@ -1116,7 +1112,7 @@ class TestXIdleTime(CheckTest):
 
         assert check.check() is None
 
-    def test_multiple_sessions(self, mocker) -> None:
+    def test_multiple_sessions(self, mocker: MockFixture) -> None:
         check = XIdleTime("name", 100, "logind", re.compile(r"a^"), re.compile(r"a^"))
         mocker.patch.object(check, "_provide_sessions").return_value = [
             ("42", "auser"),
@@ -1140,7 +1136,7 @@ class TestXIdleTime(CheckTest):
         assert kwargs["env"]["DISPLAY"] == ":17"
         assert "otheruser" in kwargs["env"]["XAUTHORITY"]
 
-    def test_handle_call_error(self, mocker) -> None:
+    def test_handle_call_error(self, mocker: MockFixture) -> None:
         check = XIdleTime("name", 100, "logind", re.compile(r"a^"), re.compile(r"a^"))
         mocker.patch.object(check, "_provide_sessions").return_value = [
             ("42", "auser"),
@@ -1223,7 +1219,7 @@ class TestXIdleTime(CheckTest):
         with pytest.raises(ConfigurationError):
             XIdleTime.create("name", parser["section"])
 
-    def test_list_sessions_logind(self, mocker) -> None:
+    def test_list_sessions_logind(self, mocker: MockFixture) -> None:
         mock = mocker.patch("autosuspend.checks.activity.list_logind_sessions")
         mock.return_value = [
             ("c1", {"Name": "foo"}),
@@ -1237,7 +1233,7 @@ class TestXIdleTime(CheckTest):
         check = XIdleTime.create("name", parser["section"])
         assert check._list_sessions_logind() == [(3, "hello")]
 
-    def test_list_sessions_logind_dbus_error(self, mocker) -> None:
+    def test_list_sessions_logind_dbus_error(self, mocker: MockFixture) -> None:
         mock = mocker.patch("autosuspend.checks.activity.list_logind_sessions")
         mock.side_effect = LogindDBusException()
 
@@ -1247,7 +1243,7 @@ class TestXIdleTime(CheckTest):
         with pytest.raises(TemporaryCheckError):
             check._list_sessions_logind()
 
-    def test_list_sessions_socket(self, mocker) -> None:
+    def test_list_sessions_socket(self, mocker: MockFixture) -> None:
         mock_glob = mocker.patch("glob.glob")
         mock_glob.return_value = [
             "/tmp/.X11-unix/X0",
@@ -1273,10 +1269,10 @@ class TestXIdleTime(CheckTest):
 
 
 class TestExternalCommand(CheckTest):
-    def create_instance(self, name):
+    def create_instance(self, name: str) -> Check:
         return ExternalCommand(name, "asdfasdf")
 
-    def test_check(self, mocker) -> None:
+    def test_check(self, mocker: MockFixture) -> None:
         mock = mocker.patch("subprocess.check_call")
         parser = configparser.ConfigParser()
         parser.read_string(
@@ -1290,7 +1286,7 @@ class TestExternalCommand(CheckTest):
         )
         mock.assert_called_once_with("foo bar", shell=True)
 
-    def test_check_no_match(self, mocker) -> None:
+    def test_check_no_match(self, mocker: MockFixture) -> None:
         mock = mocker.patch("subprocess.check_call")
         mock.side_effect = subprocess.CalledProcessError(2, "foo bar")
         parser = configparser.ConfigParser()
@@ -1307,7 +1303,7 @@ class TestExternalCommand(CheckTest):
 
 
 class TestXPath(CheckTest):
-    def create_instance(self, name):
+    def create_instance(self, name: str) -> Check:
         return XPath(
             name=name,
             url="url",
@@ -1317,7 +1313,7 @@ class TestXPath(CheckTest):
             xpath="/b",
         )
 
-    def test_matching(self, mocker) -> None:
+    def test_matching(self, mocker: MockFixture) -> None:
         mock_reply = mocker.MagicMock()
         content_property = mocker.PropertyMock()
         type(mock_reply).content = content_property
@@ -1330,7 +1326,7 @@ class TestXPath(CheckTest):
         mock_method.assert_called_once_with(url, timeout=5, headers=None)
         content_property.assert_called_once_with()
 
-    def test_not_matching(self, mocker) -> None:
+    def test_not_matching(self, mocker: MockFixture) -> None:
         mock_reply = mocker.MagicMock()
         content_property = mocker.PropertyMock()
         type(mock_reply).content = content_property
@@ -1358,7 +1354,9 @@ class TestXPath(CheckTest):
         assert check._password == "pass"
         assert check._timeout == 42
 
-    def test_network_errors_are_passed(self, datadir, serve_protected) -> None:
+    def test_network_errors_are_passed(
+        self, datadir: Path, serve_protected: Callable[[Path], Tuple[str, str, str]]
+    ) -> None:
         with pytest.raises(TemporaryCheckError):
             XPath(
                 name="name",
@@ -1371,22 +1369,22 @@ class TestXPath(CheckTest):
 
 
 class TestLogindSessionsIdle(CheckTest):
-    def create_instance(self, name):
+    def create_instance(self, name: str) -> Check:
         return LogindSessionsIdle(name, ["tty", "x11", "wayland"], ["active", "online"])
 
-    def test_active(self, logind) -> None:
+    def test_active(self, logind: ProxyObject) -> None:
         logind.AddSession("c1", "seat0", 1042, "auser", True)
 
         check = LogindSessionsIdle("test", ["test"], ["active", "online"])
         check.check() is not None
 
-    def test_inactive(self, logind) -> None:
+    def test_inactive(self, logind: ProxyObject) -> None:
         logind.AddSession("c1", "seat0", 1042, "auser", False)
 
         check = LogindSessionsIdle("test", ["test"], ["active", "online"])
         check.check() is None
 
-    def test_ignore_unknow_type(self, logind) -> None:
+    def test_ignore_unknow_type(self, logind: ProxyObject) -> None:
         logind.AddSession("c1", "seat0", 1042, "auser", True)
 
         check = LogindSessionsIdle("test", ["not_test"], ["active", "online"])
@@ -1421,7 +1419,7 @@ class TestLogindSessionsIdle(CheckTest):
         check = LogindSessionsIdle.create("name", parser["section"])
         assert check._states == ["test", "bla", "foo"]
 
-    def test_dbus_error(self, logind_dbus_error) -> None:
+    def test_dbus_error(self, logind_dbus_error: Any) -> None:
         check = LogindSessionsIdle("test", ["test"], ["active", "online"])
 
         with pytest.raises(TemporaryCheckError):
@@ -1429,7 +1427,7 @@ class TestLogindSessionsIdle(CheckTest):
 
 
 class TestJsonPath(CheckTest):
-    def create_instance(self, name) -> JsonPath:
+    def create_instance(self, name: str) -> JsonPath:
         return JsonPath(
             name=name,
             url="url",
@@ -1441,12 +1439,12 @@ class TestJsonPath(CheckTest):
 
     @staticmethod
     @pytest.fixture()
-    def json_get_mock(mocker) -> Any:
+    def json_get_mock(mocker: Any) -> Any:
         mock_reply = mocker.MagicMock()
         mock_reply.json.return_value = {"a": {"b": 42, "c": "ignore"}}
         return mocker.patch("requests.Session.get", return_value=mock_reply)
 
-    def test_matching(self, json_get_mock) -> None:
+    def test_matching(self, json_get_mock: Any) -> None:
         url = "nourl"
         assert (
             JsonPath("foo", jsonpath=parse("a.b"), url=url, timeout=5).check()
@@ -1458,7 +1456,7 @@ class TestJsonPath(CheckTest):
         )
         json_get_mock().json.assert_called_once()
 
-    def test_not_matching(self, json_get_mock) -> None:
+    def test_not_matching(self, json_get_mock: Any) -> None:
         url = "nourl"
         assert (
             JsonPath("foo", jsonpath=parse("not.there"), url=url, timeout=5).check()
@@ -1470,7 +1468,9 @@ class TestJsonPath(CheckTest):
         )
         json_get_mock().json.assert_called_once()
 
-    def test_network_errors_are_passed(self, datadir, serve_protected) -> None:
+    def test_network_errors_are_passed(
+        self, datadir: Path, serve_protected: Callable[[Path], Tuple[str, str, str]]
+    ) -> None:
         with pytest.raises(TemporaryCheckError):
             JsonPath(
                 name="name",
@@ -1481,7 +1481,7 @@ class TestJsonPath(CheckTest):
                 jsonpath=parse("b"),
             ).check()
 
-    def test_not_json(self, datadir, serve_file) -> None:
+    def test_not_json(self, datadir: Path, serve_file: Callable[[Path], str]) -> None:
         with pytest.raises(TemporaryCheckError):
             JsonPath(
                 name="name",

@@ -597,12 +597,12 @@ def get_notify_and_suspend_func(config: configparser.ConfigParser) -> Callable:
         notify_and_suspend,
         config.get("general", "suspend_cmd"),
         config.get(
-            "general",  # type: ignore # python/typeshed#2093
+            "general",
             "notify_cmd_wakeup",
             fallback=None,
         ),
         config.get(
-            "general",  # type: ignore # python/typeshed#2093
+            "general",
             "notify_cmd_no_wakeup",
             fallback=None,
         ),

@@ -2,9 +2,12 @@ import datetime
 import logging
 import os
 import os.path
+from pathlib import Path
+from typing import Any, Iterable
 
 from freezegun import freeze_time
 import pytest
+from pytest_mock import MockFixture
 
 import autosuspend
 
@@ -21,17 +24,17 @@ LOCK_FILE = "test-woke-up.lock"
 NOTIFY_FILE = "notify"
 
 
-def configure_config(config, datadir, tmpdir):
-    out_path = tmpdir.join(config)
+def configure_config(config: str, datadir: Path, tmp_path: Path) -> Path:
+    out_path = tmp_path / config
     with out_path.open("w") as out_config:
         out_config.write(
-            (datadir / config).read_text().replace("@TMPDIR@", tmpdir.strpath),
+            (datadir / config).read_text().replace("@TMPDIR@", str(tmp_path)),
         )
     return out_path
 
 
 @pytest.fixture()
-def rapid_sleep(mocker):
+def rapid_sleep(mocker: MockFixture) -> Iterable:
     with freeze_time() as frozen_time:
         sleep_mock = mocker.patch("time.sleep")
         sleep_mock.side_effect = lambda seconds: frozen_time.tick(
@@ -40,11 +43,13 @@ def rapid_sleep(mocker):
         yield frozen_time
 
 
-def test_no_suspend_if_matching(datadir, tmpdir, rapid_sleep) -> None:
+def test_no_suspend_if_matching(
+    datadir: Path, tmp_path: Path, rapid_sleep: Any
+) -> None:
     autosuspend.main(
         [
             "-c",
-            configure_config("dont_suspend.conf", datadir, tmpdir).strpath,
+            str(configure_config("dont_suspend.conf", datadir, tmp_path)),
             "-d",
             "daemon",
             "-r",
@@ -52,14 +57,14 @@ def test_no_suspend_if_matching(datadir, tmpdir, rapid_sleep) -> None:
         ]
     )
 
-    assert not tmpdir.join(SUSPENSION_FILE).check()
+    assert not (tmp_path / SUSPENSION_FILE).exists()
 
 
-def test_suspend(tmpdir, datadir, rapid_sleep) -> None:
+def test_suspend(tmp_path: Path, datadir: Path, rapid_sleep: Any) -> None:
     autosuspend.main(
         [
             "-c",
-            configure_config("would_suspend.conf", datadir, tmpdir).strpath,
+            str(configure_config("would_suspend.conf", datadir, tmp_path)),
             "-d",
             "daemon",
             "-r",
@@ -67,20 +72,19 @@ def test_suspend(tmpdir, datadir, rapid_sleep) -> None:
         ]
     )
 
-    assert tmpdir.join(SUSPENSION_FILE).check()
+    assert (tmp_path / SUSPENSION_FILE).exists()
 
 
-def test_wakeup_scheduled(tmpdir, datadir, rapid_sleep) -> None:
+def test_wakeup_scheduled(tmp_path: Path, datadir: Path, rapid_sleep: Any) -> None:
     # configure when to wake up
     now = datetime.datetime.now(datetime.timezone.utc)
     wakeup_at = now + datetime.timedelta(hours=4)
-    with tmpdir.join("wakeup_time").open("w") as out:
-        out.write(str(wakeup_at.timestamp()))
+    (tmp_path / "wakeup_time").write_text(str(wakeup_at.timestamp()))
 
     autosuspend.main(
         [
             "-c",
-            configure_config("would_schedule.conf", datadir, tmpdir).strpath,
+            str(configure_config("would_schedule.conf", datadir, tmp_path)),
             "-d",
             "daemon",
             "-r",
@@ -88,33 +92,33 @@ def test_wakeup_scheduled(tmpdir, datadir, rapid_sleep) -> None:
         ]
     )
 
-    assert tmpdir.join(SUSPENSION_FILE).check()
-    assert tmpdir.join(SCHEDULED_FILE).check()
-    assert int(tmpdir.join(SCHEDULED_FILE).read()) == int(
+    assert (tmp_path / SUSPENSION_FILE).exists()
+    assert (tmp_path / SCHEDULED_FILE).exists()
+    assert int((tmp_path / SCHEDULED_FILE).read_text()) == int(
         round((wakeup_at - datetime.timedelta(seconds=30)).timestamp())
     )
 
 
-def test_woke_up_file_removed(tmpdir, datadir, rapid_sleep) -> None:
-    tmpdir.join(WOKE_UP_FILE).ensure()
+def test_woke_up_file_removed(tmp_path: Path, datadir: Path, rapid_sleep: Any) -> None:
+    (tmp_path / WOKE_UP_FILE).touch()
     autosuspend.main(
         [
             "-c",
-            configure_config("dont_suspend.conf", datadir, tmpdir).strpath,
+            str(configure_config("dont_suspend.conf", datadir, tmp_path)),
             "-d",
             "daemon",
             "-r",
             "5",
         ]
     )
-    assert not tmpdir.join(WOKE_UP_FILE).check()
+    assert not (tmp_path / WOKE_UP_FILE).exists()
 
 
-def test_notify_call(tmpdir, datadir, rapid_sleep) -> None:
+def test_notify_call(tmp_path: Path, datadir: Path, rapid_sleep: Any) -> None:
     autosuspend.main(
         [
             "-c",
-            configure_config("notify.conf", datadir, tmpdir).strpath,
+            str(configure_config("notify.conf", datadir, tmp_path)),
             "-d",
             "daemon",
             "-r",
@@ -122,22 +126,21 @@ def test_notify_call(tmpdir, datadir, rapid_sleep) -> None:
         ]
     )
 
-    assert tmpdir.join(SUSPENSION_FILE).check()
-    assert tmpdir.join(NOTIFY_FILE).check()
-    assert len(tmpdir.join(NOTIFY_FILE).read()) == 0
+    assert (tmp_path / SUSPENSION_FILE).exists()
+    assert (tmp_path / NOTIFY_FILE).exists()
+    assert len((tmp_path / NOTIFY_FILE).read_text()) == 0
 
 
-def test_notify_call_wakeup(tmpdir, datadir, rapid_sleep) -> None:
+def test_notify_call_wakeup(tmp_path: Path, datadir: Path, rapid_sleep: Any) -> None:
     # configure when to wake up
     now = datetime.datetime.now(datetime.timezone.utc)
     wakeup_at = now + datetime.timedelta(hours=4)
-    with tmpdir.join("wakeup_time").open("w") as out:
-        out.write(str(wakeup_at.timestamp()))
+    (tmp_path / "wakeup_time").write_text(str(wakeup_at.timestamp()))
 
     autosuspend.main(
         [
             "-c",
-            configure_config("notify_wakeup.conf", datadir, tmpdir).strpath,
+            str(configure_config("notify_wakeup.conf", datadir, tmp_path)),
             "-d",
             "daemon",
             "-r",
@@ -145,19 +148,19 @@ def test_notify_call_wakeup(tmpdir, datadir, rapid_sleep) -> None:
         ]
     )
 
-    assert tmpdir.join(SUSPENSION_FILE).check()
-    assert tmpdir.join(NOTIFY_FILE).check()
-    assert int(tmpdir.join(NOTIFY_FILE).read()) == int(
+    assert (tmp_path / SUSPENSION_FILE).exists()
+    assert (tmp_path / NOTIFY_FILE).exists()
+    assert int((tmp_path / NOTIFY_FILE).read_text()) == int(
         round((wakeup_at - datetime.timedelta(seconds=10)).timestamp())
     )
 
 
-def test_error_no_checks_configured(tmpdir, datadir) -> None:
+def test_error_no_checks_configured(tmp_path: Path, datadir: Path) -> None:
     with pytest.raises(autosuspend.ConfigurationError):
         autosuspend.main(
             [
                 "-c",
-                configure_config("no_checks.conf", datadir, tmpdir).strpath,
+                str(configure_config("no_checks.conf", datadir, tmp_path)),
                 "-d",
                 "daemon",
                 "-r",
@@ -166,11 +169,13 @@ def test_error_no_checks_configured(tmpdir, datadir) -> None:
         )
 
 
-def test_temporary_errors_logged(tmpdir, datadir, rapid_sleep, caplog) -> None:
+def test_temporary_errors_logged(
+    tmp_path: Path, datadir: Path, rapid_sleep: Path, caplog: Any
+) -> None:
     autosuspend.main(
         [
             "-c",
-            configure_config("temporary_error.conf", datadir, tmpdir).strpath,
+            str(configure_config("temporary_error.conf", datadir, tmp_path)),
             "-d",
             "daemon",
             "-r",
@@ -187,14 +192,14 @@ def test_temporary_errors_logged(tmpdir, datadir, rapid_sleep, caplog) -> None:
     assert len(warnings) > 0
 
 
-def test_loop_defaults(tmpdir, datadir, mocker) -> None:
+def test_loop_defaults(tmp_path: Path, datadir: Path, mocker: MockFixture) -> None:
     loop = mocker.patch("autosuspend.loop")
     loop.side_effect = StopIteration
     with pytest.raises(StopIteration):
         autosuspend.main(
             [
                 "-c",
-                configure_config("minimal.conf", datadir, tmpdir).strpath,
+                str(configure_config("minimal.conf", datadir, tmp_path)),
                 "-d",
                 "daemon",
                 "-r",
@@ -207,36 +212,35 @@ def test_loop_defaults(tmpdir, datadir, mocker) -> None:
     assert kwargs["woke_up_file"] == ("/var/run/autosuspend-just-woke-up")
 
 
-def test_hook_success(tmpdir, datadir):
+def test_hook_success(tmp_path: Path, datadir: Path) -> None:
     autosuspend.main(
         [
             "-c",
-            configure_config("would_suspend.conf", datadir, tmpdir).strpath,
+            str(configure_config("would_suspend.conf", datadir, tmp_path)),
             "-d",
             "presuspend",
         ]
     )
 
-    assert tmpdir.join(WOKE_UP_FILE).check()
+    assert (tmp_path / WOKE_UP_FILE).exists()
 
 
-def test_hook_call_wakeup(tmpdir, datadir):
+def test_hook_call_wakeup(tmp_path: Path, datadir: Path) -> None:
     # configure when to wake up
     now = datetime.datetime.now(datetime.timezone.utc)
     wakeup_at = now + datetime.timedelta(hours=4)
-    with tmpdir.join("wakeup_time").open("w") as out:
-        out.write(str(wakeup_at.timestamp()))
+    (tmp_path / "wakeup_time").write_text(str(wakeup_at.timestamp()))
 
     autosuspend.main(
         [
             "-c",
-            configure_config("would_schedule.conf", datadir, tmpdir).strpath,
+            str(configure_config("would_schedule.conf", datadir, tmp_path)),
             "-d",
             "presuspend",
         ]
     )
 
-    assert tmpdir.join(SCHEDULED_FILE).check()
-    assert int(tmpdir.join(SCHEDULED_FILE).read()) == int(
+    assert (tmp_path / SCHEDULED_FILE).exists()
+    assert int((tmp_path / SCHEDULED_FILE).read_text()) == int(
         round((wakeup_at - datetime.timedelta(seconds=30)).timestamp())
     )
