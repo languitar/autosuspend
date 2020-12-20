@@ -1386,7 +1386,8 @@ class TestLogindSessionsIdle(CheckTest):
         check = LogindSessionsIdle.create("name", parser["section"])
         assert check._states == ["test", "bla", "foo"]
 
-    def test_dbus_error(self, logind_dbus_error: Any) -> None:
+    @pytest.mark.usefixtures("_logind_dbus_error")
+    def test_dbus_error(self) -> None:
         check = LogindSessionsIdle("test", ["test"], ["active", "online"])
 
         with pytest.raises(TemporaryCheckError):
@@ -1401,7 +1402,7 @@ class TestJsonPath(CheckTest):
             timeout=5,
             username="userx",
             password="pass",
-            jsonpath="/b",
+            jsonpath=parse("b"),
         )
 
     @staticmethod

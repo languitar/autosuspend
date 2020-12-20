@@ -30,18 +30,17 @@ def configure_config(config: str, datadir: Path, tmp_path: Path) -> Path:
 
 
 @pytest.fixture()
-def rapid_sleep(mocker: MockFixture) -> Iterable:
+def _rapid_sleep(mocker: MockFixture) -> Iterable[None]:
     with freeze_time() as frozen_time:
         sleep_mock = mocker.patch("time.sleep")
         sleep_mock.side_effect = lambda seconds: frozen_time.tick(
             datetime.timedelta(seconds=seconds)
         )
-        yield frozen_time
+        yield
 
 
-def test_no_suspend_if_matching(
-    datadir: Path, tmp_path: Path, rapid_sleep: Any
-) -> None:
+@pytest.mark.usefixtures("_rapid_sleep")
+def test_no_suspend_if_matching(datadir: Path, tmp_path: Path) -> None:
     autosuspend.main(
         [
             "-c",
@@ -56,7 +55,8 @@ def test_no_suspend_if_matching(
     assert not (tmp_path / SUSPENSION_FILE).exists()
 
 
-def test_suspend(tmp_path: Path, datadir: Path, rapid_sleep: Any) -> None:
+@pytest.mark.usefixtures("_rapid_sleep")
+def test_suspend(tmp_path: Path, datadir: Path) -> None:
     autosuspend.main(
         [
             "-c",
@@ -71,7 +71,8 @@ def test_suspend(tmp_path: Path, datadir: Path, rapid_sleep: Any) -> None:
     assert (tmp_path / SUSPENSION_FILE).exists()
 
 
-def test_wakeup_scheduled(tmp_path: Path, datadir: Path, rapid_sleep: Any) -> None:
+@pytest.mark.usefixtures("_rapid_sleep")
+def test_wakeup_scheduled(tmp_path: Path, datadir: Path) -> None:
     # configure when to wake up
     now = datetime.datetime.now(datetime.timezone.utc)
     wakeup_at = now + datetime.timedelta(hours=4)
@@ -95,7 +96,8 @@ def test_wakeup_scheduled(tmp_path: Path, datadir: Path, rapid_sleep: Any) -> No
     )
 
 
-def test_woke_up_file_removed(tmp_path: Path, datadir: Path, rapid_sleep: Any) -> None:
+@pytest.mark.usefixtures("_rapid_sleep")
+def test_woke_up_file_removed(tmp_path: Path, datadir: Path) -> None:
     (tmp_path / WOKE_UP_FILE).touch()
     autosuspend.main(
         [
@@ -110,7 +112,8 @@ def test_woke_up_file_removed(tmp_path: Path, datadir: Path, rapid_sleep: Any) -
     assert not (tmp_path / WOKE_UP_FILE).exists()
 
 
-def test_notify_call(tmp_path: Path, datadir: Path, rapid_sleep: Any) -> None:
+@pytest.mark.usefixtures("_rapid_sleep")
+def test_notify_call(tmp_path: Path, datadir: Path) -> None:
     autosuspend.main(
         [
             "-c",
@@ -127,7 +130,8 @@ def test_notify_call(tmp_path: Path, datadir: Path, rapid_sleep: Any) -> None:
     assert len((tmp_path / NOTIFY_FILE).read_text()) == 0
 
 
-def test_notify_call_wakeup(tmp_path: Path, datadir: Path, rapid_sleep: Any) -> None:
+@pytest.mark.usefixtures("_rapid_sleep")
+def test_notify_call_wakeup(tmp_path: Path, datadir: Path) -> None:
     # configure when to wake up
     now = datetime.datetime.now(datetime.timezone.utc)
     wakeup_at = now + datetime.timedelta(hours=4)
@@ -165,9 +169,8 @@ def test_error_no_checks_configured(tmp_path: Path, datadir: Path) -> None:
         )
 
 
-def test_temporary_errors_logged(
-    tmp_path: Path, datadir: Path, rapid_sleep: Path, caplog: Any
-) -> None:
+@pytest.mark.usefixtures("_rapid_sleep")
+def test_temporary_errors_logged(tmp_path: Path, datadir: Path, caplog: Any) -> None:
     autosuspend.main(
         [
             "-c",

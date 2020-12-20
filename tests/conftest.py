@@ -87,14 +87,14 @@ def logind(monkeypatch: Any) -> Iterable[ProxyObject]:
 
 
 @pytest.fixture()
-def logind_dbus_error(monkeypatch: Any) -> Iterable[ProxyObject]:
+def _logind_dbus_error(monkeypatch: Any) -> Iterable[None]:
     pytest.importorskip("dbus")
     pytest.importorskip("gi")
 
     test_case = dbusmock.DBusTestCase()
     test_case.start_system_bus()
 
-    mock, obj = test_case.spawn_server_template("logind")
+    mock, _ = test_case.spawn_server_template("logind")
 
     def get_bus() -> Bus:
         import dbus
@@ -103,7 +103,7 @@ def logind_dbus_error(monkeypatch: Any) -> Iterable[ProxyObject]:
 
     monkeypatch.setattr(util_systemd, "_get_bus", get_bus)
 
-    yield obj
+    yield
 
     mock.terminate()
     mock.wait()
