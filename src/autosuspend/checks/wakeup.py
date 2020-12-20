@@ -56,9 +56,8 @@ class File(Wakeup):
 
     def check(self, timestamp: datetime) -> Optional[datetime]:
         try:
-            return datetime.fromtimestamp(
-                float(self._path.read_text().splitlines()[0].strip()), timezone.utc
-            )
+            first_line = self._path.read_text().splitlines()[0]
+            return datetime.fromtimestamp(float(first_line.strip()), timezone.utc)
         except FileNotFoundError:
             # this is ok
             return None

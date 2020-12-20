@@ -64,25 +64,28 @@ def list_sessions_logind() -> List[XorgSession]:
         LogindDBusException: cannot connect or extract sessions
     """
     results = []
+
     for session_id, properties in list_logind_sessions():
-        if "Name" in properties and "Display" in properties:
-            try:
-                results.append(
-                    XorgSession(
-                        int(properties["Display"].replace(":", "")),
-                        str(properties["Name"]),
-                    )
-                )
-            except ValueError:
-                _logger.warning(
-                    "Unable to parse display from session properties %s",
-                    properties,
-                    exc_info=True,
-                )
-        else:
+        if "Name" not in properties or "Display" not in properties:
             _logger.debug(
                 "Skipping session %s because it does not contain "
                 "a user name and a display",
                 session_id,
             )
+            continue
+
+        try:
+            results.append(
+                XorgSession(
+                    int(properties["Display"].replace(":", "")),
+                    str(properties["Name"]),
+                )
+            )
+        except ValueError:
+            _logger.warning(
+                "Unable to parse display from session properties %s",
+                properties,
+                exc_info=True,
+            )
+
     return results

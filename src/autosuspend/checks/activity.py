@@ -1,4 +1,5 @@
 import configparser
+from contextlib import suppress
 import copy
 from datetime import datetime, timedelta, timezone
 from io import BytesIO
@@ -159,18 +160,20 @@ class Kodi(NetworkMixin, Activity):
         NetworkMixin.__init__(self, url=request, **kwargs)
         Activity.__init__(self, name)
 
-    def check(self) -> Optional[str]:
+    def _safe_request_result(self) -> Dict:
         try:
-            reply = self.request().json()
-            if self._suspend_while_paused:
-                if reply["result"]["Player.Playing"]:
-                    return "Kodi actively playing media"
-            else:
-                if reply["result"]:
-                    return "Kodi currently playing"
-            return None
+            return self.request().json()["result"]
         except (KeyError, TypeError, json.JSONDecodeError) as error:
             raise TemporaryCheckError(error) from error
+
+    def check(self) -> Optional[str]:
+        reply = self._safe_request_result()
+        if self._suspend_while_paused:
+            return (
+                "Kodi actively playing media" if reply.get("Player.Playing") else None
+            )
+        else:
+            return "Kodi currently playing" if reply else None
 
 
 class KodiIdleTime(NetworkMixin, Activity):
@@ -277,22 +280,31 @@ class Mpd(Activity):
 
 class NetworkBandwidth(Activity):
     @classmethod
+    def _ensure_interfaces_exist(cls, interfaces: Iterable[str]) -> None:
+        host_interfaces = psutil.net_if_addrs().keys()
+        for interface in interfaces:
+            if interface not in host_interfaces:
+                raise ConfigurationError(
+                    "Network interface {} does not exist".format(interface)
+                )
+
+    @classmethod
+    def _extract_interfaces(cls, config: configparser.SectionProxy) -> List[str]:
+        interfaces = config["interfaces"].split(",")
+        interfaces = [i.strip() for i in interfaces if i.strip()]
+        if not interfaces:
+            raise ConfigurationError("No interfaces configured")
+        cls._ensure_interfaces_exist(interfaces)
+        return interfaces
+
+    @classmethod
     def create(
         cls,
         name: str,
         config: configparser.SectionProxy,
     ) -> "NetworkBandwidth":
         try:
-            interfaces = config["interfaces"].split(",")
-            interfaces = [i.strip() for i in interfaces if i.strip()]
-            if not interfaces:
-                raise ConfigurationError("No interfaces configured")
-            host_interfaces = psutil.net_if_addrs().keys()
-            for interface in interfaces:
-                if interface not in host_interfaces:
-                    raise ConfigurationError(
-                        "Network interface {} does not exist".format(interface)
-                    )
+            interfaces = cls._extract_interfaces(config)
             threshold_send = config.getfloat("threshold_send", fallback=100)
             threshold_receive = config.getfloat("threshold_receive", fallback=100)
             return cls(name, interfaces, threshold_send, threshold_receive)
@@ -319,6 +331,42 @@ class NetworkBandwidth(Activity):
         self._previous_values = psutil.net_io_counters(pernic=True)
         self._previous_time = time.time()
 
+    @classmethod
+    def _rate(cls, new: float, old: float, new_time: float, old_time: float) -> float:
+        delta = new - old
+        return delta / (new_time - old_time)
+
+    class _InterfaceActive(RuntimeError):
+        pass
+
+    def _check_interface(
+        self,
+        interface: str,
+        new: psutil._common.snetio,
+        old: psutil._common.snetio,
+        new_time: float,
+        old_time: float,
+    ) -> None:
+        # send direction
+        rate_send = self._rate(new.bytes_sent, old.bytes_sent, new_time, old_time)
+        if rate_send > self._threshold_send:
+            raise self._InterfaceActive(
+                "Interface {} sending rate {} byte/s "
+                "higher than threshold {}".format(
+                    interface, rate_send, self._threshold_send
+                )
+            )
+
+        # receive direction
+        rate_receive = self._rate(new.bytes_recv, old.bytes_recv, new_time, old_time)
+        if rate_receive > self._threshold_receive:
+            raise self._InterfaceActive(
+                "Interface {} receive rate {} byte/s "
+                "higher than threshold {}".format(
+                    interface, rate_receive, self._threshold_receive
+                )
+            )
+
     def check(self) -> Optional[str]:
         # acquire the previous state and preserve it
         old_values = self._previous_values
@@ -328,7 +376,7 @@ class NetworkBandwidth(Activity):
         new_values = psutil.net_io_counters(pernic=True)
         self._previous_values = new_values
         new_time = time.time()
-        if new_time == self._previous_time:
+        if new_time <= self._previous_time:
             raise TemporaryCheckError("Called too fast, no time between calls")
         self._previous_time = new_time
 
@@ -336,31 +384,16 @@ class NetworkBandwidth(Activity):
             if interface not in new_values or interface not in self._previous_values:
                 raise TemporaryCheckError("Interface {} is missing".format(interface))
 
-            # send direction
-            delta_send = (
-                new_values[interface].bytes_sent - old_values[interface].bytes_sent
-            )
-            rate_send = delta_send / (new_time - old_time)
-            if rate_send > self._threshold_send:
-                return (
-                    "Interface {} sending rate {} byte/s "
-                    "higher than threshold {}".format(
-                        interface, rate_send, self._threshold_send
-                    )
+            try:
+                self._check_interface(
+                    interface,
+                    new_values[interface],
+                    old_values[interface],
+                    new_time,
+                    old_time,
                 )
-
-            # receive direction
-            delta_receive = (
-                new_values[interface].bytes_recv - old_values[interface].bytes_recv
-            )
-            rate_receive = delta_receive / (new_time - old_time)
-            if rate_receive > self._threshold_receive:
-                return (
-                    "Interface {} receive rate {} byte/s "
-                    "higher than threshold {}".format(
-                        interface, rate_receive, self._threshold_receive
-                    )
-                )
+            except self._InterfaceActive as e:
+                return str(e)
 
         return None
 
@@ -415,13 +448,10 @@ class Processes(Activity):
 
     def check(self) -> Optional[str]:
         for proc in psutil.process_iter():
-            try:
+            with suppress(psutil.NoSuchProcess):
                 pinfo = proc.name()
-                for name in self._processes:
-                    if pinfo == name:
-                        return "Process {} is running".format(name)
-            except psutil.NoSuchProcess:
-                pass
+                if pinfo in self._processes:
+                    return "Process {} is running".format(pinfo)
         return None
 
 
@@ -531,6 +561,15 @@ class XIdleTime(Activity):
                     "Unable to parse configuration: {}".format(error),
                 ) from error
 
+    @staticmethod
+    def _get_session_method(method: str) -> Callable[[], List[XorgSession]]:
+        if method == "sockets":
+            return list_sessions_sockets
+        elif method == "logind":
+            return list_sessions_logind
+        else:
+            raise ValueError("Unknown session discovery method {}".format(method))
+
     def __init__(
         self,
         name: str,
@@ -542,26 +581,23 @@ class XIdleTime(Activity):
         Activity.__init__(self, name)
         self._timeout = timeout
         self._provide_sessions: Callable[[], List[XorgSession]]
-        if method == "sockets":
-            self._provide_sessions = list_sessions_sockets
-        elif method == "logind":
-            self._provide_sessions = list_sessions_logind
-        else:
-            raise ValueError("Unknown session discovery method {}".format(method))
+        self._provide_sessions = self._get_session_method(method)
         self._ignore_process_re = ignore_process_re
         self._ignore_users_re = ignore_users_re
 
-    def _is_skip_process_running(self, user: str) -> bool:
+    @staticmethod
+    def _get_user_processes(user: str) -> List[psutil.Process]:
         user_processes = []
         for process in psutil.process_iter():
-            try:
+            with suppress(
+                psutil.NoSuchProcess, psutil.ZombieProcess, psutil.AccessDenied
+            ):
                 if process.username() == user:
                     user_processes.append(process.name())
-            except (psutil.NoSuchProcess, psutil.ZombieProcess, psutil.AccessDenied):
-                # ignore processes which have disappeared etc.
-                pass
+        return user_processes
 
-        for process in user_processes:
+    def _is_skip_process_running(self, user: str) -> bool:
+        for process in self._get_user_processes(user):
             if self._ignore_process_re.match(process) is not None:
                 self.logger.debug(
                     "Process %s with pid %s matches the ignore regex '%s'."
@@ -580,6 +616,24 @@ class XIdleTime(Activity):
         except LogindDBusException as error:
             raise TemporaryCheckError(error) from error
 
+    def _get_idle_time(self, session: XorgSession) -> float:
+        env = copy.deepcopy(os.environ)
+        env["DISPLAY"] = ":{}".format(session.display)
+        env["XAUTHORITY"] = str(Path("~" + session.user).expanduser() / ".Xauthority")
+
+        try:
+            idle_time_output = subprocess.check_output(  # noqa: S603, S607
+                ["sudo", "-u", session.user, "xprintidle"], env=env
+            )
+            return float(idle_time_output.strip()) / 1000.0
+        except (subprocess.CalledProcessError, ValueError) as error:
+            self.logger.warning(
+                "Unable to determine the idle time for display %s.",
+                session.display,
+                exc_info=True,
+            )
+            raise TemporaryCheckError(error) from error
+
     def check(self) -> Optional[str]:
         for session in self._safe_provide_sessions():
             self.logger.info("Checking session %s", session)
@@ -596,26 +650,7 @@ class XIdleTime(Activity):
             if self._is_skip_process_running(session.user):
                 continue
 
-            # prepare the environment for the xprintidle call
-            env = copy.deepcopy(os.environ)
-            env["DISPLAY"] = ":{}".format(session.display)
-            env["XAUTHORITY"] = str(
-                Path("~" + session.user).expanduser() / ".Xauthority"
-            )
-
-            try:
-                idle_time_output = subprocess.check_output(  # noqa: S603, S607
-                    ["sudo", "-u", session.user, "xprintidle"], env=env
-                )
-                idle_time = float(idle_time_output.strip()) / 1000.0
-            except (subprocess.CalledProcessError, ValueError) as error:
-                self.logger.warning(
-                    "Unable to determine the idle time for display %s.",
-                    session.display,
-                    exc_info=True,
-                )
-                raise TemporaryCheckError(error) from error
-
+            idle_time = self._get_idle_time(session)
             self.logger.debug(
                 "Idle time for display %s of user %s is %s seconds.",
                 session.display,
