@@ -1,14 +1,10 @@
-import os
-import os.path
+from pathlib import Path
 
 from setuptools import find_packages, setup
 
 name = 'autosuspend'
 
-with open(os.path.join(
-        os.path.abspath(os.path.dirname(os.path.realpath(__file__))),
-        'VERSION'), 'r') as version_file:
-    lines = version_file.readlines()
+lines = (Path(__file__).absolute().parent / "VERSION").read_text()
 release = lines[1].strip()
 
 extras_require = {

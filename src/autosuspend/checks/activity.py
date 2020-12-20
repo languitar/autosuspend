@@ -4,6 +4,7 @@ from datetime import datetime, timedelta, timezone
 from io import BytesIO
 import json
 import os
+from pathlib import Path
 import re
 import socket
 import subprocess
@@ -598,8 +599,8 @@ class XIdleTime(Activity):
             # prepare the environment for the xprintidle call
             env = copy.deepcopy(os.environ)
             env["DISPLAY"] = ":{}".format(session.display)
-            env["XAUTHORITY"] = os.path.join(
-                os.path.expanduser("~" + session.user), ".Xauthority"
+            env["XAUTHORITY"] = str(
+                Path("~" + session.user).expanduser() / ".Xauthority"
             )
 
             try:

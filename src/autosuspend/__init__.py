@@ -7,9 +7,7 @@ import datetime
 import functools
 import logging
 import logging.config
-import os
-import os.path
-import pathlib
+from pathlib import Path
 import subprocess
 import time
 from typing import (
@@ -316,8 +314,8 @@ def loop(
     processor: Processor,
     interval: float,
     run_for: Optional[int],
-    woke_up_file: str,
-    lock_file: str,
+    woke_up_file: Path,
+    lock_file: Path,
     lock_timeout: float,
 ) -> None:
     """Run the main loop of the daemon.
@@ -351,11 +349,11 @@ def loop(
             with portalocker.Lock(lock_file, timeout=lock_timeout):
                 _logger.debug("Acquired lock")
 
-                just_woke_up = os.path.isfile(woke_up_file)
+                just_woke_up = woke_up_file.is_file()
                 if just_woke_up:
                     _logger.debug("Removing woke up file at %s", woke_up_file)
                     try:
-                        os.remove(woke_up_file)
+                        woke_up_file.unlink()
                     except FileNotFoundError:
                         _logger.warning("Just woke up file disappeared", exc_info=True)
 
@@ -617,14 +615,18 @@ def get_schedule_wakeup_func(
     return functools.partial(schedule_wakeup, config.get("general", "wakeup_cmd"))
 
 
-def get_woke_up_file(config: configparser.ConfigParser) -> str:
-    return config.get(
-        "general", "woke_up_file", fallback="/var/run/autosuspend-just-woke-up"
+def get_woke_up_file(config: configparser.ConfigParser) -> Path:
+    return Path(
+        config.get(
+            "general", "woke_up_file", fallback="/var/run/autosuspend-just-woke-up"
+        )
     )
 
 
-def get_lock_file(config: configparser.ConfigParser) -> str:
-    return config.get("general", "lock_file", fallback="/var/lock/autosuspend.lock")
+def get_lock_file(config: configparser.ConfigParser) -> Path:
+    return Path(
+        config.get("general", "lock_file", fallback="/var/lock/autosuspend.lock")
+    )
 
 
 def get_lock_timeout(config: configparser.ConfigParser) -> float:
@@ -657,8 +659,8 @@ def hook(
     wakeups: List[Wakeup],
     wakeup_delta: float,
     wakeup_fn: Callable[[datetime.datetime], None],
-    woke_up_file: str,
-    lock_file: str,
+    woke_up_file: Path,
+    lock_file: Path,
     lock_timeout: float,
 ) -> None:
     """Installs wake ups and notifies the daemon before suspending.
@@ -698,7 +700,7 @@ def hook(
                 _logger.info("No wake up required. Terminating")
 
             # create the just woke up file
-            pathlib.Path(woke_up_file).touch()
+            woke_up_file.touch()
     except portalocker.LockException:
         _logger.warning(
             "Hook unable to acquire lock. Not informing daemon.", exc_info=True

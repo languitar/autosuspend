@@ -119,16 +119,16 @@ class TestCalendar(CheckTest):
 
 class TestFile(CheckTest):
     def create_instance(self, name: str) -> Check:
-        return File(name, "asdf")
+        return File(name, Path("asdf"))
 
     def test_create(self) -> None:
         parser = configparser.ConfigParser()
         parser.read_string(
             """[section]
-                              path = /tmp/test"""
+               path = /tmp/test"""
         )
         check = File.create("name", parser["section"])
-        assert check._path == "/tmp/test"
+        assert check._path == Path("/tmp/test")
 
     def test_create_no_path(self) -> None:
         parser = configparser.ConfigParser()
@@ -139,35 +139,32 @@ class TestFile(CheckTest):
     def test_smoke(self, tmp_path: Path) -> None:
         test_file = tmp_path / "file"
         test_file.write_text("42\n\n")
-        assert File("name", str(test_file)).check(
+        assert File("name", test_file).check(
             datetime.now(timezone.utc)
         ) == datetime.fromtimestamp(42, timezone.utc)
 
     def test_no_file(self, tmp_path: Path) -> None:
-        assert (
-            File("name", str(tmp_path / "narf")).check(datetime.now(timezone.utc))
-            is None
-        )
+        assert File("name", tmp_path / "narf").check(datetime.now(timezone.utc)) is None
 
     def test_handle_permission_error(self, tmp_path: Path) -> None:
         file_path = tmp_path / "test"
         file_path.write_bytes(b"2314898")
         file_path.chmod(0)
         with pytest.raises(TemporaryCheckError):
-            File("name", str(file_path)).check(datetime.now(timezone.utc))
+            File("name", file_path).check(datetime.now(timezone.utc))
 
     def test_handle_io_error(self, tmp_path: Path, mocker: MockFixture) -> None:
         file_path = tmp_path / "test"
         file_path.write_bytes(b"2314898")
-        mocker.patch("builtins.open").side_effect = IOError
+        mocker.patch("pathlib.Path.read_text").side_effect = IOError
         with pytest.raises(TemporaryCheckError):
-            File("name", str(file_path)).check(datetime.now(timezone.utc))
+            File("name", file_path).check(datetime.now(timezone.utc))
 
     def test_invalid_number(self, tmp_path: Path) -> None:
         test_file = tmp_path / "filexxx"
         test_file.write_text("nonumber\n\n")
         with pytest.raises(TemporaryCheckError):
-            File("name", str(test_file)).check(datetime.now(timezone.utc))
+            File("name", test_file).check(datetime.now(timezone.utc))
 
 
 class TestCommand(CheckTest):

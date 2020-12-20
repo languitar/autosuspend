@@ -1,7 +1,5 @@
 import datetime
 import logging
-import os
-import os.path
 from pathlib import Path
 from typing import Any, Iterable
 
@@ -14,8 +12,6 @@ import autosuspend
 
 pytestmark = pytest.mark.integration
 
-
-ROOT = os.path.dirname(os.path.realpath(__file__))
 
 SUSPENSION_FILE = "would_suspend"
 SCHEDULED_FILE = "wakeup_at"
@@ -209,7 +205,7 @@ def test_loop_defaults(tmp_path: Path, datadir: Path, mocker: MockFixture) -> No
     args, kwargs = loop.call_args
     assert args[1] == 60
     assert kwargs["run_for"] == 10
-    assert kwargs["woke_up_file"] == ("/var/run/autosuspend-just-woke-up")
+    assert kwargs["woke_up_file"] == Path("/var/run/autosuspend-just-woke-up")
 
 
 def test_hook_success(tmp_path: Path, datadir: Path) -> None:

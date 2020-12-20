@@ -1,5 +1,6 @@
 from collections import namedtuple
 import configparser
+from getpass import getuser
 import json
 from pathlib import Path
 import re
@@ -1089,7 +1090,7 @@ class TestXIdleTime(CheckTest):
     def test_smoke(self, mocker: MockFixture) -> None:
         check = XIdleTime("name", 100, "logind", re.compile(r"a^"), re.compile(r"a^"))
         mocker.patch.object(check, "_provide_sessions").return_value = [
-            XorgSession(42, "auser"),
+            XorgSession(42, getuser()),
         ]
 
         co_mock = mocker.patch("subprocess.check_output")
@@ -1100,14 +1101,14 @@ class TestXIdleTime(CheckTest):
         assert " 0.123 " in res
 
         args, kwargs = co_mock.call_args
-        assert "auser" in args[0]
+        assert getuser() in args[0]
         assert kwargs["env"]["DISPLAY"] == ":42"
-        assert "auser" in kwargs["env"]["XAUTHORITY"]
+        assert getuser() in kwargs["env"]["XAUTHORITY"]
 
     def test_no_activity(self, mocker: MockFixture) -> None:
         check = XIdleTime("name", 100, "logind", re.compile(r"a^"), re.compile(r"a^"))
         mocker.patch.object(check, "_provide_sessions").return_value = [
-            XorgSession(42, "auser"),
+            XorgSession(42, getuser()),
         ]
 
         mocker.patch("subprocess.check_output").return_value = "120000"
@@ -1117,8 +1118,8 @@ class TestXIdleTime(CheckTest):
     def test_multiple_sessions(self, mocker: MockFixture) -> None:
         check = XIdleTime("name", 100, "logind", re.compile(r"a^"), re.compile(r"a^"))
         mocker.patch.object(check, "_provide_sessions").return_value = [
-            XorgSession(42, "auser"),
-            XorgSession(17, "otheruser"),
+            XorgSession(42, getuser()),
+            XorgSession(17, "root"),
         ]
 
         co_mock = mocker.patch("subprocess.check_output")
@@ -1134,14 +1135,14 @@ class TestXIdleTime(CheckTest):
         assert co_mock.call_count == 2
         # check second call for correct values, not checked before
         args, kwargs = co_mock.call_args_list[1]
-        assert "otheruser" in args[0]
+        assert "root" in args[0]
         assert kwargs["env"]["DISPLAY"] == ":17"
-        assert "otheruser" in kwargs["env"]["XAUTHORITY"]
+        assert "root" in kwargs["env"]["XAUTHORITY"]
 
     def test_handle_call_error(self, mocker: MockFixture) -> None:
         check = XIdleTime("name", 100, "logind", re.compile(r"a^"), re.compile(r"a^"))
         mocker.patch.object(check, "_provide_sessions").return_value = [
-            XorgSession(42, "auser"),
+            XorgSession(42, getuser()),
         ]
 
         mocker.patch(
