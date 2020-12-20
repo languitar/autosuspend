@@ -1,10 +1,7 @@
 from collections import namedtuple
 import configparser
 import json
-import os
-import os.path
 from pathlib import Path
-import pwd
 import re
 import socket
 import subprocess
@@ -46,6 +43,11 @@ from autosuspend.checks.activity import (
     XPath,
 )
 from autosuspend.util.systemd import LogindDBusException
+from autosuspend.util.xorg import (
+    list_sessions_logind,
+    list_sessions_sockets,
+    XorgSession,
+)
 from . import CheckTest
 
 
@@ -1087,7 +1089,7 @@ class TestXIdleTime(CheckTest):
     def test_smoke(self, mocker: MockFixture) -> None:
         check = XIdleTime("name", 100, "logind", re.compile(r"a^"), re.compile(r"a^"))
         mocker.patch.object(check, "_provide_sessions").return_value = [
-            ("42", "auser"),
+            XorgSession(42, "auser"),
         ]
 
         co_mock = mocker.patch("subprocess.check_output")
@@ -1105,7 +1107,7 @@ class TestXIdleTime(CheckTest):
     def test_no_activity(self, mocker: MockFixture) -> None:
         check = XIdleTime("name", 100, "logind", re.compile(r"a^"), re.compile(r"a^"))
         mocker.patch.object(check, "_provide_sessions").return_value = [
-            ("42", "auser"),
+            XorgSession(42, "auser"),
         ]
 
         mocker.patch("subprocess.check_output").return_value = "120000"
@@ -1115,8 +1117,8 @@ class TestXIdleTime(CheckTest):
     def test_multiple_sessions(self, mocker: MockFixture) -> None:
         check = XIdleTime("name", 100, "logind", re.compile(r"a^"), re.compile(r"a^"))
         mocker.patch.object(check, "_provide_sessions").return_value = [
-            ("42", "auser"),
-            ("17", "otheruser"),
+            XorgSession(42, "auser"),
+            XorgSession(17, "otheruser"),
         ]
 
         co_mock = mocker.patch("subprocess.check_output")
@@ -1139,7 +1141,7 @@ class TestXIdleTime(CheckTest):
     def test_handle_call_error(self, mocker: MockFixture) -> None:
         check = XIdleTime("name", 100, "logind", re.compile(r"a^"), re.compile(r"a^"))
         mocker.patch.object(check, "_provide_sessions").return_value = [
-            ("42", "auser"),
+            XorgSession(42, "auser"),
         ]
 
         mocker.patch(
@@ -1156,7 +1158,7 @@ class TestXIdleTime(CheckTest):
         assert check._timeout == 600
         assert check._ignore_process_re == re.compile(r"a^")
         assert check._ignore_users_re == re.compile(r"a^")
-        assert check._provide_sessions == check._list_sessions_sockets
+        assert check._provide_sessions == list_sessions_sockets
 
     def test_create(self) -> None:
         parser = configparser.ConfigParser()
@@ -1173,7 +1175,7 @@ class TestXIdleTime(CheckTest):
         assert check._timeout == 42
         assert check._ignore_process_re == re.compile(r".*test")
         assert check._ignore_users_re == re.compile(r"test.*test")
-        assert check._provide_sessions == check._list_sessions_logind
+        assert check._provide_sessions == list_sessions_logind
 
     def test_create_no_int(self) -> None:
         parser = configparser.ConfigParser()
@@ -1219,53 +1221,16 @@ class TestXIdleTime(CheckTest):
         with pytest.raises(ConfigurationError):
             XIdleTime.create("name", parser["section"])
 
-    def test_list_sessions_logind(self, mocker: MockFixture) -> None:
-        mock = mocker.patch("autosuspend.checks.activity.list_logind_sessions")
-        mock.return_value = [
-            ("c1", {"Name": "foo"}),
-            ("c2", {"Display": "asdfasf"}),
-            ("c3", {"Name": "hello", "Display": "nonumber"}),
-            ("c4", {"Name": "hello", "Display": "3"}),
-        ]
-
-        parser = configparser.ConfigParser()
-        parser.read_string("""[section]""")
-        check = XIdleTime.create("name", parser["section"])
-        assert check._list_sessions_logind() == [(3, "hello")]
-
     def test_list_sessions_logind_dbus_error(self, mocker: MockFixture) -> None:
-        mock = mocker.patch("autosuspend.checks.activity.list_logind_sessions")
-        mock.side_effect = LogindDBusException()
-
         parser = configparser.ConfigParser()
         parser.read_string("""[section]""")
         check = XIdleTime.create("name", parser["section"])
+        mocker.patch.object(
+            check, "_provide_sessions"
+        ).side_effect = LogindDBusException()
+
         with pytest.raises(TemporaryCheckError):
-            check._list_sessions_logind()
-
-    def test_list_sessions_socket(self, mocker: MockFixture) -> None:
-        mock_glob = mocker.patch("glob.glob")
-        mock_glob.return_value = [
-            "/tmp/.X11-unix/X0",
-            "/tmp/.X11-unix/X42",
-            "/tmp/.X11-unix/Xnum",
-        ]
-
-        stat_return = os.stat(os.path.realpath(__file__))
-        this_user = pwd.getpwuid(stat_return.st_uid)
-        mock_stat = mocker.patch("os.stat")
-        mock_stat.return_value = stat_return
-
-        mock_pwd = mocker.patch("pwd.getpwuid")
-        mock_pwd.return_value = this_user
-
-        parser = configparser.ConfigParser()
-        parser.read_string("""[section]""")
-        check = XIdleTime.create("name", parser["section"])
-        assert check._list_sessions_sockets() == [
-            (0, this_user.pw_name),
-            (42, this_user.pw_name),
-        ]
+            check._safe_provide_sessions()
 
 
 class TestExternalCommand(CheckTest):

@@ -1,11 +1,9 @@
 import configparser
 import copy
 from datetime import datetime, timedelta, timezone
-import glob
 from io import BytesIO
 import json
 import os
-import pwd
 import re
 import socket
 import subprocess
@@ -16,9 +14,9 @@ from typing import (
     Callable,
     Dict,
     Iterable,
+    List,
     Optional,
     Pattern,
-    Sequence,
     Tuple,
     TYPE_CHECKING,
 )
@@ -29,6 +27,7 @@ import psutil
 from . import Activity, Check, ConfigurationError, SevereCheckError, TemporaryCheckError
 from .util import CommandMixin, NetworkMixin, XPathMixin
 from ..util.systemd import list_logind_sessions, LogindDBusException
+from ..util.xorg import list_sessions_logind, list_sessions_sockets, XorgSession
 
 
 if TYPE_CHECKING:
@@ -84,18 +83,20 @@ class ActiveConnection(Activity):
         self._ports = ports
 
     def check(self) -> Optional[str]:
+        # Find the addresses of the system
         own_addresses = [
             (item.family, item.address.split("%")[0])
             for sublist in psutil.net_if_addrs().values()
             for item in sublist
         ]
+        # Find established connections to target ports
         connected = [
-            c.laddr[1]
-            for c in psutil.net_connections()
+            connection.laddr[1]
+            for connection in psutil.net_connections()
             if (
-                (c.family, c.laddr[0]) in own_addresses
-                and c.status == "ESTABLISHED"
-                and c.laddr[1] in self._ports
+                (connection.family, connection.laddr[0]) in own_addresses
+                and connection.status == "ESTABLISHED"
+                and connection.laddr[1] in self._ports
             )
         ]
         if connected:
@@ -505,13 +506,6 @@ class Users(Activity):
         return None
 
 
-def _list_logind_sessions() -> Iterable[Tuple[str, dict]]:
-    try:
-        return list_logind_sessions()
-    except LogindDBusException as error:
-        raise TemporaryCheckError(error) from error
-
-
 class XIdleTime(Activity):
     """Check that local X display have been idle long enough."""
 
@@ -546,83 +540,15 @@ class XIdleTime(Activity):
     ) -> None:
         Activity.__init__(self, name)
         self._timeout = timeout
-        self._provide_sessions: Callable[[], Sequence[Tuple[int, str]]]
+        self._provide_sessions: Callable[[], List[XorgSession]]
         if method == "sockets":
-            self._provide_sessions = self._list_sessions_sockets
+            self._provide_sessions = list_sessions_sockets
         elif method == "logind":
-            self._provide_sessions = self._list_sessions_logind
+            self._provide_sessions = list_sessions_logind
         else:
             raise ValueError("Unknown session discovery method {}".format(method))
         self._ignore_process_re = ignore_process_re
         self._ignore_users_re = ignore_users_re
-
-    def _list_sessions_sockets(self) -> Sequence[Tuple[int, str]]:
-        """List running X sessions by iterating the X sockets.
-
-        This method assumes that X servers are run under the users using the
-        server.
-        """
-        prefix = "/tmp/.X11-unix/X"  # noqa: S108 expected path
-        sockets = glob.glob(f"{prefix}*")
-        self.logger.debug("Found sockets: %s", sockets)
-
-        results = []
-        for sock in sockets:
-            # determine the number of the X display
-            try:
-                display = int(sock[len(prefix) :])
-            except ValueError:
-                self.logger.warning(
-                    "Cannot parse display number from socket %s. Skipping.",
-                    sock,
-                    exc_info=True,
-                )
-                continue
-
-            # determine the user of the display
-            try:
-                user = pwd.getpwuid(os.stat(sock).st_uid).pw_name
-            except (FileNotFoundError, KeyError):
-                self.logger.warning(
-                    "Cannot get the owning user from socket %s. Skipping.",
-                    sock,
-                    exc_info=True,
-                )
-                continue
-
-            results.append((display, user))
-
-        return results
-
-    def _list_sessions_logind(self) -> Sequence[Tuple[int, str]]:
-        """List running X sessions using logind.
-
-        This method assumes that a ``Display`` variable is set in the logind
-        sessions.
-        """
-        results = []
-        for session_id, properties in _list_logind_sessions():
-            if "Name" in properties and "Display" in properties:
-                try:
-                    results.append(
-                        (
-                            int(properties["Display"].replace(":", "")),
-                            str(properties["Name"]),
-                        )
-                    )
-                except ValueError:
-                    self.logger.warning(
-                        "Unable to parse display from session properties %s",
-                        properties,
-                        exc_info=True,
-                    )
-            else:
-                self.logger.debug(
-                    "Skipping session %s because it does not contain "
-                    "a user name and a display",
-                    session_id,
-                )
-        return results
 
     def _is_skip_process_running(self, user: str) -> bool:
         user_processes = []
@@ -647,46 +573,52 @@ class XIdleTime(Activity):
 
         return False
 
+    def _safe_provide_sessions(self) -> List[XorgSession]:
+        try:
+            return self._provide_sessions()
+        except LogindDBusException as error:
+            raise TemporaryCheckError(error) from error
+
     def check(self) -> Optional[str]:
-        for display, user in self._provide_sessions():
-            self.logger.info("Checking display %s of user %s", display, user)
+        for session in self._safe_provide_sessions():
+            self.logger.info("Checking session %s", session)
 
             # check whether this users should be ignored completely
-            if self._ignore_users_re.match(user) is not None:
-                self.logger.debug("Skipping user '%s' due to request", user)
+            if self._ignore_users_re.match(session.user) is not None:
+                self.logger.debug("Skipping user '%s' due to request", session.user)
                 continue
 
             # check whether any of the running processes of this user matches
             # the ignore regular expression. In that case we skip idletime
             # checking because we assume the user has a process running that
             # inevitably tampers with the idle time.
-            if self._is_skip_process_running(user):
+            if self._is_skip_process_running(session.user):
                 continue
 
             # prepare the environment for the xprintidle call
             env = copy.deepcopy(os.environ)
-            env["DISPLAY"] = ":{}".format(display)
+            env["DISPLAY"] = ":{}".format(session.display)
             env["XAUTHORITY"] = os.path.join(
-                os.path.expanduser("~" + user), ".Xauthority"
+                os.path.expanduser("~" + session.user), ".Xauthority"
             )
 
             try:
                 idle_time_output = subprocess.check_output(  # noqa: S603, S607
-                    ["sudo", "-u", user, "xprintidle"], env=env
+                    ["sudo", "-u", session.user, "xprintidle"], env=env
                 )
                 idle_time = float(idle_time_output.strip()) / 1000.0
             except (subprocess.CalledProcessError, ValueError) as error:
                 self.logger.warning(
                     "Unable to determine the idle time for display %s.",
-                    display,
+                    session.display,
                     exc_info=True,
                 )
                 raise TemporaryCheckError(error) from error
 
             self.logger.debug(
                 "Idle time for display %s of user %s is %s seconds.",
-                display,
-                user,
+                session.display,
+                session.user,
                 idle_time,
             )
 
@@ -694,7 +626,7 @@ class XIdleTime(Activity):
                 return (
                     "X session {} of user {} "
                     "has idle time {} < threshold {}".format(
-                        display, user, idle_time, self._timeout
+                        session.display, session.user, idle_time, self._timeout
                     )
                 )
 
@@ -724,8 +656,15 @@ class LogindSessionsIdle(Activity):
         self._types = types
         self._states = states
 
+    @staticmethod
+    def _list_logind_sessions() -> Iterable[Tuple[str, dict]]:
+        try:
+            return list_logind_sessions()
+        except LogindDBusException as error:
+            raise TemporaryCheckError(error) from error
+
     def check(self) -> Optional[str]:
-        for session_id, properties in _list_logind_sessions():
+        for session_id, properties in self._list_logind_sessions():
             self.logger.debug("Session %s properties: %s", session_id, properties)
 
             if properties["Type"] not in self._types:
