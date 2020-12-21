@@ -3,13 +3,12 @@
 
 import argparse
 import configparser
-import datetime
+from contextlib import suppress
+from datetime import datetime, timedelta, timezone
 import functools
 import logging
 import logging.config
-import os
-import os.path
-import pathlib
+from pathlib import Path
 import subprocess
 import time
 from typing import (
@@ -19,6 +18,7 @@ from typing import (
     List,
     Optional,
     Sequence,
+    Tuple,
     Type,
     Union,
 )
@@ -42,7 +42,7 @@ _logger = logging.getLogger("autosuspend")
 
 def execute_suspend(
     command: Union[str, Sequence[str]],
-    wakeup_at: Optional[datetime.datetime],
+    wakeup_at: Optional[datetime],
 ) -> None:
     """Suspend the system by calling the specified command.
 
@@ -63,7 +63,7 @@ def execute_suspend(
 def notify_suspend(
     command_wakeup_template: Optional[str],
     command_no_wakeup: Optional[str],
-    wakeup_at: Optional[datetime.datetime],
+    wakeup_at: Optional[datetime],
 ) -> None:
     """Call a command to notify on suspending.
 
@@ -107,13 +107,13 @@ def notify_and_suspend(
     suspend_cmd: Union[str, Sequence[str]],
     notify_cmd_wakeup_template: Optional[str],
     notify_cmd_no_wakeup: Optional[str],
-    wakeup_at: Optional[datetime.datetime],
+    wakeup_at: Optional[datetime],
 ) -> None:
     notify_suspend(notify_cmd_wakeup_template, notify_cmd_no_wakeup, wakeup_at)
     execute_suspend(suspend_cmd, wakeup_at)
 
 
-def schedule_wakeup(command_template: str, wakeup_at: datetime.datetime) -> None:
+def schedule_wakeup(command_template: str, wakeup_at: datetime) -> None:
     command = command_template.format(
         timestamp=wakeup_at.timestamp(), iso=wakeup_at.isoformat()
     )
@@ -124,6 +124,14 @@ def schedule_wakeup(command_template: str, wakeup_at: datetime.datetime) -> None
         _logger.warning(
             "Unable to execute wakeup scheduling command: %s", command, exc_info=True
         )
+
+
+def _safe_execute_activity(check: Activity, logger: logging.Logger) -> Optional[str]:
+    try:
+        return check.check()
+    except TemporaryCheckError:
+        logger.warning("Check %s failed. Ignoring...", check, exc_info=True)
+        return None
 
 
 def execute_checks(
@@ -144,48 +152,50 @@ def execute_checks(
     matched = False
     for check in checks:
         logger.debug("Executing check %s", check.name)
-        try:
-            result = check.check()
-            if result is not None:
-                logger.info("Check %s matched. Reason: %s", check.name, result)
-                matched = True
-                if not all_checks:
-                    logger.debug("Skipping further checks")
-                    break
-        except TemporaryCheckError:
-            logger.warning("Check %s failed. Ignoring...", check, exc_info=True)
+        result = _safe_execute_activity(check, logger)
+        if result is not None:
+            logger.info("Check %s matched. Reason: %s", check.name, result)
+            matched = True
+            if not all_checks:
+                logger.debug("Skipping further checks")
+                break
     return matched
 
 
+def _safe_execute_wakeup(
+    check: Wakeup, timestamp: datetime, logger: logging.Logger
+) -> Optional[datetime]:
+    try:
+        return check.check(timestamp)
+    except TemporaryCheckError:
+        logger.warning("Wakeup %s failed. Ignoring...", check, exc_info=True)
+        return None
+
+
 def execute_wakeups(
-    wakeups: Iterable[Wakeup], timestamp: datetime.datetime, logger: logging.Logger
-) -> Optional[datetime.datetime]:
+    wakeups: Iterable[Wakeup], timestamp: datetime, logger: logging.Logger
+) -> Optional[datetime]:
 
     wakeup_at = None
     for wakeup in wakeups:
-        try:
-            this_at = wakeup.check(timestamp)
+        this_at = _safe_execute_wakeup(wakeup, timestamp, logger)
 
-            # sanity checks
-            if this_at is None:
-                continue
-            if this_at <= timestamp:
-                logger.warning(
-                    "Wakeup %s returned a scheduled wakeup at %s, "
-                    "which is earlier than the current time %s. "
-                    "Ignoring.",
-                    wakeup,
-                    this_at,
-                    timestamp,
-                )
-                continue
+        # sanity checks
+        if this_at is None:
+            continue
+        if this_at <= timestamp:
+            logger.warning(
+                "Wakeup %s returned a scheduled wakeup at %s, "
+                "which is earlier than the current time %s. "
+                "Ignoring.",
+                wakeup,
+                this_at,
+                timestamp,
+            )
+            continue
 
-            if wakeup_at is None:
-                wakeup_at = this_at
-            else:
-                wakeup_at = min(this_at, wakeup_at)
-        except TemporaryCheckError:
-            logger.warning("Wakeup %s failed. Ignoring...", wakeup, exc_info=True)
+        # determine the earliest wake up point in time
+        wakeup_at = min(this_at, wakeup_at or this_at)
 
     return wakeup_at
 
@@ -227,7 +237,7 @@ class Processor:
         min_sleep_time: float,
         wakeup_delta: float,
         sleep_fn: Callable,
-        wakeup_fn: Callable[[datetime.datetime], None],
+        wakeup_fn: Callable[[datetime], None],
         all_activities: bool,
     ) -> None:
         self._logger = logger_by_class_instance(self)
@@ -239,13 +249,18 @@ class Processor:
         self._sleep_fn = sleep_fn
         self._wakeup_fn = wakeup_fn
         self._all_activities = all_activities
-        self._idle_since = None  # type: Optional[datetime.datetime]
+        self._idle_since = None  # type: Optional[datetime]
 
     def _reset_state(self, reason: str) -> None:
         self._logger.info("%s. Resetting state", reason)
         self._idle_since = None
 
-    def iteration(self, timestamp: datetime.datetime, just_woke_up: bool) -> None:
+    def _set_idle(self, since: datetime) -> datetime:
+        """Set the idle since marker to the given dt if not already set earlier."""
+        self._idle_since = min(since, self._idle_since or since)
+        return self._idle_since
+
+    def iteration(self, timestamp: datetime, just_woke_up: bool) -> None:
         self._logger.info("Starting new check iteration")
 
         # exit in case something prevents suspension
@@ -263,61 +278,89 @@ class Processor:
             return
 
         # set idle timestamp if required
-        if self._idle_since is None:
-            self._idle_since = timestamp
-
-        self._logger.info("System is idle since %s", self._idle_since)
+        idle_since = self._set_idle(timestamp)
+        self._logger.info("System is idle since %s", idle_since)
 
         # determine if systems is idle long enough
-        self._logger.debug(
-            "Idle seconds: %s", (timestamp - self._idle_since).total_seconds()
-        )
-        if (timestamp - self._idle_since).total_seconds() > self._idle_time:
-            self._logger.info("System is idle long enough.")
-
-            # determine potential wake ups
-            wakeup_at = execute_wakeups(self._wakeups, timestamp, self._logger)
-            if wakeup_at is not None:
-                self._logger.debug("System wakeup required at %s", wakeup_at)
-                wakeup_at -= datetime.timedelta(seconds=self._wakeup_delta)
-                self._logger.debug(
-                    "With delta applied, system should wake up at %s",
-                    wakeup_at,
-                )
-            else:
-                self._logger.debug("No automatic wakeup required")
-
-            # idle time would be reached, handle wake up
-            if wakeup_at is not None:
-                wakeup_in = wakeup_at - timestamp
-                if wakeup_in.total_seconds() < self._min_sleep_time:
-                    self._logger.info(
-                        "Would wake up in %s seconds, which is "
-                        "below the minimum amount of %s s. "
-                        "Not suspending.",
-                        wakeup_in.total_seconds(),
-                        self._min_sleep_time,
-                    )
-                    return
-
-                # schedule wakeup
-                self._logger.info("Scheduling wakeup at %s", wakeup_at)
-                self._wakeup_fn(wakeup_at)
-
-            self._reset_state("Going to suspend")
-            self._sleep_fn(wakeup_at)
-        else:
+        self._logger.debug("Idle seconds: %s", (timestamp - idle_since).total_seconds())
+        if (timestamp - idle_since).total_seconds() <= self._idle_time:
             self._logger.info(
                 "Desired idle time of %s s not reached yet.", self._idle_time
             )
+            return
+
+        self._logger.info("System is idle long enough.")
+
+        # determine potential wake ups
+        wakeup_at = execute_wakeups(self._wakeups, timestamp, self._logger)
+        if wakeup_at is None:
+            self._logger.debug("No automatic wakeup required")
+        else:
+            self._logger.debug("System wakeup required at %s", wakeup_at)
+
+            # Apply configured wakeup delta
+            wakeup_at -= timedelta(seconds=self._wakeup_delta)
+            self._logger.debug(
+                "With delta applied, system should wake up at %s",
+                wakeup_at,
+            )
+
+            wakeup_in = wakeup_at - timestamp
+            if wakeup_in.total_seconds() < self._min_sleep_time:
+                self._logger.info(
+                    "Would wake up in %s seconds, which is "
+                    "below the minimum amount of %s s. "
+                    "Not suspending.",
+                    wakeup_in.total_seconds(),
+                    self._min_sleep_time,
+                )
+                return
+
+            # schedule wakeup
+            self._logger.info("Scheduling wakeup at %s", wakeup_at)
+            self._wakeup_fn(wakeup_at)
+
+        self._reset_state("Going to suspend")
+        self._sleep_fn(wakeup_at)
+
+
+def _continue_looping(run_for: Optional[int], start_time: datetime) -> bool:
+    return (run_for is None) or (
+        datetime.now(timezone.utc) < (start_time + timedelta(seconds=run_for))
+    )
+
+
+def _do_loop_iteration(
+    processor: Processor,
+    woke_up_file: Path,
+    lock_file: Path,
+    lock_timeout: float,
+) -> None:
+    try:
+        _logger.debug("New iteration, trying to acquire lock")
+        with portalocker.Lock(lock_file, timeout=lock_timeout):
+            _logger.debug("Acquired lock")
+
+            just_woke_up = woke_up_file.is_file()
+            if just_woke_up:
+                _logger.debug("Removing woke up file at %s", woke_up_file)
+                try:
+                    woke_up_file.unlink()
+                except FileNotFoundError:
+                    _logger.warning("Just woke up file disappeared", exc_info=True)
+
+            processor.iteration(datetime.now(timezone.utc), just_woke_up)
+
+    except portalocker.LockException:
+        _logger.warning("Failed to acquire lock, skipping iteration", exc_info=True)
 
 
 def loop(
     processor: Processor,
     interval: float,
     run_for: Optional[int],
-    woke_up_file: str,
-    lock_file: str,
+    woke_up_file: Path,
+    lock_file: Path,
     lock_timeout: float,
 ) -> None:
     """Run the main loop of the daemon.
@@ -340,38 +383,83 @@ def loop(
             time in seconds to wait for acquiring the lock file
     """
 
-    start_time = datetime.datetime.now(datetime.timezone.utc)
-    while (run_for is None) or (
-        datetime.datetime.now(datetime.timezone.utc)
-        < (start_time + datetime.timedelta(seconds=run_for))
-    ):
-
-        try:
-            _logger.debug("New iteration, trying to acquire lock")
-            with portalocker.Lock(lock_file, timeout=lock_timeout):
-                _logger.debug("Acquired lock")
-
-                just_woke_up = os.path.isfile(woke_up_file)
-                if just_woke_up:
-                    _logger.debug("Removing woke up file at %s", woke_up_file)
-                    try:
-                        os.remove(woke_up_file)
-                    except FileNotFoundError:
-                        _logger.warning("Just woke up file disappeared", exc_info=True)
-
-                processor.iteration(
-                    datetime.datetime.now(datetime.timezone.utc), just_woke_up
-                )
-
-        except portalocker.LockException:
-            _logger.warning("Failed to acquire lock, skipping iteration", exc_info=True)
-
+    start_time = datetime.now(timezone.utc)
+    while _continue_looping(run_for, start_time):
+        _do_loop_iteration(processor, woke_up_file, lock_file, lock_timeout)
         time.sleep(interval)
 
 
 def config_section_string(section: configparser.SectionProxy) -> str:
     data = {k: v if k != "password" else "<redacted>" for k, v in section.items()}
     return f"{data}"
+
+
+def _determine_check_class_and_module(
+    class_name: str, internal_module: str
+) -> Tuple[str, str]:
+    """Determine module and class of a check depending on whether it is internal."""
+    if "." in class_name:
+        # dot in class name means external class
+        import_module, import_class = class_name.rsplit(".", maxsplit=1)
+    else:
+        # no dot means internal class
+        import_module = "autosuspend.checks.{}".format(internal_module)
+        import_class = class_name
+
+    return import_module, import_class
+
+
+def _determine_check_class_name(name: str, section: configparser.SectionProxy) -> str:
+    # legacy method to determine the check name from the section header
+    class_name = name
+    # if there is an explicit class, use that one with higher priority
+    if "class" in section:
+        class_name = section["class"]
+    return class_name
+
+
+def _set_up_single_check(
+    section: configparser.SectionProxy,
+    prefix: str,
+    internal_module: str,
+    target_class: Type[CheckType],
+) -> CheckType:
+    name = section.name[len("{}.".format(prefix)) :]
+
+    class_name = _determine_check_class_name(name, section)
+
+    # try to find the required class
+    import_module, import_class = _determine_check_class_and_module(
+        class_name, internal_module
+    )
+    _logger.info(
+        "Configuring check %s with class %s from module %s "
+        "using config parameters %s",
+        name,
+        import_class,
+        import_module,
+        config_section_string(section),
+    )
+    try:
+        klass = getattr(
+            __import__(import_module, fromlist=[import_class]), import_class
+        )
+    except AttributeError as error:
+        raise ConfigurationError(
+            "Cannot create built-in check named {}: "
+            "Class does not exist".format(class_name)
+        ) from error
+
+    check = klass.create(name, section)
+    if not isinstance(check, target_class):
+        raise ConfigurationError(
+            "Check {} is not a correct {} instance".format(check, target_class.__name__)
+        )
+    _logger.debug(
+        "Created check instance {} with options {}".format(check, check.options())
+    )
+
+    return check
 
 
 def set_up_checks(
@@ -400,56 +488,16 @@ def set_up_checks(
     configured_checks = []
 
     check_section = [s for s in config.sections() if s.startswith("{}.".format(prefix))]
-    for section in check_section:
-        name = section[len("{}.".format(prefix)) :]
-        # legacy method to determine the check name from the section header
-        class_name = name
-        # if there is an explicit class, use that one with higher priority
-        if "class" in config[section]:
-            class_name = config[section]["class"]
-        enabled = config.getboolean(section, "enabled", fallback=False)
+    for section_name in check_section:
+        section = config[section_name]
 
-        if not enabled:
-            _logger.debug("Skipping disabled check {}".format(name))
+        if not section.getboolean("enabled", fallback=False):
+            _logger.debug("Skipping disabled check {}".format(section_name))
             continue
 
-        # try to find the required class
-        if "." in class_name:
-            # dot in class name means external class
-            import_module, import_class = class_name.rsplit(".", maxsplit=1)
-        else:
-            # no dot means internal class
-            import_module = "autosuspend.checks.{}".format(internal_module)
-            import_class = class_name
-        _logger.info(
-            "Configuring check %s with class %s from module %s "
-            "using config parameters %s",
-            name,
-            import_class,
-            import_module,
-            config_section_string(config[section]),
+        configured_checks.append(
+            _set_up_single_check(section, prefix, internal_module, target_class)
         )
-        try:
-            klass = getattr(
-                __import__(import_module, fromlist=[import_class]), import_class
-            )
-        except AttributeError as error:
-            raise ConfigurationError(
-                "Cannot create built-in check named {}: "
-                "Class does not exist".format(class_name)
-            ) from error
-
-        check = klass.create(name, config[section])
-        if not isinstance(check, target_class):
-            raise ConfigurationError(
-                "Check {} is not a correct {} instance".format(
-                    check, target_class.__name__
-                )
-            )
-        _logger.debug(
-            "Created check instance {} with options {}".format(check, check.options())
-        )
-        configured_checks.append(check)
 
     if not configured_checks and error_none:
         raise ConfigurationError("No checks enabled")
@@ -486,12 +534,9 @@ def parse_arguments(args: Optional[Sequence[str]]) -> argparse.Namespace:
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
     )
 
-    IO  # for making pyflakes happy
-    default_config = None  # type: Optional[IO[str]]
-    try:
+    default_config: Optional[IO[str]] = None
+    with suppress(FileNotFoundError, IsADirectoryError, PermissionError):
         default_config = open("/etc/autosuspend.conf", "r")
-    except (FileNotFoundError, IsADirectoryError, PermissionError):
-        pass
     parser.add_argument(
         "-c",
         "--config",
@@ -613,18 +658,22 @@ def get_notify_and_suspend_func(config: configparser.ConfigParser) -> Callable:
 
 def get_schedule_wakeup_func(
     config: configparser.ConfigParser,
-) -> Callable[[datetime.datetime], None]:
+) -> Callable[[datetime], None]:
     return functools.partial(schedule_wakeup, config.get("general", "wakeup_cmd"))
 
 
-def get_woke_up_file(config: configparser.ConfigParser) -> str:
-    return config.get(
-        "general", "woke_up_file", fallback="/var/run/autosuspend-just-woke-up"
+def get_woke_up_file(config: configparser.ConfigParser) -> Path:
+    return Path(
+        config.get(
+            "general", "woke_up_file", fallback="/var/run/autosuspend-just-woke-up"
+        )
     )
 
 
-def get_lock_file(config: configparser.ConfigParser) -> str:
-    return config.get("general", "lock_file", fallback="/var/lock/autosuspend.lock")
+def get_lock_file(config: configparser.ConfigParser) -> Path:
+    return Path(
+        config.get("general", "lock_file", fallback="/var/lock/autosuspend.lock")
+    )
 
 
 def get_lock_timeout(config: configparser.ConfigParser) -> float:
@@ -656,9 +705,9 @@ def configure_processor(
 def hook(
     wakeups: List[Wakeup],
     wakeup_delta: float,
-    wakeup_fn: Callable[[datetime.datetime], None],
-    woke_up_file: str,
-    lock_file: str,
+    wakeup_fn: Callable[[datetime], None],
+    woke_up_file: Path,
+    lock_file: Path,
     lock_timeout: float,
 ) -> None:
     """Installs wake ups and notifies the daemon before suspending.
@@ -685,20 +734,18 @@ def hook(
             _logger.debug("Hook acquired lock")
 
             _logger.debug("Hook executing with configured wake ups: %s", wakeups)
-            wakeup_at = execute_wakeups(
-                wakeups, datetime.datetime.now(datetime.timezone.utc), _logger
-            )
+            wakeup_at = execute_wakeups(wakeups, datetime.now(timezone.utc), _logger)
             _logger.debug("Hook next wake up at %s", wakeup_at)
 
             if wakeup_at:
-                wakeup_at -= datetime.timedelta(seconds=wakeup_delta)
+                wakeup_at -= timedelta(seconds=wakeup_delta)
                 _logger.info("Scheduling next wake up at %s", wakeup_at)
                 wakeup_fn(wakeup_at)
             else:
                 _logger.info("No wake up required. Terminating")
 
             # create the just woke up file
-            pathlib.Path(woke_up_file).touch()
+            woke_up_file.touch()
     except portalocker.LockException:
         _logger.warning(
             "Hook unable to acquire lock. Not informing daemon.", exc_info=True

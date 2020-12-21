@@ -1,10 +1,12 @@
 import configparser
+from contextlib import suppress
 from typing import Any, Dict, Optional, Sequence, TYPE_CHECKING
 
 from . import Check, ConfigurationError, SevereCheckError, TemporaryCheckError
 
 
 if TYPE_CHECKING:
+    import requests
     import requests.models
 
 
@@ -23,16 +25,23 @@ class CommandMixin:
 
 
 class NetworkMixin:
+    @staticmethod
+    def _ensure_credentials_consistent(args: Dict[str, Any]) -> None:
+        if (args["username"] is None) != (args["password"] is None):
+            raise ConfigurationError("Username and password must be set")
+
     @classmethod
-    def collect_init_args(cls, config: configparser.SectionProxy) -> Dict[str, Any]:
+    def collect_init_args(  # noqa: CCR001
+        cls,
+        config: configparser.SectionProxy,
+    ) -> Dict[str, Any]:
         try:
-            args = {}  # type: Dict[str, Any]
+            args: Dict[str, Any] = {}
             args["timeout"] = config.getint("timeout", fallback=5)
             args["url"] = config["url"]
             args["username"] = config.get("username")
             args["password"] = config.get("password")
-            if (args["username"] is None) != (args["password"] is None):
-                raise ConfigurationError("Username and password must be set")
+            cls._ensure_credentials_consistent(args)
             return args
         except ValueError as error:
             raise ConfigurationError("Configuration error " + str(error)) from error
@@ -57,43 +66,63 @@ class NetworkMixin:
         self._password = password
         self._accept = accept
 
-    def request(self) -> "requests.models.Response":
+    @staticmethod
+    def _create_session() -> "requests.Session":
         import requests
+
+        session = requests.Session()
+
+        with suppress(ImportError):
+            from requests_file import FileAdapter
+
+            session.mount("file://", FileAdapter())
+
+        return session
+
+    def _request_headers(self) -> Optional[Dict[str, str]]:
+        if self._accept:
+            return {"Accept": self._accept}
+        else:
+            return None
+
+    def _create_auth_from_failed_request(
+        self, reply: "requests.models.Response"
+    ) -> Any:
         from requests.auth import HTTPBasicAuth, HTTPDigestAuth
-        import requests.exceptions
 
         auth_map = {
             "basic": HTTPBasicAuth,
             "digest": HTTPDigestAuth,
         }
 
-        session = requests.Session()
+        auth_scheme = reply.headers["WWW-Authenticate"].split(" ")[0].lower()
+        if auth_scheme not in auth_map:
+            raise SevereCheckError(
+                "Unsupported authentication scheme {}".format(auth_scheme)
+            )
+
+        return auth_map[auth_scheme](self._username, self._password)
+
+    def request(self) -> "requests.models.Response":
+        import requests
+        import requests.exceptions
+
+        session = self._create_session()
+
         try:
-            from requests_file import FileAdapter
 
-            session.mount("file://", FileAdapter())
-        except ImportError:
-            pass
-
-        try:
-
-            headers: Optional[Dict[str, str]] = None
-            if self._accept:
-                headers = {"Accept": self._accept}
-
-            reply = session.get(self._url, timeout=self._timeout, headers=headers)
+            reply = session.get(
+                self._url, timeout=self._timeout, headers=self._request_headers()
+            )
 
             # replace reply with an authenticated version if credentials are
             # available and the server has requested authentication
             if self._username and self._password and reply.status_code == 401:
-                auth_scheme = reply.headers["WWW-Authenticate"].split(" ")[0].lower()
-                if auth_scheme not in auth_map:
-                    raise SevereCheckError(
-                        "Unsupported authentication scheme {}".format(auth_scheme)
-                    )
-                auth = auth_map[auth_scheme](self._username, self._password)
                 reply = session.get(
-                    self._url, timeout=self._timeout, auth=auth, headers=headers
+                    self._url,
+                    timeout=self._timeout,
+                    auth=self._create_auth_from_failed_request(reply),
+                    headers=self._request_headers(),
                 )
 
             reply.raise_for_status()

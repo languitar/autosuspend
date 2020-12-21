@@ -1,6 +1,7 @@
 import configparser
 from datetime import datetime, timedelta, timezone
 from io import BytesIO
+from pathlib import Path
 import subprocess
 from typing import Any, Optional
 
@@ -44,21 +45,19 @@ class File(Wakeup):
     @classmethod
     def create(cls, name: str, config: configparser.SectionProxy) -> "File":
         try:
-            path = config["path"]
+            path = Path(config["path"])
             return cls(name, path)
         except KeyError as error:
             raise ConfigurationError("Missing option path") from error
 
-    def __init__(self, name: str, path: str) -> None:
+    def __init__(self, name: str, path: Path) -> None:
         Wakeup.__init__(self, name)
         self._path = path
 
     def check(self, timestamp: datetime) -> Optional[datetime]:
         try:
-            with open(self._path, "r") as time_file:
-                return datetime.fromtimestamp(
-                    float(time_file.readlines()[0].strip()), timezone.utc
-                )
+            first_line = self._path.read_text().splitlines()[0]
+            return datetime.fromtimestamp(float(first_line.strip()), timezone.utc)
         except FileNotFoundError:
             # this is ok
             return None

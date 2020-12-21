@@ -2,7 +2,7 @@
 
 import abc
 import configparser
-import datetime
+from datetime import datetime
 from typing import Any, Mapping, Optional, Type, TypeVar
 
 from autosuspend.util import logger_by_class_instance
@@ -119,7 +119,7 @@ class Wakeup(Check):
     """Represents a check for potential wake up points."""
 
     @abc.abstractmethod
-    def check(self, timestamp: datetime.datetime) -> Optional[datetime.datetime]:
+    def check(self, timestamp: datetime) -> Optional[datetime]:
         """Indicate if a wakeup has to be scheduled for this check.
 
         Args:

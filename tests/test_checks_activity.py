@@ -1,10 +1,8 @@
 from collections import namedtuple
 import configparser
+from getpass import getuser
 import json
-import os
-import os.path
 from pathlib import Path
-import pwd
 import re
 import socket
 import subprocess
@@ -46,6 +44,11 @@ from autosuspend.checks.activity import (
     XPath,
 )
 from autosuspend.util.systemd import LogindDBusException
+from autosuspend.util.xorg import (
+    list_sessions_logind,
+    list_sessions_sockets,
+    XorgSession,
+)
 from . import CheckTest
 
 
@@ -613,7 +616,8 @@ class TestNetworkBandwidth(CheckTest):
         mock = mocker.patch("psutil.net_if_addrs")
         mock.return_value = {"foo": None, "bar": None, "baz": None}
 
-    def test_create(self, _mock_interfaces: None) -> None:
+    @pytest.mark.usefixtures("_mock_interfaces")
+    def test_create(self) -> None:
         parser = configparser.ConfigParser()
         parser.read_string(
             """
@@ -628,7 +632,8 @@ threshold_receive = 300
         assert check._threshold_send == 200
         assert check._threshold_receive == 300
 
-    def test_create_default(self, _mock_interfaces: None) -> None:
+    @pytest.mark.usefixtures("_mock_interfaces")
+    def test_create_default(self) -> None:
         parser = configparser.ConfigParser()
         parser.read_string(
             """
@@ -688,9 +693,8 @@ threshold_receive = xxx
             ),
         ],
     )
-    def test_create_error(
-        self, _mock_interfaces: None, config: str, error_match: str
-    ) -> None:
+    @pytest.mark.usefixtures("_mock_interfaces")
+    def test_create_error(self, config: str, error_match: str) -> None:
         parser = configparser.ConfigParser()
         parser.read_string(config)
         with pytest.raises(ConfigurationError, match=error_match):
@@ -1087,7 +1091,7 @@ class TestXIdleTime(CheckTest):
     def test_smoke(self, mocker: MockFixture) -> None:
         check = XIdleTime("name", 100, "logind", re.compile(r"a^"), re.compile(r"a^"))
         mocker.patch.object(check, "_provide_sessions").return_value = [
-            ("42", "auser"),
+            XorgSession(42, getuser()),
         ]
 
         co_mock = mocker.patch("subprocess.check_output")
@@ -1098,14 +1102,14 @@ class TestXIdleTime(CheckTest):
         assert " 0.123 " in res
 
         args, kwargs = co_mock.call_args
-        assert "auser" in args[0]
+        assert getuser() in args[0]
         assert kwargs["env"]["DISPLAY"] == ":42"
-        assert "auser" in kwargs["env"]["XAUTHORITY"]
+        assert getuser() in kwargs["env"]["XAUTHORITY"]
 
     def test_no_activity(self, mocker: MockFixture) -> None:
         check = XIdleTime("name", 100, "logind", re.compile(r"a^"), re.compile(r"a^"))
         mocker.patch.object(check, "_provide_sessions").return_value = [
-            ("42", "auser"),
+            XorgSession(42, getuser()),
         ]
 
         mocker.patch("subprocess.check_output").return_value = "120000"
@@ -1115,8 +1119,8 @@ class TestXIdleTime(CheckTest):
     def test_multiple_sessions(self, mocker: MockFixture) -> None:
         check = XIdleTime("name", 100, "logind", re.compile(r"a^"), re.compile(r"a^"))
         mocker.patch.object(check, "_provide_sessions").return_value = [
-            ("42", "auser"),
-            ("17", "otheruser"),
+            XorgSession(42, getuser()),
+            XorgSession(17, "root"),
         ]
 
         co_mock = mocker.patch("subprocess.check_output")
@@ -1132,14 +1136,14 @@ class TestXIdleTime(CheckTest):
         assert co_mock.call_count == 2
         # check second call for correct values, not checked before
         args, kwargs = co_mock.call_args_list[1]
-        assert "otheruser" in args[0]
+        assert "root" in args[0]
         assert kwargs["env"]["DISPLAY"] == ":17"
-        assert "otheruser" in kwargs["env"]["XAUTHORITY"]
+        assert "root" in kwargs["env"]["XAUTHORITY"]
 
     def test_handle_call_error(self, mocker: MockFixture) -> None:
         check = XIdleTime("name", 100, "logind", re.compile(r"a^"), re.compile(r"a^"))
         mocker.patch.object(check, "_provide_sessions").return_value = [
-            ("42", "auser"),
+            XorgSession(42, getuser()),
         ]
 
         mocker.patch(
@@ -1156,7 +1160,7 @@ class TestXIdleTime(CheckTest):
         assert check._timeout == 600
         assert check._ignore_process_re == re.compile(r"a^")
         assert check._ignore_users_re == re.compile(r"a^")
-        assert check._provide_sessions == check._list_sessions_sockets
+        assert check._provide_sessions == list_sessions_sockets
 
     def test_create(self) -> None:
         parser = configparser.ConfigParser()
@@ -1173,7 +1177,7 @@ class TestXIdleTime(CheckTest):
         assert check._timeout == 42
         assert check._ignore_process_re == re.compile(r".*test")
         assert check._ignore_users_re == re.compile(r"test.*test")
-        assert check._provide_sessions == check._list_sessions_logind
+        assert check._provide_sessions == list_sessions_logind
 
     def test_create_no_int(self) -> None:
         parser = configparser.ConfigParser()
@@ -1219,53 +1223,16 @@ class TestXIdleTime(CheckTest):
         with pytest.raises(ConfigurationError):
             XIdleTime.create("name", parser["section"])
 
-    def test_list_sessions_logind(self, mocker: MockFixture) -> None:
-        mock = mocker.patch("autosuspend.checks.activity.list_logind_sessions")
-        mock.return_value = [
-            ("c1", {"Name": "foo"}),
-            ("c2", {"Display": "asdfasf"}),
-            ("c3", {"Name": "hello", "Display": "nonumber"}),
-            ("c4", {"Name": "hello", "Display": "3"}),
-        ]
-
-        parser = configparser.ConfigParser()
-        parser.read_string("""[section]""")
-        check = XIdleTime.create("name", parser["section"])
-        assert check._list_sessions_logind() == [(3, "hello")]
-
     def test_list_sessions_logind_dbus_error(self, mocker: MockFixture) -> None:
-        mock = mocker.patch("autosuspend.checks.activity.list_logind_sessions")
-        mock.side_effect = LogindDBusException()
-
         parser = configparser.ConfigParser()
         parser.read_string("""[section]""")
         check = XIdleTime.create("name", parser["section"])
+        mocker.patch.object(
+            check, "_provide_sessions"
+        ).side_effect = LogindDBusException()
+
         with pytest.raises(TemporaryCheckError):
-            check._list_sessions_logind()
-
-    def test_list_sessions_socket(self, mocker: MockFixture) -> None:
-        mock_glob = mocker.patch("glob.glob")
-        mock_glob.return_value = [
-            "/tmp/.X11-unix/X0",
-            "/tmp/.X11-unix/X42",
-            "/tmp/.X11-unix/Xnum",
-        ]
-
-        stat_return = os.stat(os.path.realpath(__file__))
-        this_user = pwd.getpwuid(stat_return.st_uid)
-        mock_stat = mocker.patch("os.stat")
-        mock_stat.return_value = stat_return
-
-        mock_pwd = mocker.patch("pwd.getpwuid")
-        mock_pwd.return_value = this_user
-
-        parser = configparser.ConfigParser()
-        parser.read_string("""[section]""")
-        check = XIdleTime.create("name", parser["section"])
-        assert check._list_sessions_sockets() == [
-            (0, this_user.pw_name),
-            (42, this_user.pw_name),
-        ]
+            check._safe_provide_sessions()
 
 
 class TestExternalCommand(CheckTest):
@@ -1419,7 +1386,8 @@ class TestLogindSessionsIdle(CheckTest):
         check = LogindSessionsIdle.create("name", parser["section"])
         assert check._states == ["test", "bla", "foo"]
 
-    def test_dbus_error(self, logind_dbus_error: Any) -> None:
+    @pytest.mark.usefixtures("_logind_dbus_error")
+    def test_dbus_error(self) -> None:
         check = LogindSessionsIdle("test", ["test"], ["active", "online"])
 
         with pytest.raises(TemporaryCheckError):
@@ -1434,7 +1402,7 @@ class TestJsonPath(CheckTest):
             timeout=5,
             username="userx",
             password="pass",
-            jsonpath="/b",
+            jsonpath=parse("b"),
         )
 
     @staticmethod
@@ -1510,30 +1478,30 @@ class TestJsonPath(CheckTest):
         assert check._timeout == 42
 
     def test_create_missing_path(self) -> None:
+        parser = configparser.ConfigParser()
+        parser.read_string(
+            """
+            [section]
+            url = url
+            username = user
+            password = pass
+            timeout = 42
+            """
+        )
         with pytest.raises(ConfigurationError):
-            parser = configparser.ConfigParser()
-            parser.read_string(
-                """
-                [section]
-                url = url
-                username = user
-                password = pass
-                timeout = 42
-                """
-            )
             JsonPath.create("name", parser["section"])
 
     def test_create_invalid_path(self) -> None:
+        parser = configparser.ConfigParser()
+        parser.read_string(
+            """
+            [section]
+            url = url
+            jsonpath = ,.asdfjasdklf
+            username = user
+            password = pass
+            timeout = 42
+            """
+        )
         with pytest.raises(ConfigurationError):
-            parser = configparser.ConfigParser()
-            parser.read_string(
-                """
-                [section]
-                url = url
-                jsonpath = ,.asdfjasdklf
-                username = user
-                password = pass
-                timeout = 42
-                """
-            )
             JsonPath.create("name", parser["section"])

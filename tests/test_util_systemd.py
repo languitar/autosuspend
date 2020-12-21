@@ -13,6 +13,7 @@ def test_list_logind_sessions_empty(logind: ProxyObject) -> None:
     assert sessions[0][0] == "c1"
 
 
-def test_list_logind_sessions_dbus_error(logind_dbus_error: ProxyObject) -> None:
+@pytest.mark.usefixtures("_logind_dbus_error")
+def test_list_logind_sessions_dbus_error() -> None:
     with pytest.raises(LogindDBusException):
         list_logind_sessions()
