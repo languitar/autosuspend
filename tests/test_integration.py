@@ -1,4 +1,4 @@
-import datetime
+from datetime import datetime, timedelta, timezone
 import logging
 from pathlib import Path
 from typing import Any, Iterable
@@ -34,7 +34,7 @@ def _rapid_sleep(mocker: MockFixture) -> Iterable[None]:
     with freeze_time() as frozen_time:
         sleep_mock = mocker.patch("time.sleep")
         sleep_mock.side_effect = lambda seconds: frozen_time.tick(
-            datetime.timedelta(seconds=seconds)
+            timedelta(seconds=seconds)
         )
         yield
 
@@ -74,8 +74,8 @@ def test_suspend(tmp_path: Path, datadir: Path) -> None:
 @pytest.mark.usefixtures("_rapid_sleep")
 def test_wakeup_scheduled(tmp_path: Path, datadir: Path) -> None:
     # configure when to wake up
-    now = datetime.datetime.now(datetime.timezone.utc)
-    wakeup_at = now + datetime.timedelta(hours=4)
+    now = datetime.now(timezone.utc)
+    wakeup_at = now + timedelta(hours=4)
     (tmp_path / "wakeup_time").write_text(str(wakeup_at.timestamp()))
 
     autosuspend.main(
@@ -92,7 +92,7 @@ def test_wakeup_scheduled(tmp_path: Path, datadir: Path) -> None:
     assert (tmp_path / SUSPENSION_FILE).exists()
     assert (tmp_path / SCHEDULED_FILE).exists()
     assert int((tmp_path / SCHEDULED_FILE).read_text()) == int(
-        round((wakeup_at - datetime.timedelta(seconds=30)).timestamp())
+        round((wakeup_at - timedelta(seconds=30)).timestamp())
     )
 
 
@@ -133,8 +133,8 @@ def test_notify_call(tmp_path: Path, datadir: Path) -> None:
 @pytest.mark.usefixtures("_rapid_sleep")
 def test_notify_call_wakeup(tmp_path: Path, datadir: Path) -> None:
     # configure when to wake up
-    now = datetime.datetime.now(datetime.timezone.utc)
-    wakeup_at = now + datetime.timedelta(hours=4)
+    now = datetime.now(timezone.utc)
+    wakeup_at = now + timedelta(hours=4)
     (tmp_path / "wakeup_time").write_text(str(wakeup_at.timestamp()))
 
     autosuspend.main(
@@ -151,7 +151,7 @@ def test_notify_call_wakeup(tmp_path: Path, datadir: Path) -> None:
     assert (tmp_path / SUSPENSION_FILE).exists()
     assert (tmp_path / NOTIFY_FILE).exists()
     assert int((tmp_path / NOTIFY_FILE).read_text()) == int(
-        round((wakeup_at - datetime.timedelta(seconds=10)).timestamp())
+        round((wakeup_at - timedelta(seconds=10)).timestamp())
     )
 
 
@@ -226,8 +226,8 @@ def test_hook_success(tmp_path: Path, datadir: Path) -> None:
 
 def test_hook_call_wakeup(tmp_path: Path, datadir: Path) -> None:
     # configure when to wake up
-    now = datetime.datetime.now(datetime.timezone.utc)
-    wakeup_at = now + datetime.timedelta(hours=4)
+    now = datetime.now(timezone.utc)
+    wakeup_at = now + timedelta(hours=4)
     (tmp_path / "wakeup_time").write_text(str(wakeup_at.timestamp()))
 
     autosuspend.main(
@@ -241,5 +241,5 @@ def test_hook_call_wakeup(tmp_path: Path, datadir: Path) -> None:
 
     assert (tmp_path / SCHEDULED_FILE).exists()
     assert int((tmp_path / SCHEDULED_FILE).read_text()) == int(
-        round((wakeup_at - datetime.timedelta(seconds=30)).timestamp())
+        round((wakeup_at - timedelta(seconds=30)).timestamp())
     )

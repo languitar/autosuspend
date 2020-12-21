@@ -4,7 +4,7 @@
 import argparse
 import configparser
 from contextlib import suppress
-import datetime
+from datetime import datetime, timedelta, timezone
 import functools
 import logging
 import logging.config
@@ -42,7 +42,7 @@ _logger = logging.getLogger("autosuspend")
 
 def execute_suspend(
     command: Union[str, Sequence[str]],
-    wakeup_at: Optional[datetime.datetime],
+    wakeup_at: Optional[datetime],
 ) -> None:
     """Suspend the system by calling the specified command.
 
@@ -63,7 +63,7 @@ def execute_suspend(
 def notify_suspend(
     command_wakeup_template: Optional[str],
     command_no_wakeup: Optional[str],
-    wakeup_at: Optional[datetime.datetime],
+    wakeup_at: Optional[datetime],
 ) -> None:
     """Call a command to notify on suspending.
 
@@ -107,13 +107,13 @@ def notify_and_suspend(
     suspend_cmd: Union[str, Sequence[str]],
     notify_cmd_wakeup_template: Optional[str],
     notify_cmd_no_wakeup: Optional[str],
-    wakeup_at: Optional[datetime.datetime],
+    wakeup_at: Optional[datetime],
 ) -> None:
     notify_suspend(notify_cmd_wakeup_template, notify_cmd_no_wakeup, wakeup_at)
     execute_suspend(suspend_cmd, wakeup_at)
 
 
-def schedule_wakeup(command_template: str, wakeup_at: datetime.datetime) -> None:
+def schedule_wakeup(command_template: str, wakeup_at: datetime) -> None:
     command = command_template.format(
         timestamp=wakeup_at.timestamp(), iso=wakeup_at.isoformat()
     )
@@ -163,8 +163,8 @@ def execute_checks(
 
 
 def _safe_execute_wakeup(
-    check: Wakeup, timestamp: datetime.datetime, logger: logging.Logger
-) -> Optional[datetime.datetime]:
+    check: Wakeup, timestamp: datetime, logger: logging.Logger
+) -> Optional[datetime]:
     try:
         return check.check(timestamp)
     except TemporaryCheckError:
@@ -173,8 +173,8 @@ def _safe_execute_wakeup(
 
 
 def execute_wakeups(
-    wakeups: Iterable[Wakeup], timestamp: datetime.datetime, logger: logging.Logger
-) -> Optional[datetime.datetime]:
+    wakeups: Iterable[Wakeup], timestamp: datetime, logger: logging.Logger
+) -> Optional[datetime]:
 
     wakeup_at = None
     for wakeup in wakeups:
@@ -237,7 +237,7 @@ class Processor:
         min_sleep_time: float,
         wakeup_delta: float,
         sleep_fn: Callable,
-        wakeup_fn: Callable[[datetime.datetime], None],
+        wakeup_fn: Callable[[datetime], None],
         all_activities: bool,
     ) -> None:
         self._logger = logger_by_class_instance(self)
@@ -249,18 +249,18 @@ class Processor:
         self._sleep_fn = sleep_fn
         self._wakeup_fn = wakeup_fn
         self._all_activities = all_activities
-        self._idle_since = None  # type: Optional[datetime.datetime]
+        self._idle_since = None  # type: Optional[datetime]
 
     def _reset_state(self, reason: str) -> None:
         self._logger.info("%s. Resetting state", reason)
         self._idle_since = None
 
-    def _set_idle(self, since: datetime.datetime) -> datetime.datetime:
+    def _set_idle(self, since: datetime) -> datetime:
         """Set the idle since marker to the given dt if not already set earlier."""
         self._idle_since = min(since, self._idle_since or since)
         return self._idle_since
 
-    def iteration(self, timestamp: datetime.datetime, just_woke_up: bool) -> None:
+    def iteration(self, timestamp: datetime, just_woke_up: bool) -> None:
         self._logger.info("Starting new check iteration")
 
         # exit in case something prevents suspension
@@ -299,7 +299,7 @@ class Processor:
             self._logger.debug("System wakeup required at %s", wakeup_at)
 
             # Apply configured wakeup delta
-            wakeup_at -= datetime.timedelta(seconds=self._wakeup_delta)
+            wakeup_at -= timedelta(seconds=self._wakeup_delta)
             self._logger.debug(
                 "With delta applied, system should wake up at %s",
                 wakeup_at,
@@ -324,10 +324,9 @@ class Processor:
         self._sleep_fn(wakeup_at)
 
 
-def _continue_looping(run_for: Optional[int], start_time: datetime.datetime) -> bool:
+def _continue_looping(run_for: Optional[int], start_time: datetime) -> bool:
     return (run_for is None) or (
-        datetime.datetime.now(datetime.timezone.utc)
-        < (start_time + datetime.timedelta(seconds=run_for))
+        datetime.now(timezone.utc) < (start_time + timedelta(seconds=run_for))
     )
 
 
@@ -350,9 +349,7 @@ def _do_loop_iteration(
                 except FileNotFoundError:
                     _logger.warning("Just woke up file disappeared", exc_info=True)
 
-            processor.iteration(
-                datetime.datetime.now(datetime.timezone.utc), just_woke_up
-            )
+            processor.iteration(datetime.now(timezone.utc), just_woke_up)
 
     except portalocker.LockException:
         _logger.warning("Failed to acquire lock, skipping iteration", exc_info=True)
@@ -386,7 +383,7 @@ def loop(
             time in seconds to wait for acquiring the lock file
     """
 
-    start_time = datetime.datetime.now(datetime.timezone.utc)
+    start_time = datetime.now(timezone.utc)
     while _continue_looping(run_for, start_time):
         _do_loop_iteration(processor, woke_up_file, lock_file, lock_timeout)
         time.sleep(interval)
@@ -661,7 +658,7 @@ def get_notify_and_suspend_func(config: configparser.ConfigParser) -> Callable:
 
 def get_schedule_wakeup_func(
     config: configparser.ConfigParser,
-) -> Callable[[datetime.datetime], None]:
+) -> Callable[[datetime], None]:
     return functools.partial(schedule_wakeup, config.get("general", "wakeup_cmd"))
 
 
@@ -708,7 +705,7 @@ def configure_processor(
 def hook(
     wakeups: List[Wakeup],
     wakeup_delta: float,
-    wakeup_fn: Callable[[datetime.datetime], None],
+    wakeup_fn: Callable[[datetime], None],
     woke_up_file: Path,
     lock_file: Path,
     lock_timeout: float,
@@ -737,13 +734,11 @@ def hook(
             _logger.debug("Hook acquired lock")
 
             _logger.debug("Hook executing with configured wake ups: %s", wakeups)
-            wakeup_at = execute_wakeups(
-                wakeups, datetime.datetime.now(datetime.timezone.utc), _logger
-            )
+            wakeup_at = execute_wakeups(wakeups, datetime.now(timezone.utc), _logger)
             _logger.debug("Hook next wake up at %s", wakeup_at)
 
             if wakeup_at:
-                wakeup_at -= datetime.timedelta(seconds=wakeup_delta)
+                wakeup_at -= timedelta(seconds=wakeup_delta)
                 _logger.info("Scheduling next wake up at %s", wakeup_at)
                 wakeup_fn(wakeup_at)
             else:
