@@ -5,8 +5,9 @@ from pathlib import Path
 import subprocess
 from typing import Any, Optional
 
+from . import ConfigurationError, TemporaryCheckError, Wakeup
 from .util import CommandMixin, NetworkMixin, XPathMixin
-from .. import ConfigurationError, TemporaryCheckError, Wakeup
+from ..util.subprocess import raise_severe_if_command_not_found
 
 
 class Calendar(NetworkMixin, Wakeup):
@@ -62,7 +63,9 @@ class File(Wakeup):
             # this is ok
             return None
         except (ValueError, IOError) as error:
-            raise TemporaryCheckError(error) from error
+            raise TemporaryCheckError(
+                "Next wakeup time cannot be read despite a file being present"
+            ) from error
 
 
 class Command(CommandMixin, Wakeup):
@@ -90,8 +93,15 @@ class Command(CommandMixin, Wakeup):
             else:
                 return None
 
-        except (subprocess.CalledProcessError, ValueError) as error:
-            raise TemporaryCheckError(error) from error
+        except subprocess.CalledProcessError as error:
+            raise_severe_if_command_not_found(error)
+            raise TemporaryCheckError(
+                "Unable to call the configured command"
+            ) from error
+        except ValueError as error:
+            raise TemporaryCheckError(
+                "Return value cannot be interpreted as a timestamp"
+            ) from error
 
 
 class Periodic(Wakeup):

@@ -81,6 +81,12 @@ class TestSmb(CheckTest):
             side_effect=subprocess.CalledProcessError(2, "cmd"),
         )
 
+        with pytest.raises(TemporaryCheckError):
+            Smb("foo").check()
+
+    def test_missing_executable(self, mocker: MockFixture) -> None:
+        mocker.patch("subprocess.check_output", side_effect=FileNotFoundError)
+
         with pytest.raises(SevereCheckError):
             Smb("foo").check()
 
@@ -1060,6 +1066,13 @@ class TestPing(CheckTest):
         for (args, _), host in zip(mock.call_args_list, hosts):
             assert args[0][-1] == host
 
+    def test_missing_ping_binary(self, mocker: MockFixture) -> None:
+        mock = mocker.patch("subprocess.call")
+        mock.side_effect = FileNotFoundError()
+
+        with pytest.raises(SevereCheckError):
+            Ping("name", ["test"]).check()
+
     def test_matching(self, mocker: MockFixture) -> None:
         mock = mocker.patch("subprocess.call")
         mock.return_value = 0
@@ -1234,6 +1247,17 @@ class TestXIdleTime(CheckTest):
         with pytest.raises(TemporaryCheckError):
             check._safe_provide_sessions()
 
+    def test_sudo_not_found(self, mocker: MockFixture) -> None:
+        check = XIdleTime("name", 100, "logind", re.compile(r"a^"), re.compile(r"a^"))
+        mocker.patch.object(check, "_provide_sessions").return_value = [
+            XorgSession(42, getuser()),
+        ]
+
+        mocker.patch("subprocess.check_output").side_effect = FileNotFoundError
+
+        with pytest.raises(SevereCheckError):
+            check.check()
+
 
 class TestExternalCommand(CheckTest):
     def create_instance(self, name: str) -> Check:
@@ -1267,6 +1291,17 @@ class TestExternalCommand(CheckTest):
             ExternalCommand.create("name", parser["section"]).check() is None  # type: ignore
         )
         mock.assert_called_once_with("foo bar", shell=True)
+
+    def test_command_not_found(self) -> None:
+        parser = configparser.ConfigParser()
+        parser.read_string(
+            """
+            [section]
+            command = thisreallydoesnotexist bar
+            """
+        )
+        with pytest.raises(SevereCheckError):
+            ExternalCommand.create("name", parser["section"]).check()  # type: ignore
 
 
 class TestXPath(CheckTest):

@@ -28,6 +28,7 @@ import psutil
 
 from . import Activity, Check, ConfigurationError, SevereCheckError, TemporaryCheckError
 from .util import CommandMixin, NetworkMixin, XPathMixin
+from ..util.subprocess import raise_severe_if_command_not_found
 from ..util.systemd import list_logind_sessions, LogindDBusException
 from ..util.xorg import list_sessions_logind, list_sessions_sockets, XorgSession
 
@@ -116,7 +117,8 @@ class ExternalCommand(CommandMixin, Activity):
         try:
             subprocess.check_call(self._command, shell=True)  # noqa: S602
             return "Command {} succeeded".format(self._command)
-        except subprocess.CalledProcessError:
+        except subprocess.CalledProcessError as error:
+            raise_severe_if_command_not_found(error)
             return None
 
 
@@ -164,7 +166,7 @@ class Kodi(NetworkMixin, Activity):
         try:
             return self.request().json()["result"]
         except (KeyError, TypeError, json.JSONDecodeError) as error:
-            raise TemporaryCheckError(error) from error
+            raise TemporaryCheckError("Unable to get or parse Kodi state") from error
 
     def check(self) -> Optional[str]:
         reply = self._safe_request_result()
@@ -209,7 +211,7 @@ class KodiIdleTime(NetworkMixin, Activity):
             else:
                 return None
         except (KeyError, TypeError, json.JSONDecodeError) as error:
-            raise TemporaryCheckError(error) from error
+            raise TemporaryCheckError("Unable to get or parse Kodi state") from error
 
 
 class Load(Activity):
@@ -275,7 +277,7 @@ class Mpd(Activity):
             else:
                 return None
         except (MPDError, ConnectionError, socket.timeout, socket.gaierror) as error:
-            raise TemporaryCheckError(error) from error
+            raise TemporaryCheckError("Unable to get the current MPD state") from error
 
 
 class NetworkBandwidth(Activity):
@@ -417,19 +419,22 @@ class Ping(Activity):
         self._hosts = hosts
 
     def check(self) -> Optional[str]:
-        for host in self._hosts:
-            cmd = ["ping", "-q", "-c", "1", host]
-            if (
-                subprocess.call(  # noqa: S603 we know the input from the config
-                    cmd,
-                    stdout=subprocess.DEVNULL,
-                    stderr=subprocess.DEVNULL,
-                )
-                == 0
-            ):
-                self.logger.debug("host " + host + " appears to be up")
-                return "Host {} is up".format(host)
-        return None
+        try:
+            for host in self._hosts:
+                cmd = ["ping", "-q", "-c", "1", host]
+                if (
+                    subprocess.call(  # noqa: S603 we know the input from the config
+                        cmd,
+                        stdout=subprocess.DEVNULL,
+                        stderr=subprocess.DEVNULL,
+                    )
+                    == 0
+                ):
+                    self.logger.debug("host " + host + " appears to be up")
+                    return "Host {} is up".format(host)
+            return None
+        except FileNotFoundError as error:
+            raise SevereCheckError("Binary ping cannot be found") from error
 
 
 class Processes(Activity):
@@ -460,13 +465,18 @@ class Smb(Activity):
     def create(cls, name: str, config: Optional[configparser.SectionProxy]) -> "Smb":
         return cls(name)
 
-    def check(self) -> Optional[str]:
+    def _safe_get_status(self) -> str:
         try:
-            status_output = subprocess.check_output(  # noqa: S603, S607
+            return subprocess.check_output(  # noqa: S603, S607
                 ["smbstatus", "-b"]
             ).decode("utf-8")
+        except FileNotFoundError as error:
+            raise SevereCheckError("smbstatus binary not found") from error
         except subprocess.CalledProcessError as error:
-            raise SevereCheckError(error) from error
+            raise TemporaryCheckError("Unable to execute smbstatus") from error
+
+    def check(self) -> Optional[str]:
+        status_output = self._safe_get_status()
 
         self.logger.debug("Received status output:\n%s", status_output)
 
@@ -626,13 +636,15 @@ class XIdleTime(Activity):
                 ["sudo", "-u", session.user, "xprintidle"], env=env
             )
             return float(idle_time_output.strip()) / 1000.0
+        except FileNotFoundError as error:
+            raise SevereCheckError("sudo executable not found") from error
         except (subprocess.CalledProcessError, ValueError) as error:
             self.logger.warning(
                 "Unable to determine the idle time for display %s.",
                 session.display,
                 exc_info=True,
             )
-            raise TemporaryCheckError(error) from error
+            raise TemporaryCheckError("Unable to call xprintidle") from error
 
     def check(self) -> Optional[str]:
         for session in self._safe_provide_sessions():

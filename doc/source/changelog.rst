@@ -27,6 +27,7 @@ Notable changes
 * The required `Python`_ version is now declared in the :ref:`installation` and :file:`setup.py` (:issue:`76`)
 * Python 3.9 is officially supported and tested (:issue:`89`).
 * Some code cleanup work has been performed (:issue:`93` and :issue:`92`).
+* The daemon now better distinguished between temporary and permanent issues, for instance, by terminating in case a required program is not installed (:issue:`78`).
 
 3.0
 ***

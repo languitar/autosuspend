@@ -8,7 +8,12 @@ import dateutil.parser
 import pytest
 from pytest_mock import MockFixture
 
-from autosuspend.checks import Check, ConfigurationError, TemporaryCheckError
+from autosuspend.checks import (
+    Check,
+    ConfigurationError,
+    SevereCheckError,
+    TemporaryCheckError,
+)
 from autosuspend.checks.wakeup import (
     Calendar,
     Command,
@@ -205,6 +210,11 @@ class TestCommand(CheckTest):
         mock.side_effect = subprocess.CalledProcessError(2, "foo bar")
         check = Command("test", "echo bla")
         with pytest.raises(TemporaryCheckError):
+            check.check(datetime.now(timezone.utc))
+
+    def test_missing_executable(self, mocker: MockFixture) -> None:
+        check = Command("test", "reallydoesntexist bla")
+        with pytest.raises(SevereCheckError):
             check.check(datetime.now(timezone.utc))
 
 
