@@ -26,6 +26,9 @@ If checks using URLs to load data should support ``file://`` URLs, `requests-fil
 Binary packages
 ***************
 
+.. image:: https://repology.org/badge/vertical-allrepos/autosuspend.svg
+   :target: https://repology.org/project/autosuspend/versions
+
 Debian
 ======
 
