@@ -49,6 +49,7 @@ from autosuspend.util.xorg import (
     list_sessions_sockets,
     XorgSession,
 )
+
 from . import CheckTest
 
 

@@ -162,9 +162,9 @@ class XPathMixin(NetworkMixin):
         self._parser = etree.XMLParser(resolve_entities=False)
 
     def evaluate(self) -> Sequence[Any]:
+        from lxml import etree  # noqa: S410 using safe parser
         import requests
         import requests.exceptions
-        from lxml import etree  # noqa: S410 using safe parser
 
         try:
             reply = self.request().content
