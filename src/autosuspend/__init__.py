@@ -11,27 +11,11 @@ import logging.config
 from pathlib import Path
 import subprocess
 import time
-from typing import (
-    Callable,
-    IO,
-    Iterable,
-    List,
-    Optional,
-    Sequence,
-    Tuple,
-    Type,
-    Union,
-)
+from typing import Callable, IO, Iterable, List, Optional, Sequence, Tuple, Type, Union
 
 import portalocker
 
-from .checks import (
-    Activity,
-    CheckType,
-    ConfigurationError,
-    TemporaryCheckError,
-    Wakeup,
-)
+from .checks import Activity, CheckType, ConfigurationError, TemporaryCheckError, Wakeup
 from .util import logger_by_class_instance
 
 

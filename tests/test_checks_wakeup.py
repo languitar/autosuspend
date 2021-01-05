@@ -22,6 +22,7 @@ from autosuspend.checks.wakeup import (
     XPath,
     XPathDelta,
 )
+
 from . import CheckTest
 
 
