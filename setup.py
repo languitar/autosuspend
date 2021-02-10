@@ -5,7 +5,8 @@ from setuptools import find_packages, setup
 
 name = "autosuspend"
 
-lines = (Path(__file__).absolute().parent / "VERSION").read_text().splitlines()
+version_file = (Path(__file__).absolute().parent / "VERSION")
+lines = version_file.read_text().splitlines()
 release = lines[1].strip()
 
 extras_require = {
@@ -16,6 +17,7 @@ extras_require = {
     "Logind": ["dbus-python"],
     "ical": ["requests", "icalendar", "python-dateutil", "tzlocal"],
     "localfiles": ["requests-file"],
+    "logactivity": ["python-dateutil", "pytz"],
     "test": [
         "pytest",
         "pytest-cov",
