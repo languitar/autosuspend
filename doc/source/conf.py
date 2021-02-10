@@ -68,6 +68,7 @@ rst_epilog = '''
 .. _portalocker: https://portalocker.readthedocs.io
 .. _jsonpath-ng: https://github.com/h2non/jsonpath-ng
 .. _JSONPath: https://goessner.net/articles/JsonPath/
+.. _pytz: https://pythonhosted.org/pytz/
 
 .. |project| replace:: {project}
 .. |project_bold| replace:: **{project}**
