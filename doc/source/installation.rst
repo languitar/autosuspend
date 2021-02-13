@@ -71,6 +71,18 @@ Briefly, the following steps can be used to install |project_program| from sourc
 .. code-block:: bash
 
    python3 -m venv /opt/autosuspend
-   /opt/autosuspend/bin/pip install git+https://github.com/languitar/autosuspend.git
+   /opt/autosuspend/bin/pip install git+https://github.com/languitar/autosuspend.git@<tag or branch>#egg=autosuspend[all]
+
+.. note::
+
+   Replace the angle brackets with desired Git tag or branch.
+   Use ``master`` for the latest development release.
+
+.. note::
+
+   The ``all`` in the square brackets ensures that |project_program| is installed with all optional dependencies.
+   That way all available checks can be used.
+   In case you only need a subset of optional requirements, replace ``all`` with a comma-separated list of package extras.
+   The names of these extras can be found in :file:`setup.py`.
 
 Afterwards, copy the systemd_ unit files found in ``/opt/autosuspend/lib/systemd/system/`` to ``/etc/systemd`` and adapt the contained paths to the installation location.
