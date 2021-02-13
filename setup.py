@@ -5,7 +5,7 @@ from setuptools import find_packages, setup
 
 name = "autosuspend"
 
-version_file = (Path(__file__).absolute().parent / "VERSION")
+version_file = Path(__file__).absolute().parent / "VERSION"
 lines = version_file.read_text().splitlines()
 release = lines[1].strip()
 
@@ -30,6 +30,9 @@ extras_require = {
     ],
 }
 extras_require["test"].extend(
+    {dep for k, v in extras_require.items() if k != "test" for dep in v},
+)
+extras_require["all"] = list(
     {dep for k, v in extras_require.items() if k != "test" for dep in v},
 )
 
