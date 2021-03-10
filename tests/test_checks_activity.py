@@ -1,5 +1,6 @@
 from collections import namedtuple
 import configparser
+from datetime import timedelta, timezone
 from getpass import getuser
 import json
 from pathlib import Path
@@ -17,6 +18,7 @@ import psutil
 import pytest
 from pytest_httpserver import HTTPServer
 from pytest_mock import MockFixture
+import pytz
 import requests
 
 from autosuspend.checks import (
@@ -32,6 +34,7 @@ from autosuspend.checks.activity import (
     JsonPath,
     Kodi,
     KodiIdleTime,
+    LastLogActivity,
     Load,
     LogindSessionsIdle,
     Mpd,
@@ -1541,3 +1544,274 @@ class TestJsonPath(CheckTest):
         )
         with pytest.raises(ConfigurationError):
             JsonPath.create("name", parser["section"])
+
+
+class TestLastLogActivity(CheckTest):
+    def create_instance(self, name: str) -> LastLogActivity:
+        return LastLogActivity(
+            name=name,
+            log_file=Path("some_file"),
+            pattern=re.compile(f"^(.*)$"),
+            delta=timedelta(minutes=10),
+            encoding="ascii",
+            default_timezone=timezone.utc,
+        )
+
+    def test_is_active(self, tmpdir: Path) -> None:
+        file_path = tmpdir / "test.log"
+        file_path.write_text("2020-02-02 12:12:23", encoding="ascii")
+
+        with freeze_time("2020-02-02 12:15:00"):
+            assert (
+                LastLogActivity(
+                    "test",
+                    file_path,
+                    re.compile(r"^(.*)$"),
+                    timedelta(minutes=10),
+                    "ascii",
+                    timezone.utc,
+                ).check()
+                is not None
+            )
+
+    def test_is_not_active(self, tmpdir: Path) -> None:
+        file_path = tmpdir / "test.log"
+        file_path.write_text("2020-02-02 12:12:23", encoding="ascii")
+
+        with freeze_time("2020-02-02 12:35:00"):
+            assert (
+                LastLogActivity(
+                    "test",
+                    file_path,
+                    re.compile(r"^(.*)$"),
+                    timedelta(minutes=10),
+                    "ascii",
+                    timezone.utc,
+                ).check()
+                is None
+            )
+
+    def test_uses_last_line(self, tmpdir: Path) -> None:
+        file_path = tmpdir / "test.log"
+        # last line is too old and must be used
+        file_path.write_text(
+            "\n".join(["2020-02-02 12:12:23", "1900-01-01"]), encoding="ascii"
+        )
+
+        with freeze_time("2020-02-02 12:15:00"):
+            assert (
+                LastLogActivity(
+                    "test",
+                    file_path,
+                    re.compile(r"^(.*)$"),
+                    timedelta(minutes=10),
+                    "ascii",
+                    timezone.utc,
+                ).check()
+                is None
+            )
+
+    def test_ignores_lines_that_do_not_match(self, tmpdir: Path) -> None:
+        file_path = tmpdir / "test.log"
+        file_path.write_text("ignored", encoding="ascii")
+
+        assert (
+            LastLogActivity(
+                "test",
+                file_path,
+                re.compile(r"^foo(.*)$"),
+                timedelta(minutes=10),
+                "ascii",
+                timezone.utc,
+            ).check()
+            is None
+        )
+
+    def test_uses_pattern(self, tmpdir: Path) -> None:
+        file_path = tmpdir / "test.log"
+        file_path.write_text("foo2020-02-02 12:12:23bar", encoding="ascii")
+
+        with freeze_time("2020-02-02 12:15:00"):
+            assert (
+                LastLogActivity(
+                    "test",
+                    file_path,
+                    re.compile(r"^foo(.*)bar$"),
+                    timedelta(minutes=10),
+                    "ascii",
+                    timezone.utc,
+                ).check()
+                is not None
+            )
+
+    def test_uses_given_timezone(self, tmpdir: Path) -> None:
+        file_path = tmpdir / "test.log"
+        # would match if timezone wasn't used
+        file_path.write_text("2020-02-02 12:12:00", encoding="ascii")
+
+        with freeze_time("2020-02-02 12:15:00"):
+            assert (
+                LastLogActivity(
+                    "test",
+                    file_path,
+                    re.compile(r"^(.*)$"),
+                    timedelta(minutes=10),
+                    "ascii",
+                    timezone(offset=timedelta(hours=10)),
+                ).check()
+                is None
+            )
+
+    def test_prefers_parsed_timezone(self, tmpdir: Path) -> None:
+        file_path = tmpdir / "test.log"
+        # would not match if provided timezone wasn't used
+        file_path.write_text("2020-02-02T12:12:01-01:00", encoding="ascii")
+
+        with freeze_time("2020-02-02 13:15:00"):
+            assert (
+                LastLogActivity(
+                    "test",
+                    file_path,
+                    re.compile(r"^(.*)$"),
+                    timedelta(minutes=10),
+                    "ascii",
+                    timezone.utc,
+                ).check()
+                is not None
+            )
+
+    def test_fails_if_dates_cannot_be_parsed(self, tmpdir: Path) -> None:
+        file_path = tmpdir / "test.log"
+        # would match if timezone wasn't used
+        file_path.write_text("202000xxx", encoding="ascii")
+
+        with pytest.raises(TemporaryCheckError):
+            LastLogActivity(
+                "test",
+                file_path,
+                re.compile(r"^(.*)$"),
+                timedelta(minutes=10),
+                "ascii",
+                timezone.utc,
+            ).check()
+
+    def test_fails_if_dates_are_in_the_future(self, tmpdir: Path) -> None:
+        file_path = tmpdir / "test.log"
+        # would match if timezone wasn't used
+        file_path.write_text("2022-01-01", encoding="ascii")
+
+        with freeze_time("2020-02-02 12:15:00"):
+            with pytest.raises(TemporaryCheckError):
+                LastLogActivity(
+                    "test",
+                    file_path,
+                    re.compile(r"^(.*)$"),
+                    timedelta(minutes=10),
+                    "ascii",
+                    timezone.utc,
+                ).check()
+
+    def test_fails_if_file_cannot_be_read(self, tmpdir: Path) -> None:
+        file_path = tmpdir / "test.log"
+
+        with pytest.raises(TemporaryCheckError):
+            LastLogActivity(
+                "test",
+                file_path,
+                re.compile(r"^(.*)$"),
+                timedelta(minutes=10),
+                "ascii",
+                timezone.utc,
+            ).check()
+
+    def test_create(self) -> None:
+        parser = configparser.ConfigParser()
+        parser.read_string(
+            """
+            [section]
+            name = somename
+            log_file = /some/file
+            pattern = ^foo(.*)bar$
+            minutes = 42
+            encoding = utf-8
+            timezone = Europe/Berlin
+            """
+        )
+
+        created = LastLogActivity.create("thename", parser["section"])
+
+        assert created.log_file == Path("/some/file")
+        assert created.pattern == re.compile(r"^foo(.*)bar$")
+        assert created.delta == timedelta(minutes=42)
+        assert created.encoding == "utf-8"
+        assert created.default_timezone == pytz.timezone("Europe/Berlin")
+
+    def test_create_handles_pattern_errors(self) -> None:
+        parser = configparser.ConfigParser()
+        parser.read_string(
+            """
+            [section]
+            name = somename
+            log_file = /some/file
+            pattern = ^^(foo(.*)bar$
+            """
+        )
+
+        with pytest.raises(ConfigurationError):
+            LastLogActivity.create("thename", parser["section"])
+
+    def test_create_handles_delta_errors(self) -> None:
+        parser = configparser.ConfigParser()
+        parser.read_string(
+            """
+            [section]
+            name = somename
+            log_file = /some/file
+            pattern = (.*)
+            minutes = test
+            """
+        )
+
+        with pytest.raises(ConfigurationError):
+            LastLogActivity.create("thename", parser["section"])
+
+    def test_create_handles_negative_deltas(self) -> None:
+        parser = configparser.ConfigParser()
+        parser.read_string(
+            """
+            [section]
+            name = somename
+            log_file = /some/file
+            pattern = (.*)
+            minutes = -42
+            """
+        )
+
+        with pytest.raises(ConfigurationError):
+            LastLogActivity.create("thename", parser["section"])
+
+    def test_create_handles_missing_pattern_groups(self) -> None:
+        parser = configparser.ConfigParser()
+        parser.read_string(
+            """
+            [section]
+            name = somename
+            log_file = /some/file
+            pattern = .*
+            """
+        )
+
+        with pytest.raises(ConfigurationError):
+            LastLogActivity.create("thename", parser["section"])
+
+    def test_create_handles_missing_keys(self) -> None:
+        parser = configparser.ConfigParser()
+        parser.read_string(
+            """
+            [section]
+            name = somename
+            """
+        )
+
+        with pytest.raises(ConfigurationError):
+            LastLogActivity.create("thename", parser["section"])
