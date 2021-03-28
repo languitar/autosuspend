@@ -1,0 +1,38 @@
+{
+  "plugins": [
+    [
+      "@semantic-release/commit-analyzer",
+      {
+        "preset": "conventionalcommits"
+      }
+    ],
+    [
+      "@semantic-release/release-notes-generator",
+      {
+        "preset": "conventionalcommits"
+      }
+    ],
+    [
+      "@semantic-release/changelog",
+      {
+        "changelogFile": "doc/source/changelog.md"
+      }
+    ],
+    [
+      "@semantic-release/exec",
+      {
+        "prepareCmd": "echo $(echo ${nextRelease} | cut -d '.' -f 1-2)'\n${nextRelease}' >> ./VERSION"
+      }
+    ],
+    [
+      "@semantic-release/git",
+      {
+        "assets": [
+          "VERSION",
+          "doc/source/changelog.md"
+        ]
+      }
+    ],
+    "@semantic-release/github"
+  ]
+}
