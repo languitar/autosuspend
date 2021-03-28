@@ -1,11 +1,22 @@
 name: CI build
 on:
-  push: {}
+  push:
+    branches:
+      - master
   pull_request: {}
   schedule:
     - cron: '0 0 * * 0'
 
 jobs:
+  commitlint:
+    runs-on: ubuntu-latest
+    if: ${{ github.event_name == 'pull_request' }}
+    steps:
+      - uses: actions/checkout@v2
+        with:
+          fetch-depth: 0
+      - uses: wagoid/commitlint-github-action@v2
+
   lint:
     runs-on: ubuntu-latest
 
