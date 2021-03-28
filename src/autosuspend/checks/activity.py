@@ -749,7 +749,7 @@ class JsonPath(NetworkMixin, Activity):
 
     @classmethod
     def collect_init_args(cls, config: configparser.SectionProxy) -> Dict[str, Any]:
-        from jsonpath_ng import parse
+        from jsonpath_ng.ext import parse
 
         try:
             args = NetworkMixin.collect_init_args(config)
