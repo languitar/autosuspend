@@ -16,3 +16,4 @@ __pycache__
 /.python-version
 /.tox/
 /Session.vim
+/node_modules/
