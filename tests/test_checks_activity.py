@@ -12,7 +12,7 @@ from typing import Any, Callable, Dict, Tuple
 
 from dbus.proxies import ProxyObject
 from freezegun import freeze_time
-from jsonpath_ng import parse
+from jsonpath_ng.ext import parse
 import mpd
 import psutil
 import pytest
@@ -1455,6 +1455,20 @@ class TestJsonPath(CheckTest):
         url = "nourl"
         assert (
             JsonPath("foo", jsonpath=parse("a.b"), url=url, timeout=5).check()
+            is not None
+        )
+
+        json_get_mock.assert_called_once_with(
+            url, timeout=5, headers={"Accept": "application/json"}
+        )
+        json_get_mock().json.assert_called_once()
+
+    def test_filter_expressions_work(self, json_get_mock: Any) -> None:
+        url = "nourl"
+        assert (
+            JsonPath(
+                "foo", jsonpath=parse("$[?(@.c=='ignore')]"), url=url, timeout=5
+            ).check()
             is not None
         )
 
