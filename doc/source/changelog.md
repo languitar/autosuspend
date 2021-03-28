@@ -1,3 +1,10 @@
+### [3.1.1](https://github.com/languitar/autosuspend/compare/v3.1.0...v3.1.1) (2021-03-28)
+
+
+### Bug Fixes
+
+* fix automatic version file generation ([aeb601d](https://github.com/languitar/autosuspend/commit/aeb601d523791780e5da592476b365bbc4b3f4c5))
+
 ## [3.1.0](https://github.com/languitar/autosuspend/compare/v3.0.1...v3.1.0) (2021-03-28)
 
 
