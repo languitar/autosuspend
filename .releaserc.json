@@ -21,7 +21,7 @@
     [
       "@semantic-release/exec",
       {
-        "prepareCmd": "echo $(echo ${nextRelease} | cut -d '.' -f 1-2)'\n${nextRelease}' >> ./VERSION"
+        "prepareCmd": "echo $(echo ${nextRelease.version} | cut -d '.' -f 1-2)'\n${nextRelease.version}' > ./VERSION"
       }
     ],
     [
