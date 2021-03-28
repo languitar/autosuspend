@@ -8,7 +8,7 @@ on:
     - cron: '0 0 * * 0'
 
 jobs:
-  commitlint:
+  lint-commits:
     runs-on: ubuntu-latest
     if: ${{ github.event_name == 'pull_request' }}
     steps:
@@ -17,7 +17,7 @@ jobs:
           fetch-depth: 0
       - uses: wagoid/commitlint-github-action@v2
 
-  lint:
+  lint-code:
     runs-on: ubuntu-latest
 
     steps:
@@ -36,7 +36,7 @@ jobs:
       - name: Lint with tox
         run: tox -e check
 
-  try-build-docs:
+  docs:
     runs-on: ubuntu-latest
 
     steps:
@@ -55,7 +55,7 @@ jobs:
       - name: Build Sphinx docs
         run: tox -e docs
 
-  try-mindeps:
+  test-mindeps:
     runs-on: ubuntu-latest
 
     steps:
