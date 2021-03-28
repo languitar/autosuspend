@@ -29,6 +29,11 @@ jobs:
           python-version: 3.8
       - name: Install native dependencies
         run: sudo apt-get update && sudo apt-get -y install libdbus-1-dev libgirepository1.0-dev
+      - name: Cache Python packages
+        uses: actions/cache@v2
+        with:
+          path: ~/.cache/pip
+          key: lint-code-${{ hashFiles('setup.py') }}-${{ hashFiles('tox.ini') }}
       - name: Install tox
         run: |
           python -m pip install --upgrade pip
@@ -48,6 +53,11 @@ jobs:
           python-version: 3.8
       - name: Install native dependencies
         run: sudo apt-get update && sudo apt-get -y install libdbus-1-dev libgirepository1.0-dev plantuml
+      - name: Cache Python packages
+        uses: actions/cache@v2
+        with:
+          path: ~/.cache/pip
+          key: docs-${{ hashFiles('setup.py') }}-${{ hashFiles('tox.ini') }}-${{ hashFiles('requirements-doc.txt') }}
       - name: Install tox
         run: |
           python -m pip install --upgrade pip
@@ -65,6 +75,11 @@ jobs:
         uses: actions/setup-python@v1
         with:
           python-version: 3.8
+      - name: Cache Python packages
+        uses: actions/cache@v2
+        with:
+          path: ~/.cache/pip
+          key: test-mindeps-${{ hashFiles('setup.py') }}-${{ hashFiles('tox.ini') }}
       - name: Install tox
         run: |
           python -m pip install --upgrade pip
@@ -89,6 +104,11 @@ jobs:
           python-version: ${{ matrix.python-version }}
       - name: Install native dependencies
         run: sudo apt-get update && sudo apt-get -y install libdbus-1-dev libgirepository1.0-dev
+      - name: Cache Python packages
+        uses: actions/cache@v2
+        with:
+          path: ~/.cache/pip
+          key: test-${{ hashFiles('setup.py') }}-${{ hashFiles('tox.ini') }}-${{ matrix.python-version }}
       - name: Install Python dependencies
         run: |
           python -m pip install --upgrade pip
@@ -100,4 +120,4 @@ jobs:
       - name: Publish coverage to codecov.io
         uses: codecov/codecov-action@v1
         with:
-          token: ${{ secrets.CODECOV_TOKEN }} #required
+          token: ${{ secrets.CODECOV_TOKEN }}
