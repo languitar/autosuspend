@@ -14,6 +14,7 @@ extensions = [
     "sphinx_autodoc_typehints",
     "sphinxcontrib.plantuml",
     "sphinx_issues",
+    "recommonmark",
 ]
 templates_path = ['_templates']
 source_suffix = '.rst'
