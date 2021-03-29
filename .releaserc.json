@@ -12,7 +12,16 @@
     [
       "@semantic-release/release-notes-generator",
       {
-        "preset": "angular"
+        "preset": "angular",
+        "writerOpts": {
+          "types": [
+            {
+              "type": "docs",
+              "section": "Documentation", 
+              "hidden": false
+            }
+          ]
+        }
       }
     ],
     [
