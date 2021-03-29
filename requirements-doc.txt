@@ -3,3 +3,4 @@ sphinx>=3.0
 sphinx_rtd_theme
 sphinxcontrib-plantuml
 sphinx-autodoc-typehints>=1.11
+recommonmark

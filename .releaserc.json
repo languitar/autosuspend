@@ -3,19 +3,22 @@
     [
       "@semantic-release/commit-analyzer",
       {
-        "preset": "conventionalcommits"
+        "preset": "conventionalcommits",
+        "releaseRules": [
+          {"type": "docs", "release": "patch"}
+        ]
       }
     ],
     [
       "@semantic-release/release-notes-generator",
       {
-        "preset": "conventionalcommits"
+        "preset": "angular"
       }
     ],
     [
       "@semantic-release/changelog",
       {
-        "changelogFile": "doc/source/changelog.md"
+        "changelogFile": "doc/source/generated_changelog.md"
       }
     ],
     [
@@ -29,7 +32,7 @@
       {
         "assets": [
           "VERSION",
-          "doc/source/changelog.md"
+          "doc/source/generated_changelog.md"
         ]
       }
     ],
