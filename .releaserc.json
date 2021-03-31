@@ -3,25 +3,13 @@
     [
       "@semantic-release/commit-analyzer",
       {
-        "preset": "conventionalcommits",
-        "releaseRules": [
-          {"type": "docs", "release": "patch"}
-        ]
+        "preset": "conventionalcommits"
       }
     ],
     [
       "@semantic-release/release-notes-generator",
       {
-        "preset": "angular",
-        "writerOpts": {
-          "types": [
-            {
-              "type": "docs",
-              "section": "Documentation", 
-              "hidden": false
-            }
-          ]
-        }
+        "preset": "angular"
       }
     ],
     [
