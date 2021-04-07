@@ -80,6 +80,10 @@ In case this command returns 0, the system is assumed to be active.
 The command is executed as is using shell execution.
 Beware of malicious commands in obtained configuration files.
 
+.. seealso::
+
+   * :ref:`external-command-activity-scripts` for a collection of user-provided scripts for some common use cases.
+
 Options
 =======
 

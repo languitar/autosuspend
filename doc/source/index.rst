@@ -76,6 +76,7 @@ The following diagram visualizes the periodic processing performed by |project|.
    available_checks
    available_wakeups
    systemd_integration
+   external_command_activity_scripts
    api
 
 .. toctree::
