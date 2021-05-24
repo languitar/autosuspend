@@ -1,4 +1,5 @@
-from typing import Iterable, Tuple, TYPE_CHECKING
+from datetime import datetime, timedelta, timezone
+from typing import Dict, Iterable, Optional, Tuple, TYPE_CHECKING
 
 
 if TYPE_CHECKING:
@@ -43,3 +44,35 @@ def list_logind_sessions() -> Iterable[Tuple[str, dict]]:
         raise LogindDBusException(error) from error
 
     return results
+
+
+def next_timer_executions() -> Dict[str, datetime]:
+    import dbus
+
+    bus = _get_bus()
+
+    systemd = bus.get_object("org.freedesktop.systemd1", "/org/freedesktop/systemd1")
+    units = systemd.ListUnits(dbus_interface="org.freedesktop.systemd1.Manager")
+    timers = [unit for unit in units if unit[0].endswith(".timer")]
+
+    result: Dict[str, datetime] = {}
+    for timer in timers:
+        obj = bus.get_object("org.freedesktop.systemd1", timer[6])
+        properties_interface = dbus.Interface(obj, "org.freedesktop.DBus.Properties")
+        props = properties_interface.GetAll("org.freedesktop.systemd1.Timer")
+
+        next_time: Optional[datetime] = None
+        if props["NextElapseUSecRealtime"]:
+            next_time = datetime.fromtimestamp(
+                props["NextElapseUSecRealtime"] / 1000000,
+                tz=timezone.utc,
+            )
+        elif props["NextElapseUSecMonotonic"]:
+            next_time = datetime.now(tz=timezone.utc) + timedelta(
+                seconds=props["NextElapseUSecMonotonic"] / 1000000
+            )
+
+        if next_time:
+            result[str(timer[0])] = next_time
+
+    return result

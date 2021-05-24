@@ -114,6 +114,24 @@ Options
 
    The value of the delta as an int.
 
+.. _wakeup-systemd-timer:
+
+SystemdTimer
+************
+
+.. program:: wakeup-systemd-timer
+
+Ensures that the system is active when a `systemd`_ timer is scheduled to run next.
+
+Options
+=======
+
+.. option:: match
+
+   A regular expression selecting the `systemd`_ timers to check.
+   This expression matches against the names of the timer units, for instance ``logrotate.timer``.
+   Use ``systemctl list-timers`` to find out which timers exists.
+
 .. _wakeup-xpath:
 
 XPath
