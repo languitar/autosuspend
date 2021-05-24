@@ -1,7 +1,11 @@
 from dbus.proxies import ProxyObject
 import pytest
 
-from autosuspend.util.systemd import list_logind_sessions, LogindDBusException
+from autosuspend.util.systemd import (
+    list_logind_sessions,
+    LogindDBusException,
+    next_timer_executions,
+)
 
 
 def test_list_logind_sessions_empty(logind: ProxyObject) -> None:
@@ -17,3 +21,11 @@ def test_list_logind_sessions_empty(logind: ProxyObject) -> None:
 def test_list_logind_sessions_dbus_error() -> None:
     with pytest.raises(LogindDBusException):
         list_logind_sessions()
+
+
+def test_next_timer_executions() -> None:
+    pytest.importorskip("dbus")
+    pytest.importorskip("gi")
+    # no working dbus mock interface exists for list units. Therefore, this is not easy
+    # to test.
+    assert next_timer_executions() is not None
