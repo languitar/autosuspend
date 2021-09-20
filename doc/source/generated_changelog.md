@@ -1,3 +1,10 @@
+## [3.1.4](https://github.com/languitar/autosuspend/compare/v3.1.3...v3.1.4) (2021-09-20)
+
+
+### Bug Fixes
+
+* **ical:** limit tzlocal to version <3 ([623cd37](https://github.com/languitar/autosuspend/commit/623cd371df03a6fe3305eca4cf9e57c4d76b5c8a))
+
 ## [3.1.3](https://github.com/languitar/autosuspend/compare/v3.1.2...v3.1.3) (2021-03-29)
 
 ## [3.1.2](https://github.com/languitar/autosuspend/compare/v3.1.1...v3.1.2) (2021-03-29)
