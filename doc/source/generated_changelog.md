@@ -1,3 +1,14 @@
+# [4.0.0](https://github.com/languitar/autosuspend/compare/v3.1.4...v4.0.0) (2021-09-20)
+
+
+* chore(build)!: drop tests on Python 3.7 ([06dce98](https://github.com/languitar/autosuspend/commit/06dce98882d5c8fa4d5e90623660c43d006eefa0))
+
+
+### BREAKING CHANGES
+
+* Python 3.7 isn't used anymore on any LTS Ubuntu or
+    Debian release. No need to support such an old version anymore.
+
 ## [3.1.4](https://github.com/languitar/autosuspend/compare/v3.1.3...v3.1.4) (2021-09-20)
 
 
