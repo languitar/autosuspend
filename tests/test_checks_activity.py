@@ -345,6 +345,17 @@ class TestActiveConnection(CheckTest):
                 "ESTABLISHED",
                 None,
             ),
+            # ipv6 with mapping to ipv4
+            # https://github.com/languitar/autosuspend/issues/116
+            psutil._common.sconn(
+                -1,
+                socket.AF_INET6,
+                socket.SOCK_STREAM,
+                (f"::ffff:{MY_ADDRESS}", MY_PORT),
+                ("42.42.42.42", 42),
+                "ESTABLISHED",
+                None,
+            ),
         ],
     )
     def test_connected(

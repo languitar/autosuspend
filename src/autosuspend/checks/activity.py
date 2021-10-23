@@ -85,10 +85,23 @@ class ActiveConnection(Activity):
         Activity.__init__(self, name)
         self._ports = ports
 
+    def normalize_address(
+        self, family: socket.AddressFamily, address: str
+    ) -> Tuple[socket.AddressFamily, str]:
+        if family == socket.AF_INET6:
+            # strip scope
+            return family, address.split("%")[0]
+        elif family == socket.AF_INET:
+            # convert to IPv6 to handle cases where an IPv4 address is targeted via IPv6
+            # to IPv4 mapping
+            return socket.AF_INET6, f"::ffff:{address}"
+        else:
+            return family, address
+
     def check(self) -> Optional[str]:
         # Find the addresses of the system
         own_addresses = [
-            (item.family, item.address.split("%")[0])
+            self.normalize_address(item.family, item.address)
             for sublist in psutil.net_if_addrs().values()
             for item in sublist
         ]
@@ -97,7 +110,8 @@ class ActiveConnection(Activity):
             connection.laddr[1]
             for connection in psutil.net_connections()
             if (
-                (connection.family, connection.laddr[0]) in own_addresses
+                self.normalize_address(connection.family, connection.laddr[0])
+                in own_addresses
                 and connection.status == "ESTABLISHED"
                 and connection.laddr[1] in self._ports
             )
