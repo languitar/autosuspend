@@ -1,3 +1,10 @@
+## [4.0.1](https://github.com/languitar/autosuspend/compare/v4.0.0...v4.0.1) (2021-10-26)
+
+
+### Bug Fixes
+
+* **activity:** detect ipv4 mapped ipv6 connections ([a81e456](https://github.com/languitar/autosuspend/commit/a81e456aa89737a0a2f03ec5af5ffaf2e7738073)), closes [#116](https://github.com/languitar/autosuspend/issues/116)
+
 # [4.0.0](https://github.com/languitar/autosuspend/compare/v3.1.4...v4.0.0) (2021-09-20)
 
 
