@@ -1,3 +1,10 @@
+# [4.1.0](https://github.com/languitar/autosuspend/compare/v4.0.1...v4.1.0) (2021-12-28)
+
+
+### Features
+
+* add official Python 3.10 support ([e5b2e49](https://github.com/languitar/autosuspend/commit/e5b2e494986d13ac29a06cfac0c5a6601c372671))
+
 ## [4.0.1](https://github.com/languitar/autosuspend/compare/v4.0.0...v4.0.1) (2021-10-26)
 
 
