@@ -115,7 +115,7 @@ class Periodic(Wakeup):
         try:
             kwargs = {}
             kwargs[config["unit"]] = float(config["value"])
-            return cls(name, timedelta(**kwargs))  # type: ignore
+            return cls(name, timedelta(**kwargs))
         except (ValueError, KeyError, TypeError) as error:
             raise ConfigurationError(str(error))
 
@@ -185,4 +185,4 @@ class XPathDelta(XPath):
     def convert_result(self, result: str, timestamp: datetime) -> datetime:
         kwargs = {}
         kwargs[self._unit] = float(result)
-        return timestamp + timedelta(**kwargs)  # type: ignore
+        return timestamp + timedelta(**kwargs)
