@@ -2,7 +2,7 @@ name: CI build
 on:
   push:
     branches:
-      - master
+      - main
   pull_request: {}
   schedule:
     - cron: '0 0 * * 0'
@@ -124,7 +124,7 @@ jobs:
 
   release:
     runs-on: ubuntu-latest
-    if: ${{ github.ref == 'refs/heads/master' }}
+    if: ${{ github.ref == 'refs/heads/main' }}
     needs:
       - lint-code
       - test-mindeps

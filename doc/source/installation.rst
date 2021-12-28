@@ -76,7 +76,7 @@ Briefly, the following steps can be used to install |project_program| from sourc
 .. note::
 
    Replace the angle brackets with desired Git tag or branch.
-   Use ``master`` for the latest development release.
+   Use ``main`` for the latest development release.
 
 .. note::
 
