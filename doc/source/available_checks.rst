@@ -363,6 +363,12 @@ Checks whether more network bandwidth is currently being used than specified.
 A set of specified interfaces is checked in this regard, each of the individually, based on the average bandwidth on that interface.
 This average is based on the global checking interval specified in the configuration file via the :option:`interval <config-general interval>` option.
 
+.. note::
+
+   This check assumes stable network interface names.
+   If this is not the case for your system, consider adding the required udev rules to ensure persistent device names.
+   The `Archlinux Wiki page on network configuration <https://wiki.archlinux.org/title/Network_configuration#Change_interface_name>`__ explains the necessary configuration steps.
+
 Options
 =======
 
