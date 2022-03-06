@@ -1,4 +1,5 @@
 from contextlib import suppress
+from dataclasses import dataclass
 from datetime import date, datetime, timedelta, tzinfo
 from typing import Dict, IO, Iterable, List, Optional, Sequence, TypeVar, Union
 
@@ -11,16 +12,11 @@ import tzlocal
 from .datetime import is_aware, to_tz_unaware
 
 
+@dataclass
 class CalendarEvent:
-    def __init__(
-        self,
-        summary: str,
-        start: Union[datetime, date],
-        end: Union[datetime, date],
-    ) -> None:
-        self.summary = summary
-        self.start = start
-        self.end = end
+    summary: str
+    start: Union[datetime, date]
+    end: Union[datetime, date]
 
     def __str__(self) -> str:
         return "CalendarEvent[summary={}, start={}, end={}]".format(

@@ -1726,16 +1726,15 @@ class TestLastLogActivity(CheckTest):
         # would match if timezone wasn't used
         file_path.write_text("2022-01-01", encoding="ascii")
 
-        with freeze_time("2020-02-02 12:15:00"):
-            with pytest.raises(TemporaryCheckError):
-                LastLogActivity(
-                    "test",
-                    file_path,
-                    re.compile(r"^(.*)$"),
-                    timedelta(minutes=10),
-                    "ascii",
-                    timezone.utc,
-                ).check()
+        with freeze_time("2020-02-02 12:15:00"), pytest.raises(TemporaryCheckError):
+            LastLogActivity(
+                "test",
+                file_path,
+                re.compile(r"^(.*)$"),
+                timedelta(minutes=10),
+                "ascii",
+                timezone.utc,
+            ).check()
 
     def test_fails_if_file_cannot_be_read(self, tmpdir: Path) -> None:
         file_path = tmpdir / "test.log"
