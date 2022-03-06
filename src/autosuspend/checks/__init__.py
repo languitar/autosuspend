@@ -11,8 +11,6 @@ from autosuspend.util import logger_by_class_instance
 class ConfigurationError(RuntimeError):
     """Indicates an error in the configuration of a :class:`Check`."""
 
-    pass
-
 
 class TemporaryCheckError(RuntimeError):
     """
@@ -22,8 +20,6 @@ class TemporaryCheckError(RuntimeError):
     automatically.
     """
 
-    pass
-
 
 class SevereCheckError(RuntimeError):
     """
@@ -31,8 +27,6 @@ class SevereCheckError(RuntimeError):
 
     There is no hope this situation recovers.
     """
-
-    pass
 
 
 CheckType = TypeVar("CheckType", bound="Check")
@@ -66,7 +60,6 @@ class Check(abc.ABC):
                 Configuration for this check is inappropriate
 
         """
-        pass
 
     def __init__(self, name: Optional[str] = None) -> None:
         if name:
@@ -109,7 +102,6 @@ class Activity(Check):
             SevereCheckError:
                 Check executions fails severely
         """
-        pass
 
     def __str__(self) -> str:
         return "{name}[class={clazz}]".format(
@@ -138,4 +130,3 @@ class Wakeup(Check):
             SevereCheckError:
                 Check executions fails severely
         """
-        pass

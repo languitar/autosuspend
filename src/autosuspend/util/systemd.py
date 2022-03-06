@@ -14,8 +14,6 @@ def _get_bus() -> "dbus.SystemBus":
 class LogindDBusException(RuntimeError):
     """Indicates an error communicating to Logind via DBus."""
 
-    pass
-
 
 def list_logind_sessions() -> Iterable[Tuple[str, dict]]:
     """List running logind sessions and their properties.
