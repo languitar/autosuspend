@@ -770,7 +770,7 @@ class JsonPath(NetworkMixin, Activity):
             args["jsonpath"] = parse(config["jsonpath"])
             return args
         except KeyError as error:
-            raise ConfigurationError(f"Property jsonpath is missing") from error
+            raise ConfigurationError("Property jsonpath is missing") from error
         except Exception as error:
             raise ConfigurationError(f"JSONPath error {str(error)}") from error
 

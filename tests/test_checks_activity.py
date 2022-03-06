@@ -1577,7 +1577,7 @@ class TestLastLogActivity(CheckTest):
         return LastLogActivity(
             name=name,
             log_file=Path("some_file"),
-            pattern=re.compile(f"^(.*)$"),
+            pattern=re.compile("^(.*)$"),
             delta=timedelta(minutes=10),
             encoding="ascii",
             default_timezone=timezone.utc,
