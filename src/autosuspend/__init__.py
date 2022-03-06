@@ -520,7 +520,9 @@ def parse_arguments(args: Optional[Sequence[str]]) -> argparse.Namespace:
 
     default_config: Optional[IO[str]] = None
     with suppress(FileNotFoundError, IsADirectoryError, PermissionError):
-        default_config = open("/etc/autosuspend.conf", "r")
+        # The open file is required after this function finishes inside the argparse
+        # result. Therefore, a context manager is not easily usable here.
+        default_config = open("/etc/autosuspend.conf", "r")  # noqa: SIM115
     parser.add_argument(
         "-c",
         "--config",

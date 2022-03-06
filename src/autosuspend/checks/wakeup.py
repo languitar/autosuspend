@@ -113,8 +113,7 @@ class Periodic(Wakeup):
     @classmethod
     def create(cls, name: str, config: configparser.SectionProxy) -> "Periodic":
         try:
-            kwargs = {}
-            kwargs[config["unit"]] = float(config["value"])
+            kwargs = {config["unit"]: float(config["value"])}
             return cls(name, timedelta(**kwargs))
         except (ValueError, KeyError, TypeError) as error:
             raise ConfigurationError(str(error))
@@ -183,6 +182,5 @@ class XPathDelta(XPath):
         self._unit = unit
 
     def convert_result(self, result: str, timestamp: datetime) -> datetime:
-        kwargs = {}
-        kwargs[self._unit] = float(result)
+        kwargs = {self._unit: float(result)}
         return timestamp + timedelta(**kwargs)
