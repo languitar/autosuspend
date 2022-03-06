@@ -606,7 +606,7 @@ def configure_logging(config_file: Optional[IO], debug: bool) -> None:
     if config_file:
         try:
             logging.config.fileConfig(config_file)
-        except Exception:
+        except Exception:  # noqa: PIE786 probably ok for main-like function
             # at least configure warnings
             logging.basicConfig(level=logging.WARNING)
             _logger.warning(
