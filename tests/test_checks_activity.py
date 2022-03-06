@@ -1393,19 +1393,20 @@ class TestLogindSessionsIdle(CheckTest):
         logind.AddSession("c1", "seat0", 1042, "auser", True)
 
         check = LogindSessionsIdle("test", ["test"], ["active", "online"])
-        check.check() is not None
+        assert check.check() is not None
 
+    @pytest.mark.skip(reason="No known way to set idle hint in dbus mock right now")
     def test_inactive(self, logind: ProxyObject) -> None:
         logind.AddSession("c1", "seat0", 1042, "auser", False)
 
         check = LogindSessionsIdle("test", ["test"], ["active", "online"])
-        check.check() is None
+        assert check.check() is None
 
     def test_ignore_unknow_type(self, logind: ProxyObject) -> None:
         logind.AddSession("c1", "seat0", 1042, "auser", True)
 
         check = LogindSessionsIdle("test", ["not_test"], ["active", "online"])
-        check.check() is None
+        assert check.check() is None
 
     def test_configure_defaults(self) -> None:
         parser = configparser.ConfigParser()
