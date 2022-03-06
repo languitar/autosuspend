@@ -1,6 +1,6 @@
 sphinx_issues
-sphinx>=3.0
+sphinx==4.4.0
 sphinx_rtd_theme
 sphinxcontrib-plantuml
-sphinx-autodoc-typehints>=1.11
+sphinx-autodoc-typehints==1.17.0
 recommonmark
