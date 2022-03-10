@@ -15,7 +15,7 @@ extras_require = {
     "XPath": ["lxml", "requests"],
     "JSONPath": ["jsonpath-ng", "requests"],
     "Logind": ["dbus-python"],
-    "ical": ["requests", "icalendar", "python-dateutil", "tzlocal<3"],
+    "ical": ["requests", "icalendar", "python-dateutil", "tzlocal!=3.0"],
     "localfiles": ["requests-file"],
     "logactivity": ["python-dateutil", "pytz"],
     "test": [
