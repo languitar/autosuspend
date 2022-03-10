@@ -1,3 +1,10 @@
+## [4.1.1](https://github.com/languitar/autosuspend/compare/v4.1.0...v4.1.1) (2022-03-10)
+
+
+### Bug Fixes
+
+* allow tzlocal version >= 4 ([58e8634](https://github.com/languitar/autosuspend/commit/58e8634347cc5bf25cbfbfccfe874d05420bb995))
+
 # [4.1.0](https://github.com/languitar/autosuspend/compare/v4.0.1...v4.1.0) (2021-12-28)
 
 
