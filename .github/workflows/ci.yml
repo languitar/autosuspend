@@ -30,7 +30,7 @@ jobs:
       - name: Install native dependencies
         run: sudo apt-get update && sudo apt-get -y install libdbus-1-dev libgirepository1.0-dev
       - name: Cache Python packages
-        uses: actions/cache@v2
+        uses: actions/cache@v3
         with:
           path: ~/.cache/pip
           key: lint-code-${{ hashFiles('setup.py') }}-${{ hashFiles('tox.ini') }}
@@ -54,7 +54,7 @@ jobs:
       - name: Install native dependencies
         run: sudo apt-get update && sudo apt-get -y install libdbus-1-dev libgirepository1.0-dev plantuml
       - name: Cache Python packages
-        uses: actions/cache@v2
+        uses: actions/cache@v3
         with:
           path: ~/.cache/pip
           key: docs-${{ hashFiles('setup.py') }}-${{ hashFiles('tox.ini') }}-${{ hashFiles('requirements-doc.txt') }}
@@ -76,7 +76,7 @@ jobs:
         with:
           python-version: 3.9
       - name: Cache Python packages
-        uses: actions/cache@v2
+        uses: actions/cache@v3
         with:
           path: ~/.cache/pip
           key: test-mindeps-${{ hashFiles('setup.py') }}-${{ hashFiles('tox.ini') }}
@@ -105,7 +105,7 @@ jobs:
       - name: Install native dependencies
         run: sudo apt-get update && sudo apt-get -y install libdbus-1-dev libgirepository1.0-dev
       - name: Cache Python packages
-        uses: actions/cache@v2
+        uses: actions/cache@v3
         with:
           path: ~/.cache/pip
           key: test-${{ hashFiles('setup.py') }}-${{ hashFiles('tox.ini') }}-${{ matrix.python-version }}
@@ -140,7 +140,7 @@ jobs:
         with:
           node-version: 16
       - name: Cache Node packages
-        uses: actions/cache@v2
+        uses: actions/cache@v3
         with:
           path: node_modules
           key: release-${{ hashFiles('package.json') }}-${{ hashFiles('package-lock.json') }}
