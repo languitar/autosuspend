@@ -394,12 +394,9 @@ def _determine_check_class_and_module(
 
 
 def _determine_check_class_name(name: str, section: configparser.SectionProxy) -> str:
-    # legacy method to determine the check name from the section header
-    class_name = name
     # if there is an explicit class, use that one with higher priority
-    if "class" in section:
-        class_name = section["class"]
-    return class_name
+    # else, use the legacy method to determine the check name from the section header
+    return section.get("class", name)
 
 
 def _set_up_single_check(
