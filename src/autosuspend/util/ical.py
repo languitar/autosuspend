@@ -1,9 +1,9 @@
 from contextlib import suppress
 from dataclasses import dataclass
 from datetime import date, datetime, timedelta, tzinfo
-from typing import Dict, IO, Iterable, List, Optional, Sequence, TypeVar, Union
+from typing import cast, Dict, IO, Iterable, List, Optional, Sequence, TypeVar, Union
 
-from dateutil.rrule import rruleset, rrulestr
+from dateutil.rrule import rrule, rruleset, rrulestr
 import icalendar
 import icalendar.cal
 import pytz
@@ -33,8 +33,7 @@ def _expand_rrule_all_day(
     changes only affect the time, which doesn't exist for all-day events.
     """
 
-    rules = rruleset()
-    rules.rrule(rrulestr(rrule, dtstart=start, ignoretz=True))
+    rules = cast(rruleset, rrulestr(rrule, dtstart=start, ignoretz=True, forceset=True))
 
     # add exclusions
     if exclusions:
@@ -54,7 +53,7 @@ def _expand_rrule_all_day(
 
 
 def _prepare_rruleset_for_expanding(
-    rrule: str,
+    rule: str,
     start: datetime,
     exclusions: Iterable,
     changes: Iterable[icalendar.cal.Event],
@@ -69,12 +68,17 @@ def _prepare_rruleset_for_expanding(
     start = to_tz_unaware(start, tz)
 
     rules = rruleset()
-    first_rule = rrulestr(rrule, dtstart=start, ignoretz=True)
+    first_rule = cast(
+        rrule, rrulestr(rule, dtstart=start, ignoretz=True, forceset=False)
+    )
 
     # apply the same timezone logic for the until part of the rule after
     # parsing it.
-    if first_rule._until:
-        first_rule._until = to_tz_unaware(pytz.utc.localize(first_rule._until), tz)
+    if first_rule._until:  # type: ignore
+        first_rule._until = to_tz_unaware(  # type: ignore
+            pytz.utc.localize(first_rule._until),  # type: ignore
+            tz,
+        )
 
     rules.rrule(first_rule)
 
