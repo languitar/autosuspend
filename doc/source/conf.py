@@ -33,7 +33,7 @@ with open(os.path.join(
 version = lines[0].strip()
 release = lines[1].strip()
 
-language = None
+language = "en"
 
 exclude_patterns = []
 
