@@ -1,3 +1,10 @@
+# [4.2.0](https://github.com/languitar/autosuspend/compare/v4.1.1...v4.2.0) (2022-07-24)
+
+
+### Features
+
+* **wakeup:** add a systemd timer wakeup check ([7c687a2](https://github.com/languitar/autosuspend/commit/7c687a23f705d46c65ef400332483a32ff6eaa79))
+
 ## [4.1.1](https://github.com/languitar/autosuspend/compare/v4.1.0...v4.1.1) (2022-03-10)
 
 
