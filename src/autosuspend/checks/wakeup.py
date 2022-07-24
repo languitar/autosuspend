@@ -2,12 +2,14 @@ import configparser
 from datetime import datetime, timedelta, timezone
 from io import BytesIO
 from pathlib import Path
+import re
 import subprocess
-from typing import Any, Optional
+from typing import Any, Optional, Pattern
 
 from . import ConfigurationError, TemporaryCheckError, Wakeup
 from .util import CommandMixin, NetworkMixin, XPathMixin
 from ..util.subprocess import raise_severe_if_command_not_found
+from ..util.systemd import next_timer_executions
 
 
 class Calendar(NetworkMixin, Wakeup):
@@ -124,6 +126,31 @@ class Periodic(Wakeup):
 
     def check(self, timestamp: datetime) -> Optional[datetime]:
         return timestamp + self._delta
+
+
+class SystemdTimer(Wakeup):
+    """Ensures that the system is active when some selected SystemD timers will run."""
+
+    @classmethod
+    def create(cls, name: str, config: configparser.SectionProxy) -> "SystemdTimer":
+        try:
+            return cls(name, re.compile(config["match"]))
+        except (re.error, ValueError, KeyError, TypeError) as error:
+            raise ConfigurationError(str(error))
+
+    def __init__(self, name: str, match: Pattern) -> None:
+        Wakeup.__init__(self, name)
+        self._match = match
+
+    def check(self, timestamp: datetime) -> Optional[datetime]:
+        executions = next_timer_executions()
+        matching_executions = [
+            next_run for name, next_run in executions.items() if self._match.match(name)
+        ]
+        try:
+            return min(matching_executions)
+        except ValueError:
+            return None
 
 
 class XPath(XPathMixin, Wakeup):

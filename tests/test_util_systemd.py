@@ -1,7 +1,11 @@
 from dbus.proxies import ProxyObject
 import pytest
 
-from autosuspend.util.systemd import list_logind_sessions, LogindDBusException
+from autosuspend.util.systemd import (
+    list_logind_sessions,
+    LogindDBusException,
+    next_timer_executions,
+)
 
 
 def test_list_logind_sessions_empty(logind: ProxyObject) -> None:
@@ -17,3 +21,8 @@ def test_list_logind_sessions_empty(logind: ProxyObject) -> None:
 def test_list_logind_sessions_dbus_error() -> None:
     with pytest.raises(LogindDBusException):
         list_logind_sessions()
+
+
+@pytest.mark.skip(reason="No dbusmock implementation available")
+def test_next_timer_executions() -> None:
+    assert next_timer_executions() is not None
