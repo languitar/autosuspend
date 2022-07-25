@@ -1,5 +1,4 @@
 from collections import namedtuple
-import configparser
 from datetime import timedelta, timezone
 from getpass import getuser
 import json
@@ -8,7 +7,7 @@ import re
 import socket
 import subprocess
 import sys
-from typing import Any, Callable, Dict, Tuple
+from typing import Any, Callable, Dict, Mapping, Tuple
 
 from dbus.proxies import ProxyObject
 from freezegun import freeze_time
@@ -54,6 +53,7 @@ from autosuspend.util.xorg import (
 )
 
 from . import CheckTest
+from tests.utils import config_section
 
 
 snic = namedtuple("snic", ["family", "address", "netmask", "broadcast", "ptp"])
@@ -142,35 +142,29 @@ class TestUsers(CheckTest):
         )
 
     def test_create(self) -> None:
-        parser = configparser.ConfigParser()
-        parser.read_string(
-            """
-            [section]
-            name = name.*name
-            terminal = term.*term
-            host = host.*host
-            """
+        check = Users.create(
+            "name",
+            config_section(
+                {"name": "name.*name", "terminal": "term.*term", "host": "host.*host"}
+            ),
         )
-
-        check = Users.create("name", parser["section"])
 
         assert check._user_regex == re.compile("name.*name")
         assert check._terminal_regex == re.compile("term.*term")
         assert check._host_regex == re.compile("host.*host")
 
     def test_create_regex_error(self) -> None:
-        parser = configparser.ConfigParser()
-        parser.read_string(
-            """
-            [section]
-            name = name.*name
-            terminal = term.[[a-9]term
-            host = host.*host
-            """
-        )
-
         with pytest.raises(ConfigurationError):
-            Users.create("name", parser["section"])
+            Users.create(
+                "name",
+                config_section(
+                    {
+                        "name": "name.*name",
+                        "terminal": "term.[[a-9]term",
+                        "host": "host.*host",
+                    }
+                ),
+            )
 
 
 class TestProcesses(CheckTest):
@@ -210,24 +204,17 @@ class TestProcesses(CheckTest):
         assert Processes("foo", ["dummy", "blubb", "other"]).check() is None
 
     def test_create(self) -> None:
-        parser = configparser.ConfigParser()
-        parser.read_string(
-            """
-            [section]
-            processes = foo, bar, narf
-            """
-        )
-        assert Processes.create("name", parser["section"])._processes == [
+        assert Processes.create(
+            "name", config_section({"processes": "foo, bar, narf"})
+        )._processes == [
             "foo",
             "bar",
             "narf",
         ]
 
     def test_create_no_entry(self) -> None:
-        parser = configparser.ConfigParser()
-        parser.read_string("""[section]""")
         with pytest.raises(ConfigurationError):
-            Processes.create("name", parser["section"])
+            Processes.create("name", config_section())
 
 
 class TestActiveCalendarEvent(CheckTest):
@@ -277,19 +264,16 @@ class TestActiveCalendarEvent(CheckTest):
         )
 
     def test_create(self) -> None:
-        parser = configparser.ConfigParser()
-        parser.read_string(
-            """
-            [section]
-            url = foobar
-            username = user
-            password = pass
-            timeout = 3
-            """
-        )
         check: ActiveCalendarEvent = ActiveCalendarEvent.create(
             "name",
-            parser["section"],
+            config_section(
+                {
+                    "url": "foobar",
+                    "username": "user",
+                    "password": "pass",
+                    "timeout": "3",
+                }
+            ),
         )  # type: ignore
         assert check._url == "foobar"
         assert check._username == "user"
@@ -442,31 +426,17 @@ class TestActiveConnection(CheckTest):
         assert ActiveConnection("foo", [10, self.MY_PORT, 30]).check() is None
 
     def test_create(self) -> None:
-        parser = configparser.ConfigParser()
-        parser.read_string(
-            """
-            [section]
-            ports = 10,20,30
-            """
-        )
-        assert ActiveConnection.create("name", parser["section"])._ports == {10, 20, 30}
+        assert ActiveConnection.create(
+            "name", config_section({"ports": "10,20,30"})
+        )._ports == {10, 20, 30}
 
     def test_create_no_entry(self) -> None:
-        parser = configparser.ConfigParser()
-        parser.read_string("""[section]""")
         with pytest.raises(ConfigurationError):
-            ActiveConnection.create("name", parser["section"])
+            ActiveConnection.create("name", config_section())
 
     def test_create_no_number(self) -> None:
-        parser = configparser.ConfigParser()
-        parser.read_string(
-            """
-            [section]
-            ports = 10,20xx,30
-            """
-        )
         with pytest.raises(ConfigurationError):
-            ActiveConnection.create("name", parser["section"])
+            ActiveConnection.create("name", config_section({"ports": "10,20xx,30"}))
 
 
 class TestLoad(CheckTest):
@@ -486,25 +456,13 @@ class TestLoad(CheckTest):
         assert Load("foo", threshold).check() is not None
 
     def test_create(self) -> None:
-        parser = configparser.ConfigParser()
-        parser.read_string(
-            """
-            [section]
-            threshold = 3.2
-            """
+        assert (
+            Load.create("name", config_section({"threshold": "3.2"}))._threshold == 3.2
         )
-        assert Load.create("name", parser["section"])._threshold == 3.2
 
     def test_create_no_number(self) -> None:
-        parser = configparser.ConfigParser()
-        parser.read_string(
-            """
-            [section]
-            threshold = narf
-            """
-        )
         with pytest.raises(ConfigurationError):
-            Load.create("name", parser["section"])
+            Load.create("name", config_section({"threshold": "narf"}))
 
 
 class TestMpd(CheckTest):
@@ -571,49 +529,46 @@ class TestMpd(CheckTest):
             check.check()
 
     def test_create(self) -> None:
-        parser = configparser.ConfigParser()
-        parser.read_string(
-            """
-            [section]
-            host = host
-            port = 1234
-            timeout = 12
-            """
+        check = Mpd.create(
+            "name",
+            config_section(
+                {
+                    "host": "host",
+                    "port": "1234",
+                    "timeout": "12",
+                }
+            ),
         )
-
-        check = Mpd.create("name", parser["section"])
 
         assert check._host == "host"
         assert check._port == 1234
         assert check._timeout == 12
 
     def test_create_port_no_number(self) -> None:
-        parser = configparser.ConfigParser()
-        parser.read_string(
-            """
-            [section]
-            host = host
-            port = string
-            timeout = 12
-            """
-        )
-
         with pytest.raises(ConfigurationError):
-            Mpd.create("name", parser["section"])
+            Mpd.create(
+                "name",
+                config_section(
+                    {
+                        "host": "host",
+                        "port": "string",
+                        "timeout": "12",
+                    }
+                ),
+            )
 
     def test_create_timeout_no_number(self) -> None:
-        parser = configparser.ConfigParser()
-        parser.read_string(
-            """
-            [section]
-            host = host
-            port = 10
-            timeout = string
-            """
-        )
-
         with pytest.raises(ConfigurationError):
-            Mpd.create("name", parser["section"])
+            Mpd.create(
+                "name",
+                config_section(
+                    {
+                        "host": "host",
+                        "port": "10",
+                        "timeout": "string",
+                    }
+                ),
+            )
 
 
 class TestNetworkBandwidth(CheckTest):
@@ -639,30 +594,25 @@ class TestNetworkBandwidth(CheckTest):
 
     @pytest.mark.usefixtures("_mock_interfaces")
     def test_create(self) -> None:
-        parser = configparser.ConfigParser()
-        parser.read_string(
-            """
-[section]
-interfaces = foo, baz
-threshold_send = 200
-threshold_receive = 300
-"""
+        check = NetworkBandwidth.create(
+            "name",
+            config_section(
+                {
+                    "interfaces": "foo, baz",
+                    "threshold_send": "200",
+                    "threshold_receive": "300",
+                }
+            ),
         )
-        check = NetworkBandwidth.create("name", parser["section"])
         assert set(check._interfaces) == {"foo", "baz"}
         assert check._threshold_send == 200
         assert check._threshold_receive == 300
 
     @pytest.mark.usefixtures("_mock_interfaces")
     def test_create_default(self) -> None:
-        parser = configparser.ConfigParser()
-        parser.read_string(
-            """
-[section]
-interfaces = foo, baz
-"""
+        check = NetworkBandwidth.create(
+            "name", config_section({"interfaces": "foo, baz"})
         )
-        check = NetworkBandwidth.create("name", parser["section"])
         assert set(check._interfaces) == {"foo", "baz"}
         assert check._threshold_send == 100
         assert check._threshold_receive == 100
@@ -671,55 +621,48 @@ interfaces = foo, baz
         ("config", "error_match"),
         [
             (
-                """
-[section]
-interfaces = foo, NOTEXIST
-threshold_send = 200
-threshold_receive = 300
-""",
+                {
+                    "interfaces": "foo, NOTEXIST",
+                    "threshold_send": "200",
+                    "threshold_receive": "300",
+                },
                 r"does not exist",
             ),
             (
-                """
-[section]
-threshold_send = 200
-threshold_receive = 300
-""",
+                {
+                    "threshold_send": "200",
+                    "threshold_receive": "300",
+                },
                 r"configuration key: \'interfaces\'",
             ),
             (
-                """
-[section]
-interfaces =
-threshold_send = 200
-threshold_receive = 300
-""",
+                {
+                    "interfaces": "",
+                    "threshold_send": "200",
+                    "threshold_receive": "300",
+                },
                 r"No interfaces configured",
             ),
             (
-                """
-[section]
-interfaces = foo, bar
-threshold_send = xxx
-""",
+                {
+                    "interfaces": "foo, bar",
+                    "threshold_send": "xxx",
+                },
                 r"Threshold in wrong format",
             ),
             (
-                """
-[section]
-interfaces = foo, bar
-threshold_receive = xxx
-""",
+                {
+                    "interfaces": "foo, bar",
+                    "threshold_receive": "xxx",
+                },
                 r"Threshold in wrong format",
             ),
         ],
     )
     @pytest.mark.usefixtures("_mock_interfaces")
-    def test_create_error(self, config: str, error_match: str) -> None:
-        parser = configparser.ConfigParser()
-        parser.read_string(config)
+    def test_create_error(self, config: Mapping[str, str], error_match: str) -> None:
         with pytest.raises(ConfigurationError, match=error_match):
-            NetworkBandwidth.create("name", parser["section"])
+            NetworkBandwidth.create("name", config_section(config))
 
     @pytest.mark.parametrize(
         ("send_threshold", "receive_threshold", "match"),
@@ -889,53 +832,33 @@ class TestKodi(CheckTest):
             Kodi("foo", url="url", timeout=10).check()
 
     def test_create(self) -> None:
-        parser = configparser.ConfigParser()
-        parser.read_string(
-            """
-            [section]
-            url = anurl
-            timeout = 12
-            """
+        check = Kodi.create(
+            "name",
+            config_section(
+                {
+                    "url": "anurl",
+                    "timeout": "12",
+                }
+            ),
         )
-
-        check = Kodi.create("name", parser["section"])
 
         assert check._url.startswith("anurl")
         assert check._timeout == 12
         assert not check._suspend_while_paused
 
     def test_create_default_url(self) -> None:
-        parser = configparser.ConfigParser()
-        parser.read_string("""[section]""")
-
-        check = Kodi.create("name", parser["section"])
+        check = Kodi.create("name", config_section())
 
         assert check._url.split("?")[0] == "http://localhost:8080/jsonrpc"
 
     def test_create_timeout_no_number(self) -> None:
-        parser = configparser.ConfigParser()
-        parser.read_string(
-            """
-            [section]
-            url = anurl
-            timeout = string
-            """
-        )
-
         with pytest.raises(ConfigurationError):
-            Kodi.create("name", parser["section"])
+            Kodi.create("name", config_section({"url": "anurl", "timeout": "string"}))
 
     def test_create_suspend_while_paused(self) -> None:
-        parser = configparser.ConfigParser()
-        parser.read_string(
-            """
-            [section]
-            url = anurl
-            suspend_while_paused = True
-            """
+        check = Kodi.create(
+            "name", config_section({"url": "anurl", "suspend_while_paused": "True"})
         )
-
-        check = Kodi.create("name", parser["section"])
 
         assert check._url.startswith("anurl")
         assert check._suspend_while_paused
@@ -946,55 +869,30 @@ class TestKodiIdleTime(CheckTest):
         return KodiIdleTime(name, url="url", timeout=10, idle_time=10)
 
     def test_create(self) -> None:
-        parser = configparser.ConfigParser()
-        parser.read_string(
-            """
-            [section]
-            url = anurl
-            timeout = 12
-            idle_time = 42
-            """
+        check = KodiIdleTime.create(
+            "name", config_section({"url": "anurl", "timeout": "12", "idle_time": "42"})
         )
-
-        check = KodiIdleTime.create("name", parser["section"])
 
         assert check._url.startswith("anurl")
         assert check._timeout == 12
         assert check._idle_time == 42
 
     def test_create_default_url(self) -> None:
-        parser = configparser.ConfigParser()
-        parser.read_string("""[section]""")
-
-        check = KodiIdleTime.create("name", parser["section"])
+        check = KodiIdleTime.create("name", config_section())
 
         assert check._url.split("?")[0] == "http://localhost:8080/jsonrpc"
 
     def test_create_timeout_no_number(self) -> None:
-        parser = configparser.ConfigParser()
-        parser.read_string(
-            """
-            [section]
-            url = anurl
-            timeout = string
-            """
-        )
-
         with pytest.raises(ConfigurationError):
-            KodiIdleTime.create("name", parser["section"])
+            KodiIdleTime.create(
+                "name", config_section({"url": "anurl", "timeout": "string"})
+            )
 
     def test_create_idle_time_no_number(self) -> None:
-        parser = configparser.ConfigParser()
-        parser.read_string(
-            """
-            [section]
-            url = anurl
-            idle_time = string
-            """
-        )
-
         with pytest.raises(ConfigurationError):
-            KodiIdleTime.create("name", parser["section"])
+            KodiIdleTime.create(
+                "name", config_section({"url": "anurl", "idle_time": "string"})
+            )
 
     def test_no_result(self, mocker: MockFixture) -> None:
         mock_reply = mocker.MagicMock()
@@ -1094,20 +992,11 @@ class TestPing(CheckTest):
         assert Ping("name", ["foo"]).check() is not None
 
     def test_create_missing_hosts(self) -> None:
-        parser = configparser.ConfigParser()
-        parser.read_string("""[section]""")
         with pytest.raises(ConfigurationError):
-            Ping.create("name", parser["section"])
+            Ping.create("name", config_section())
 
     def test_create_host_splitting(self) -> None:
-        parser = configparser.ConfigParser()
-        parser.read_string(
-            """
-            [section]
-            hosts=a,b,c
-            """
-        )
-        ping = Ping.create("name", parser["section"])
+        ping = Ping.create("name", config_section({"hosts": "a,b,c"}))
         assert ping._hosts == ["a", "b", "c"]
 
 
@@ -1182,79 +1071,47 @@ class TestXIdleTime(CheckTest):
             check.check()
 
     def test_create_default(self) -> None:
-        parser = configparser.ConfigParser()
-        parser.read_string("""[section]""")
-        check = XIdleTime.create("name", parser["section"])
+        check = XIdleTime.create("name", config_section())
         assert check._timeout == 600
         assert check._ignore_process_re == re.compile(r"a^")
         assert check._ignore_users_re == re.compile(r"a^")
         assert check._provide_sessions == list_sessions_sockets
 
     def test_create(self) -> None:
-        parser = configparser.ConfigParser()
-        parser.read_string(
-            """
-            [section]
-            timeout = 42
-            ignore_if_process = .*test
-            ignore_users = test.*test
-            method = logind
-            """
+        check = XIdleTime.create(
+            "name",
+            config_section(
+                {
+                    "timeout": "42",
+                    "ignore_if_process": ".*test",
+                    "ignore_users": "test.*test",
+                    "method": "logind",
+                }
+            ),
         )
-        check = XIdleTime.create("name", parser["section"])
         assert check._timeout == 42
         assert check._ignore_process_re == re.compile(r".*test")
         assert check._ignore_users_re == re.compile(r"test.*test")
         assert check._provide_sessions == list_sessions_logind
 
     def test_create_no_int(self) -> None:
-        parser = configparser.ConfigParser()
-        parser.read_string(
-            """
-            [section]
-            timeout = string
-            """
-        )
         with pytest.raises(ConfigurationError):
-            XIdleTime.create("name", parser["section"])
+            XIdleTime.create("name", config_section({"timeout": "string"}))
 
     def test_create_broken_process_re(self) -> None:
-        parser = configparser.ConfigParser()
-        parser.read_string(
-            """
-            [section]
-            ignore_if_process = [[a-9]
-            """
-        )
         with pytest.raises(ConfigurationError):
-            XIdleTime.create("name", parser["section"])
+            XIdleTime.create("name", config_section({"ignore_if_process": "[[a-9]"}))
 
     def test_create_broken_users_re(self) -> None:
-        parser = configparser.ConfigParser()
-        parser.read_string(
-            """
-            [section]
-            ignore_users = [[a-9]
-            """
-        )
         with pytest.raises(ConfigurationError):
-            XIdleTime.create("name", parser["section"])
+            XIdleTime.create("name", config_section({"ignore_users": "[[a-9]"}))
 
     def test_create_unknown_method(self) -> None:
-        parser = configparser.ConfigParser()
-        parser.read_string(
-            """
-            [section]
-            method = asdfasdf
-            """
-        )
         with pytest.raises(ConfigurationError):
-            XIdleTime.create("name", parser["section"])
+            XIdleTime.create("name", config_section({"method": "asdfasdf"}))
 
     def test_list_sessions_logind_dbus_error(self, mocker: MockFixture) -> None:
-        parser = configparser.ConfigParser()
-        parser.read_string("""[section]""")
-        check = XIdleTime.create("name", parser["section"])
+        check = XIdleTime.create("name", config_section())
         mocker.patch.object(
             check, "_provide_sessions"
         ).side_effect = LogindDBusException()
@@ -1280,43 +1137,27 @@ class TestExternalCommand(CheckTest):
 
     def test_check(self, mocker: MockFixture) -> None:
         mock = mocker.patch("subprocess.check_call")
-        parser = configparser.ConfigParser()
-        parser.read_string(
-            """
-            [section]
-            command = foo bar
-            """
-        )
         assert (
-            ExternalCommand.create("name", parser["section"]).check() is not None  # type: ignore
+            ExternalCommand.create(
+                "name", config_section({"command": "foo bar"})
+            ).check()  # type: ignore
+            is not None
         )
         mock.assert_called_once_with("foo bar", shell=True)
 
     def test_check_no_match(self, mocker: MockFixture) -> None:
         mock = mocker.patch("subprocess.check_call")
         mock.side_effect = subprocess.CalledProcessError(2, "foo bar")
-        parser = configparser.ConfigParser()
-        parser.read_string(
-            """
-            [section]
-            command = foo bar
-            """
-        )
         assert (
-            ExternalCommand.create("name", parser["section"]).check() is None  # type: ignore
+            ExternalCommand.create("name", config_section({"command": "foo bar"})).check() is None  # type: ignore
         )
         mock.assert_called_once_with("foo bar", shell=True)
 
     def test_command_not_found(self) -> None:
-        parser = configparser.ConfigParser()
-        parser.read_string(
-            """
-            [section]
-            command = thisreallydoesnotexist bar
-            """
-        )
         with pytest.raises(SevereCheckError):
-            ExternalCommand.create("name", parser["section"]).check()  # type: ignore
+            ExternalCommand.create(
+                "name", config_section({"command": "thisreallydoesnotexist"})
+            ).check()  # type: ignore
 
 
 class TestXPath(CheckTest):
@@ -1353,18 +1194,18 @@ class TestXPath(CheckTest):
         assert XPath("foo", xpath="/b", url="nourl", timeout=5).check() is None
 
     def test_create(self) -> None:
-        parser = configparser.ConfigParser()
-        parser.read_string(
-            """
-            [section]
-            url = url
-            xpath = /xpath
-            username = user
-            password = pass
-            timeout = 42
-            """
-        )
-        check: XPath = XPath.create("name", parser["section"])  # type: ignore
+        check: XPath = XPath.create(
+            "name",
+            config_section(
+                {
+                    "url": "url",
+                    "xpath": "/xpath",
+                    "username": "user",
+                    "password": "pass",
+                    "timeout": "42",
+                }
+            ),
+        )  # type: ignore
         assert check._xpath == "/xpath"
         assert check._url == "url"
         assert check._username == "user"
@@ -1409,32 +1250,20 @@ class TestLogindSessionsIdle(CheckTest):
         assert check.check() is None
 
     def test_configure_defaults(self) -> None:
-        parser = configparser.ConfigParser()
-        parser.read_string("[section]")
-        check = LogindSessionsIdle.create("name", parser["section"])
+        check = LogindSessionsIdle.create("name", config_section())
         assert check._types == ["tty", "x11", "wayland"]
         assert check._states == ["active", "online"]
 
     def test_configure_types(self) -> None:
-        parser = configparser.ConfigParser()
-        parser.read_string(
-            """
-            [section]
-            types=test, bla,foo
-            """
+        check = LogindSessionsIdle.create(
+            "name", config_section({"types": "test, bla,foo"})
         )
-        check = LogindSessionsIdle.create("name", parser["section"])
         assert check._types == ["test", "bla", "foo"]
 
     def test_configure_states(self) -> None:
-        parser = configparser.ConfigParser()
-        parser.read_string(
-            """
-            [section]
-            states=test, bla,foo
-            """
+        check = LogindSessionsIdle.create(
+            "name", config_section({"states": "test, bla,foo"})
         )
-        check = LogindSessionsIdle.create("name", parser["section"])
         assert check._states == ["test", "bla", "foo"]
 
     @pytest.mark.usefixtures("_logind_dbus_error")
@@ -1524,18 +1353,18 @@ class TestJsonPath(CheckTest):
             ).check()
 
     def test_create(self) -> None:
-        parser = configparser.ConfigParser()
-        parser.read_string(
-            """
-            [section]
-            url = url
-            jsonpath = a.b
-            username = user
-            password = pass
-            timeout = 42
-            """
-        )
-        check: JsonPath = JsonPath.create("name", parser["section"])  # type: ignore
+        check: JsonPath = JsonPath.create(
+            "name",
+            config_section(
+                {
+                    "url": "url",
+                    "jsonpath": "a.b",
+                    "username": "user",
+                    "password": "pass",
+                    "timeout": "42",
+                }
+            ),
+        )  # type: ignore
         assert check._jsonpath == parse("a.b")
         assert check._url == "url"
         assert check._username == "user"
@@ -1543,33 +1372,33 @@ class TestJsonPath(CheckTest):
         assert check._timeout == 42
 
     def test_create_missing_path(self) -> None:
-        parser = configparser.ConfigParser()
-        parser.read_string(
-            """
-            [section]
-            url = url
-            username = user
-            password = pass
-            timeout = 42
-            """
-        )
         with pytest.raises(ConfigurationError):
-            JsonPath.create("name", parser["section"])
+            JsonPath.create(
+                "name",
+                config_section(
+                    {
+                        "url": "url",
+                        "username": "user",
+                        "password": "pass",
+                        "timeout": "42",
+                    }
+                ),
+            )
 
     def test_create_invalid_path(self) -> None:
-        parser = configparser.ConfigParser()
-        parser.read_string(
-            """
-            [section]
-            url = url
-            jsonpath = ,.asdfjasdklf
-            username = user
-            password = pass
-            timeout = 42
-            """
-        )
         with pytest.raises(ConfigurationError):
-            JsonPath.create("name", parser["section"])
+            JsonPath.create(
+                "name",
+                config_section(
+                    {
+                        "url": "url",
+                        "jsonpath": ",.asdfjasdklf",
+                        "username": "user",
+                        "password": "pass",
+                        "timeout": "42",
+                    }
+                ),
+            )
 
 
 class TestLastLogActivity(CheckTest):
@@ -1750,20 +1579,19 @@ class TestLastLogActivity(CheckTest):
             ).check()
 
     def test_create(self) -> None:
-        parser = configparser.ConfigParser()
-        parser.read_string(
-            """
-            [section]
-            name = somename
-            log_file = /some/file
-            pattern = ^foo(.*)bar$
-            minutes = 42
-            encoding = utf-8
-            timezone = Europe/Berlin
-            """
+        created = LastLogActivity.create(
+            "thename",
+            config_section(
+                {
+                    "name": "somename",
+                    "log_file": "/some/file",
+                    "pattern": "^foo(.*)bar$",
+                    "minutes": "42",
+                    "encoding": "utf-8",
+                    "timezone": "Europe/Berlin",
+                }
+            ),
         )
-
-        created = LastLogActivity.create("thename", parser["section"])
 
         assert created.log_file == Path("/some/file")
         assert created.pattern == re.compile(r"^foo(.*)bar$")
@@ -1772,71 +1600,66 @@ class TestLastLogActivity(CheckTest):
         assert created.default_timezone == pytz.timezone("Europe/Berlin")
 
     def test_create_handles_pattern_errors(self) -> None:
-        parser = configparser.ConfigParser()
-        parser.read_string(
-            """
-            [section]
-            name = somename
-            log_file = /some/file
-            pattern = ^^(foo(.*)bar$
-            """
-        )
-
         with pytest.raises(ConfigurationError):
-            LastLogActivity.create("thename", parser["section"])
+            LastLogActivity.create(
+                "thename",
+                config_section(
+                    {
+                        "name": "somename",
+                        "log_file": "/some/file",
+                        "pattern": "^^foo((.*)bar$",
+                    }
+                ),
+            )
 
     def test_create_handles_delta_errors(self) -> None:
-        parser = configparser.ConfigParser()
-        parser.read_string(
-            """
-            [section]
-            name = somename
-            log_file = /some/file
-            pattern = (.*)
-            minutes = test
-            """
-        )
-
         with pytest.raises(ConfigurationError):
-            LastLogActivity.create("thename", parser["section"])
+            LastLogActivity.create(
+                "thename",
+                config_section(
+                    {
+                        "name": "somename",
+                        "log_file": "/some/file",
+                        "pattern": "(.*)",
+                        "minutes": "test",
+                    }
+                ),
+            )
 
     def test_create_handles_negative_deltas(self) -> None:
-        parser = configparser.ConfigParser()
-        parser.read_string(
-            """
-            [section]
-            name = somename
-            log_file = /some/file
-            pattern = (.*)
-            minutes = -42
-            """
-        )
-
         with pytest.raises(ConfigurationError):
-            LastLogActivity.create("thename", parser["section"])
+            LastLogActivity.create(
+                "thename",
+                config_section(
+                    {
+                        "name": "somename",
+                        "log_file": "/some/file",
+                        "pattern": "(.*)",
+                        "minutes": "-42",
+                    }
+                ),
+            )
 
     def test_create_handles_missing_pattern_groups(self) -> None:
-        parser = configparser.ConfigParser()
-        parser.read_string(
-            """
-            [section]
-            name = somename
-            log_file = /some/file
-            pattern = .*
-            """
-        )
-
         with pytest.raises(ConfigurationError):
-            LastLogActivity.create("thename", parser["section"])
+            LastLogActivity.create(
+                "thename",
+                config_section(
+                    {
+                        "name": "somename",
+                        "log_file": "/some/file",
+                        "pattern": ".*",
+                    }
+                ),
+            )
 
     def test_create_handles_missing_keys(self) -> None:
-        parser = configparser.ConfigParser()
-        parser.read_string(
-            """
-            [section]
-            name = somename
-            """
-        )
-
         with pytest.raises(ConfigurationError):
-            LastLogActivity.create("thename", parser["section"])
+            LastLogActivity.create(
+                "thename",
+                config_section(
+                    {
+                        "name": "somename",
+                    }
+                ),
+            )

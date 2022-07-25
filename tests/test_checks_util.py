@@ -1,4 +1,3 @@
-import configparser
 from pathlib import Path
 from typing import Any, Callable, Optional, Tuple
 from unittest.mock import ANY
@@ -10,6 +9,8 @@ import requests
 
 from autosuspend.checks import Activity, ConfigurationError, TemporaryCheckError
 from autosuspend.checks.util import CommandMixin, NetworkMixin, XPathMixin
+
+from .utils import config_section
 
 
 class _CommandMixinSub(CommandMixin, Activity):
@@ -23,91 +24,50 @@ class _CommandMixinSub(CommandMixin, Activity):
 
 class TestCommandMixin:
     def test_create(self) -> None:
-        parser = configparser.ConfigParser()
-        parser.read_string(
-            """
-            [section]
-            command = narf bla
-            """
-        )
+        section = config_section({"command": "narf bla"})
         check: _CommandMixinSub = _CommandMixinSub.create(
             "name",
-            parser["section"],
+            section,
         )  # type: ignore
         assert check._command == "narf bla"
 
     def test_create_no_command(self) -> None:
-        parser = configparser.ConfigParser()
-        parser.read_string("""[section]""")
         with pytest.raises(ConfigurationError):
-            _CommandMixinSub.create("name", parser["section"])
+            _CommandMixinSub.create("name", config_section())
 
 
 class TestNetworkMixin:
     def test_collect_missing_url(self) -> None:
-        parser = configparser.ConfigParser()
-        parser.read_string("[section]")
         with pytest.raises(ConfigurationError, match=r"^Lacks 'url'.*"):
-            NetworkMixin.collect_init_args(parser["section"])
+            NetworkMixin.collect_init_args(config_section())
 
     def test_username_missing(self) -> None:
-        parser = configparser.ConfigParser()
-        parser.read_string(
-            """
-            [section]
-            url=ok
-            password=xxx
-            """
-        )
         with pytest.raises(ConfigurationError, match=r"^Username and.*"):
-            NetworkMixin.collect_init_args(parser["section"])
+            NetworkMixin.collect_init_args(
+                config_section({"url": "required", "password": "lacks username"})
+            )
 
     def test_password_missing(self) -> None:
-        parser = configparser.ConfigParser()
-        parser.read_string(
-            """
-            [section]
-            url=ok
-            username=xxx
-            """
-        )
         with pytest.raises(ConfigurationError, match=r"^Username and.*"):
-            NetworkMixin.collect_init_args(parser["section"])
+            NetworkMixin.collect_init_args(
+                config_section({"url": "required", "username": "lacks password"})
+            )
 
     def test_collect_default_timeout(self) -> None:
-        parser = configparser.ConfigParser()
-        parser.read_string(
-            """
-            [section]
-            url=nourl
-            """
-        )
-        args = NetworkMixin.collect_init_args(parser["section"])
+        args = NetworkMixin.collect_init_args(config_section({"url": "required"}))
         assert args["timeout"] == 5
 
     def test_collect_timeout(self) -> None:
-        parser = configparser.ConfigParser()
-        parser.read_string(
-            """
-            [section]
-            url=nourl
-            timeout=42
-            """
+        args = NetworkMixin.collect_init_args(
+            config_section({"url": "required", "timeout": "42"})
         )
-        args = NetworkMixin.collect_init_args(parser["section"])
         assert args["timeout"] == 42
 
     def test_collect_invalid_timeout(self) -> None:
-        parser = configparser.ConfigParser()
-        parser.read_string(
-            """
-            [section]
-            url=nourl
-            timeout=xx
-            """
-        )
         with pytest.raises(ConfigurationError, match=r"^Configuration error .*"):
-            NetworkMixin.collect_init_args(parser["section"])
+            NetworkMixin.collect_init_args(
+                config_section({"url": "required", "timeout": "xx"})
+            )
 
     def test_request(self, datadir: Path, serve_file: Callable[[Path], str]) -> None:
         reply = NetworkMixin(
@@ -206,40 +166,23 @@ class TestXPathMixin:
         _XPathMixinSub("foo", xpath="/b", url="nourl", timeout=5).evaluate()
 
     def test_xpath_prevalidation(self) -> None:
-        parser = configparser.ConfigParser()
-        parser.read_string(
-            """
-            [section]
-            xpath=|34/ad
-            url=nourl
-            """
-        )
         with pytest.raises(ConfigurationError, match=r"^Invalid xpath.*"):
-            _XPathMixinSub.create("name", parser["section"])
+            _XPathMixinSub.create(
+                "name", config_section({"xpath": "|34/ad", "url": "required"})
+            )
 
     @pytest.mark.parametrize("entry", ["xpath", "url"])
     def test_missing_config_entry(self, entry: str) -> None:
-        parser = configparser.ConfigParser()
-        parser.read_string(
-            """
-            [section]
-            xpath=/valid
-            url=nourl
-            """
-        )
-        del parser["section"][entry]
+        section = config_section({"xpath": "/valid", "url": "required"})
+        del section[entry]
         with pytest.raises(ConfigurationError, match=r"^Lacks '" + entry + "'.*"):
-            _XPathMixinSub.create("name", parser["section"])
+            _XPathMixinSub.create("name", section)
 
     def test_invalid_config_entry(self) -> None:
-        parser = configparser.ConfigParser()
-        parser.read_string(
-            """
-            [section]
-            xpath=/valid
-            timeout=xxx
-            url=nourl
-            """
-        )
         with pytest.raises(ConfigurationError, match=r"^Configuration error .*"):
-            _XPathMixinSub.create("name", parser["section"])
+            _XPathMixinSub.create(
+                "name",
+                config_section(
+                    {"xpath": "/valid", "url": "required", "timeout": "xxx"}
+                ),
+            )
