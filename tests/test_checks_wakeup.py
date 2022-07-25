@@ -1,4 +1,3 @@
-import configparser
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 import re
@@ -27,6 +26,7 @@ from autosuspend.checks.wakeup import (
 )
 
 from . import CheckTest
+from .utils import config_section
 
 
 class TestCalendar(CheckTest):
@@ -34,19 +34,17 @@ class TestCalendar(CheckTest):
         return Calendar(name, url="file:///asdf", timeout=3)
 
     def test_create(self) -> None:
-        parser = configparser.ConfigParser()
-        parser.read_string(
-            """
-            [section]
-            url = url
-            username = user
-            password = pass
-            timeout = 42
-            """
+        section = config_section(
+            {
+                "url": "url",
+                "username": "user",
+                "password": "pass",
+                "timeout": "42",
+            }
         )
         check: Calendar = Calendar.create(
             "name",
-            parser["section"],
+            section,
         )  # type: ignore
         assert check._url == "url"
         assert check._username == "user"
@@ -131,19 +129,12 @@ class TestFile(CheckTest):
         return File(name, Path("asdf"))
 
     def test_create(self) -> None:
-        parser = configparser.ConfigParser()
-        parser.read_string(
-            """[section]
-               path = /tmp/test"""
-        )
-        check = File.create("name", parser["section"])
+        check = File.create("name", config_section({"path": "/tmp/test"}))
         assert check._path == Path("/tmp/test")
 
     def test_create_no_path(self) -> None:
-        parser = configparser.ConfigParser()
-        parser.read_string("""[section]""")
         with pytest.raises(ConfigurationError):
-            File.create("name", parser["section"])
+            File.create("name", config_section())
 
     def test_smoke(self, tmp_path: Path) -> None:
         test_file = tmp_path / "file"
@@ -228,62 +219,29 @@ class TestPeriodic(CheckTest):
         return Periodic(name, delta)
 
     def test_create(self) -> None:
-        parser = configparser.ConfigParser()
-        parser.read_string(
-            """
-            [section]
-            unit=seconds
-            value=13
-            """
+        check = Periodic.create(
+            "name", config_section({"unit": "seconds", "value": "13"})
         )
-        check = Periodic.create("name", parser["section"])
         assert check._delta == timedelta(seconds=13)
 
     def test_create_wrong_unit(self) -> None:
-        parser = configparser.ConfigParser()
-        parser.read_string(
-            """
-            [section]
-            unit=asdfasdf
-            value=13
-            """
-        )
         with pytest.raises(ConfigurationError):
-            Periodic.create("name", parser["section"])
+            Periodic.create("name", config_section({"unit": "asdfasdf", "value": "13"}))
 
     def test_create_not_numeric(self) -> None:
-        parser = configparser.ConfigParser()
-        parser.read_string(
-            """
-            [section]
-            unit=seconds
-            value=asdfasd
-            """
-        )
         with pytest.raises(ConfigurationError):
-            Periodic.create("name", parser["section"])
+            Periodic.create(
+                "name", config_section({"unit": "seconds", "value": "asdfasd"})
+            )
 
     def test_create_no_unit(self) -> None:
-        parser = configparser.ConfigParser()
-        parser.read_string(
-            """
-            [section]
-            value=asdfasd
-            """
-        )
         with pytest.raises(ConfigurationError):
-            Periodic.create("name", parser["section"])
+            Periodic.create("name", config_section({"value": "13"}))
 
     def test_create_float(self) -> None:
-        parser = configparser.ConfigParser()
-        parser.read_string(
-            """
-            [section]
-            unit=seconds
-            value=21312.12
-            """
+        Periodic.create(
+            "name", config_section({"unit": "seconds", "value": "21312.12"})
         )
-        Periodic.create("name", parser["section"])
 
     def test_check(self) -> None:
         delta = timedelta(seconds=10, minutes=42)
@@ -302,25 +260,12 @@ class TestSystemdTimer(CheckTest):
         return SystemdTimer(name, re.compile(".*"))
 
     def test_create_handles_incorrect_expressions(self) -> None:
-        parser = configparser.ConfigParser()
-        parser.read_string(
-            """
-            [section]
-            match=(.*
-            """
-        )
         with pytest.raises(ConfigurationError):
-            SystemdTimer.create("somename", parser["section"])
+            SystemdTimer.create("somename", config_section({"match": "(.*"}))
 
     def test_create_raises_if_match_is_missing(self) -> None:
-        parser = configparser.ConfigParser()
-        parser.read_string(
-            """
-            [section]
-            """
-        )
         with pytest.raises(ConfigurationError):
-            SystemdTimer.create("somename", parser["section"])
+            SystemdTimer.create("somename", config_section())
 
     def test_works_without_timers(self, next_timer_executions: Mock) -> None:
         next_timer_executions.return_value = {}
@@ -428,16 +373,16 @@ class TestXPath(CheckTest):
         ) == datetime.fromtimestamp(10, timezone.utc)
 
     def test_create(self) -> None:
-        parser = configparser.ConfigParser()
-        parser.read_string(
-            """
-            [section]
-            xpath=/valid
-            url=nourl
-            timeout=20
-            """
-        )
-        check: XPath = XPath.create("name", parser["section"])  # type: ignore
+        check: XPath = XPath.create(
+            "name",
+            config_section(
+                {
+                    "xpath": "/valid",
+                    "url": "nourl",
+                    "timeout": "20",
+                }
+            ),
+        )  # type: ignore
         assert check._xpath == "/valid"
 
 
@@ -472,32 +417,32 @@ class TestXPathDelta(CheckTest):
         assert result == now + timedelta(seconds=42) * factor
 
     def test_create(self) -> None:
-        parser = configparser.ConfigParser()
-        parser.read_string(
-            """
-            [section]
-            xpath=/valid
-            url=nourl
-            timeout=20
-            unit=weeks
-            """
+        check = XPathDelta.create(
+            "name",
+            config_section(
+                {
+                    "xpath": "/valid",
+                    "url": "nourl",
+                    "timeout": "20",
+                    "unit": "weeks",
+                }
+            ),
         )
-        check = XPathDelta.create("name", parser["section"])
         assert check._unit == "weeks"
 
     def test_create_wrong_unit(self) -> None:
-        parser = configparser.ConfigParser()
-        parser.read_string(
-            """
-            [section]
-            xpath=/valid
-            url=nourl
-            timeout=20
-            unit=unknown
-            """
-        )
         with pytest.raises(ConfigurationError):
-            XPathDelta.create("name", parser["section"])
+            XPathDelta.create(
+                "name",
+                config_section(
+                    {
+                        "xpath": "/valid",
+                        "url": "nourl",
+                        "timeout": "20",
+                        "unit": "unknown",
+                    }
+                ),
+            )
 
     def test_init_wrong_unit(self) -> None:
         with pytest.raises(ValueError, match=r".*unit.*"):
