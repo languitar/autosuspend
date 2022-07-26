@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<MediaContainer size="1">
+<Track addedAt="1377889097" duration="242129" grandparentKey="/library/metadata/12276" grandparentRatingKey="12276" grandparentTitle="Ivy Quainoo" guid="local://23987" index="1" key="/library/metadata/23987" lastViewedAt="1517676589" librarySectionID="1" librarySectionKey="/library/sections/1" librarySectionTitle="Musik" originalTitle="Ivy Quainoo" parentIndex="1" parentKey="/library/metadata/23986" parentRatingKey="23986" parentTitle="Ivy [+video]" ratingKey="23987" sessionKey="2" summary="" title="Do You Like What You See" type="track" viewCount="1" viewOffset="50153">
+<Media audioChannels="2" audioCodec="mp3" bitrate="246" container="mp3" duration="242129" id="19660" selected="1">
+<Part container="mp3" duration="242129" file="/data/music/Amazon/Ivy Quainoo/01 - Do You Like What You See.mp3" hasThumbnail="1" id="19660" key="/library/parts/19660/1377889097/file.mp3" size="7440315" decision="directplay" selected="1">
+<Stream albumGain="-9.09" albumPeak="1.000000" albumRange="7.163570" audioChannelLayout="stereo" bitrate="240" channels="2" codec="mp3" gain="-9.03" id="18761" index="0" loudness="-8.97" lra="4.06" peak="1.000000" samplingRate="44100" selected="1" streamType="2" location="direct" />
+</Part>
+</Media>
+<User id="1" thumb="https://plex.tv/users/91d79663c4d78d14/avatar?c=1526664750" title="my_email@adress" />
+<Player address="192.168.1.123" device="AFTN" machineIdentifier="656ab0b970bffaef-com-plexapp-android" model="needle" platform="Android" platformVersion="7.1.2" product="Plex for Android" profile="Android" remotePublicAddress="" state="playing" title="AFTN" vendor="Amazon" version="6.15.2.4143" local="1" userID="1" />
+<Session id="656ab0b970bffaef-com-plexapp-android" bandwidth="504" location="lan" />
+</Track>
+</MediaContainer>

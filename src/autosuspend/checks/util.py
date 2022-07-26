@@ -1,6 +1,6 @@
 import configparser
 from contextlib import suppress
-from typing import Any, Dict, Optional, Sequence, TYPE_CHECKING
+from typing import Any, Dict, Optional, TYPE_CHECKING
 
 from . import Check, ConfigurationError, SevereCheckError, TemporaryCheckError
 
@@ -128,49 +128,4 @@ class NetworkMixin:
             reply.raise_for_status()
             return reply
         except requests.exceptions.RequestException as error:
-            raise TemporaryCheckError(error) from error
-
-
-class XPathMixin(NetworkMixin):
-    @classmethod
-    def collect_init_args(cls, config: configparser.SectionProxy) -> Dict[str, Any]:
-        from lxml.etree import XPath, XPathSyntaxError  # noqa: S410 our input
-
-        try:
-            args = NetworkMixin.collect_init_args(config)
-            args["xpath"] = config["xpath"].strip()
-            # validate the expression
-            try:
-                XPath(args["xpath"])
-            except XPathSyntaxError as error:
-                raise ConfigurationError(
-                    "Invalid xpath expression: " + args["xpath"]
-                ) from error
-            return args
-        except KeyError as error:
-            raise ConfigurationError("Lacks " + str(error) + " config entry") from error
-
-    @classmethod
-    def create(cls, name: str, config: configparser.SectionProxy) -> Check:
-        return cls(name, **cls.collect_init_args(config))  # type: ignore
-
-    def __init__(self, xpath: str, **kwargs: Any) -> None:
-        NetworkMixin.__init__(self, **kwargs)
-        self._xpath = xpath
-        from lxml import etree  # noqa: S410 required flag set
-
-        self._parser = etree.XMLParser(resolve_entities=False)
-
-    def evaluate(self) -> Sequence[Any]:
-        from lxml import etree  # noqa: S410 using safe parser
-        import requests
-        import requests.exceptions
-
-        try:
-            reply = self.request().content
-            root = etree.fromstring(reply, parser=self._parser)  # noqa: S320
-            return root.xpath(self._xpath)
-        except requests.exceptions.RequestException as error:
-            raise TemporaryCheckError(error) from error
-        except etree.XMLSyntaxError as error:
             raise TemporaryCheckError(error) from error

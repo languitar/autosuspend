@@ -26,7 +26,7 @@ import warnings
 import psutil
 
 from . import Activity, Check, ConfigurationError, SevereCheckError, TemporaryCheckError
-from .util import CommandMixin, NetworkMixin, XPathMixin
+from .util import CommandMixin, NetworkMixin
 from ..util.subprocess import raise_severe_if_command_not_found
 from ..util.systemd import list_logind_sessions, LogindDBusException
 from ..util.xorg import list_sessions_logind, list_sessions_sockets, XorgSession
@@ -39,6 +39,8 @@ if TYPE_CHECKING:
 
 with suppress(ModuleNotFoundError):
     from .ical import ActiveCalendarEvent  # noqa
+with suppress(ModuleNotFoundError):
+    from .xpath import XPathActivity as XPath  # noqa
 
 # isort: on
 
@@ -724,18 +726,6 @@ class LogindSessionsIdle(Activity):
                 return "Login session {} is not idle".format(session_id)
 
         return None
-
-
-class XPath(XPathMixin, Activity):
-    def __init__(self, name: str, **kwargs: Any) -> None:
-        Activity.__init__(self, name)
-        XPathMixin.__init__(self, **kwargs)
-
-    def check(self) -> Optional[str]:
-        if self.evaluate():
-            return "XPath matches for url " + self._url
-        else:
-            return None
 
 
 class JsonPath(NetworkMixin, Activity):
