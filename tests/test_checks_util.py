@@ -1,5 +1,5 @@
 from pathlib import Path
-from typing import Any, Callable, Optional, Tuple
+from typing import Callable, Optional, Tuple
 from unittest.mock import ANY
 
 import pytest
@@ -8,7 +8,7 @@ from pytest_mock import MockFixture
 import requests
 
 from autosuspend.checks import Activity, ConfigurationError, TemporaryCheckError
-from autosuspend.checks.util import CommandMixin, NetworkMixin, XPathMixin
+from autosuspend.checks.util import CommandMixin, NetworkMixin
 
 from .utils import config_section
 
@@ -122,67 +122,3 @@ class TestNetworkMixin:
         mock_method.assert_called_with(
             ANY, timeout=ANY, headers={"Accept": content_type}
         )
-
-
-class _XPathMixinSub(XPathMixin, Activity):
-    def __init__(self, name: str, **kwargs: Any) -> None:
-        Activity.__init__(self, name)
-        XPathMixin.__init__(self, **kwargs)
-
-    def check(self) -> Optional[str]:
-        pass
-
-
-class TestXPathMixin:
-    def test_smoke(self, datadir: Path, serve_file: Callable[[Path], str]) -> None:
-        result = _XPathMixinSub(
-            "foo",
-            xpath="/b",
-            url=serve_file(datadir / "xml_with_encoding.xml"),
-            timeout=5,
-        ).evaluate()
-        assert result is not None
-        assert len(result) == 0
-
-    def test_broken_xml(self, mocker: MockFixture) -> None:
-        mock_reply = mocker.MagicMock()
-        content_property = mocker.PropertyMock()
-        type(mock_reply).content = content_property
-        content_property.return_value = b"//broken"
-        mocker.patch("requests.Session.get", return_value=mock_reply)
-
-        with pytest.raises(TemporaryCheckError):
-            _XPathMixinSub("foo", xpath="/b", url="nourl", timeout=5).evaluate()
-
-    def test_xml_with_encoding(self, mocker: MockFixture) -> None:
-        mock_reply = mocker.MagicMock()
-        content_property = mocker.PropertyMock()
-        type(mock_reply).content = content_property
-        content_property.return_value = (
-            b'<?xml version="1.0" encoding="ISO-8859-1" ?><root></root>'
-        )
-        mocker.patch("requests.Session.get", return_value=mock_reply)
-
-        _XPathMixinSub("foo", xpath="/b", url="nourl", timeout=5).evaluate()
-
-    def test_xpath_prevalidation(self) -> None:
-        with pytest.raises(ConfigurationError, match=r"^Invalid xpath.*"):
-            _XPathMixinSub.create(
-                "name", config_section({"xpath": "|34/ad", "url": "required"})
-            )
-
-    @pytest.mark.parametrize("entry", ["xpath", "url"])
-    def test_missing_config_entry(self, entry: str) -> None:
-        section = config_section({"xpath": "/valid", "url": "required"})
-        del section[entry]
-        with pytest.raises(ConfigurationError, match=r"^Lacks '" + entry + "'.*"):
-            _XPathMixinSub.create("name", section)
-
-    def test_invalid_config_entry(self) -> None:
-        with pytest.raises(ConfigurationError, match=r"^Configuration error .*"):
-            _XPathMixinSub.create(
-                "name",
-                config_section(
-                    {"xpath": "/valid", "url": "required", "timeout": "xxx"}
-                ),
-            )

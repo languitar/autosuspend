@@ -4,10 +4,10 @@ from datetime import datetime, timedelta, timezone
 from pathlib import Path
 import re
 import subprocess
-from typing import Any, Optional, Pattern
+from typing import Optional, Pattern
 
 from . import ConfigurationError, TemporaryCheckError, Wakeup
-from .util import CommandMixin, XPathMixin
+from .util import CommandMixin
 from ..util.subprocess import raise_severe_if_command_not_found
 from ..util.systemd import next_timer_executions
 
@@ -16,6 +16,9 @@ from ..util.systemd import next_timer_executions
 
 with suppress(ModuleNotFoundError):
     from .ical import Calendar  # noqa
+with suppress(ModuleNotFoundError):
+    from .xpath import XPathWakeup as XPath  # noqa
+    from .xpath import XPathDeltaWakeup as XPathDelta  # noqa
 
 # isort: on
 
@@ -132,63 +135,3 @@ class SystemdTimer(Wakeup):
             return min(matching_executions)
         except ValueError:
             return None
-
-
-class XPath(XPathMixin, Wakeup):
-    """Determine wake up times from a network resource using XPath expressions.
-
-    The matched results are expected to represent timestamps in seconds UTC.
-    """
-
-    def __init__(self, name: str, **kwargs: Any) -> None:
-        Wakeup.__init__(self, name)
-        XPathMixin.__init__(self, **kwargs)
-
-    def convert_result(self, result: str, timestamp: datetime) -> datetime:
-        return datetime.fromtimestamp(float(result), timezone.utc)
-
-    def check(self, timestamp: datetime) -> Optional[datetime]:
-        matches = self.evaluate()
-        try:
-            if matches:
-                return min(self.convert_result(m, timestamp) for m in matches)
-            else:
-                return None
-        except TypeError as error:
-            raise TemporaryCheckError(
-                "XPath returned a result that is not a string: " + str(error)
-            )
-        except ValueError as error:
-            raise TemporaryCheckError("Result cannot be parsed: " + str(error))
-
-
-class XPathDelta(XPath):
-
-    UNITS = [
-        "days",
-        "seconds",
-        "microseconds",
-        "milliseconds",
-        "minutes",
-        "hours",
-        "weeks",
-    ]
-
-    @classmethod
-    def create(cls, name: str, config: configparser.SectionProxy) -> "XPathDelta":
-        try:
-            args = XPath.collect_init_args(config)
-            args["unit"] = config.get("unit", fallback="minutes")
-            return cls(name, **args)
-        except ValueError as error:
-            raise ConfigurationError(str(error))
-
-    def __init__(self, name: str, unit: str, **kwargs: Any) -> None:
-        if unit not in self.UNITS:
-            raise ValueError("Unsupported unit")
-        XPath.__init__(self, name, **kwargs)
-        self._unit = unit
-
-    def convert_result(self, result: str, timestamp: datetime) -> datetime:
-        kwargs = {self._unit: float(result)}
-        return timestamp + timedelta(**kwargs)

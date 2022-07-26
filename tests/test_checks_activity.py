@@ -42,7 +42,6 @@ from autosuspend.checks.activity import (
     Smb,
     Users,
     XIdleTime,
-    XPath,
 )
 from autosuspend.util.systemd import LogindDBusException
 from autosuspend.util.xorg import (
@@ -1093,72 +1092,6 @@ class TestExternalCommand(CheckTest):
             ExternalCommand.create(
                 "name", config_section({"command": "thisreallydoesnotexist"})
             ).check()  # type: ignore
-
-
-class TestXPath(CheckTest):
-    def create_instance(self, name: str) -> Check:
-        return XPath(
-            name=name,
-            url="url",
-            timeout=5,
-            username="userx",
-            password="pass",
-            xpath="/b",
-        )
-
-    def test_matching(self, mocker: MockFixture) -> None:
-        mock_reply = mocker.MagicMock()
-        content_property = mocker.PropertyMock()
-        type(mock_reply).content = content_property
-        content_property.return_value = "<a></a>"
-        mock_method = mocker.patch("requests.Session.get", return_value=mock_reply)
-
-        url = "nourl"
-        assert XPath("foo", xpath="/a", url=url, timeout=5).check() is not None
-
-        mock_method.assert_called_once_with(url, timeout=5, headers=None)
-        content_property.assert_called_once_with()
-
-    def test_not_matching(self, mocker: MockFixture) -> None:
-        mock_reply = mocker.MagicMock()
-        content_property = mocker.PropertyMock()
-        type(mock_reply).content = content_property
-        content_property.return_value = "<a></a>"
-        mocker.patch("requests.Session.get", return_value=mock_reply)
-
-        assert XPath("foo", xpath="/b", url="nourl", timeout=5).check() is None
-
-    def test_create(self) -> None:
-        check: XPath = XPath.create(
-            "name",
-            config_section(
-                {
-                    "url": "url",
-                    "xpath": "/xpath",
-                    "username": "user",
-                    "password": "pass",
-                    "timeout": "42",
-                }
-            ),
-        )  # type: ignore
-        assert check._xpath == "/xpath"
-        assert check._url == "url"
-        assert check._username == "user"
-        assert check._password == "pass"
-        assert check._timeout == 42
-
-    def test_network_errors_are_passed(
-        self, datadir: Path, serve_protected: Callable[[Path], Tuple[str, str, str]]
-    ) -> None:
-        with pytest.raises(TemporaryCheckError):
-            XPath(
-                name="name",
-                url=serve_protected(datadir / "data.txt")[0],
-                timeout=5,
-                username="wrong",
-                password="wrong",
-                xpath="/b",
-            ).request()
 
 
 class TestLogindSessionsIdle(CheckTest):
