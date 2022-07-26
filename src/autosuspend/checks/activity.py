@@ -28,7 +28,7 @@ import psutil
 from . import Activity, Check, ConfigurationError, SevereCheckError, TemporaryCheckError
 from .util import CommandMixin, NetworkMixin
 from ..util.subprocess import raise_severe_if_command_not_found
-from ..util.systemd import list_logind_sessions, LogindDBusException
+from ..util.systemd import LogindDBusException
 from ..util.xorg import list_sessions_logind, list_sessions_sockets, XorgSession
 
 
@@ -41,6 +41,8 @@ with suppress(ModuleNotFoundError):
     from .ical import ActiveCalendarEvent  # noqa
 with suppress(ModuleNotFoundError):
     from .xpath import XPathActivity as XPath  # noqa
+with suppress(ModuleNotFoundError):
+    from .systemd import LogindSessionsIdle  # noqa
 
 from .kodi import Kodi, KodiIdleTime  # noqa
 
@@ -583,57 +585,6 @@ class XIdleTime(Activity):
                         session.display, session.user, idle_time, self._timeout
                     )
                 )
-
-        return None
-
-
-class LogindSessionsIdle(Activity):
-    """Prevents suspending in case a logind session is marked not idle.
-
-    The decision is based on the ``IdleHint`` property of logind sessions.
-    """
-
-    @classmethod
-    def create(
-        cls,
-        name: str,
-        config: configparser.SectionProxy,
-    ) -> "LogindSessionsIdle":
-        types = config.get("types", fallback="tty,x11,wayland").split(",")
-        types = [t.strip() for t in types]
-        states = config.get("states", fallback="active,online").split(",")
-        states = [t.strip() for t in states]
-        return cls(name, types, states)
-
-    def __init__(self, name: str, types: Iterable[str], states: Iterable[str]) -> None:
-        Activity.__init__(self, name)
-        self._types = types
-        self._states = states
-
-    @staticmethod
-    def _list_logind_sessions() -> Iterable[Tuple[str, dict]]:
-        try:
-            return list_logind_sessions()
-        except LogindDBusException as error:
-            raise TemporaryCheckError(error) from error
-
-    def check(self) -> Optional[str]:
-        for session_id, properties in self._list_logind_sessions():
-            self.logger.debug("Session %s properties: %s", session_id, properties)
-
-            if properties["Type"] not in self._types:
-                self.logger.debug(
-                    "Ignoring session of wrong type %s", properties["Type"]
-                )
-                continue
-            if properties["State"] not in self._states:
-                self.logger.debug(
-                    "Ignoring session because its state is %s", properties["State"]
-                )
-                continue
-
-            if not properties["IdleHint"]:
-                return "Login session {} is not idle".format(session_id)
 
         return None
 
