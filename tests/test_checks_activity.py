@@ -27,7 +27,6 @@ from autosuspend.checks import (
     TemporaryCheckError,
 )
 from autosuspend.checks.activity import (
-    ActiveCalendarEvent,
     ActiveConnection,
     ExternalCommand,
     JsonPath,
@@ -215,70 +214,6 @@ class TestProcesses(CheckTest):
     def test_create_no_entry(self) -> None:
         with pytest.raises(ConfigurationError):
             Processes.create("name", config_section())
-
-
-class TestActiveCalendarEvent(CheckTest):
-    def create_instance(self, name: str) -> Check:
-        return ActiveCalendarEvent(name, url="asdfasdf", timeout=5)
-
-    def test_smoke(self, datadir: Path, serve_file: Callable[[Path], str]) -> None:
-        result = ActiveCalendarEvent(
-            "test",
-            url=serve_file(datadir / "long-event.ics"),
-            timeout=3,
-        ).check()
-        assert result is not None
-        assert "long-event" in result
-
-    def test_exact_range(
-        self, datadir: Path, serve_file: Callable[[Path], str]
-    ) -> None:
-        with freeze_time("2016-06-05 13:00:00", tz_offset=-2):
-            result = ActiveCalendarEvent(
-                "test",
-                url=serve_file(datadir / "long-event.ics"),
-                timeout=3,
-            ).check()
-            assert result is not None
-            assert "long-event" in result
-
-    def test_before_exact_range(
-        self, datadir: Path, serve_file: Callable[[Path], str]
-    ) -> None:
-        with freeze_time("2016-06-05 12:58:00", tz_offset=-2):
-            result = ActiveCalendarEvent(
-                "test",
-                url=serve_file(datadir / "long-event.ics"),
-                timeout=3,
-            ).check()
-            assert result is None
-
-    def test_no_event(self, datadir: Path, serve_file: Callable[[Path], str]) -> None:
-        assert (
-            ActiveCalendarEvent(
-                "test",
-                url=serve_file(datadir / "old-event.ics"),
-                timeout=3,
-            ).check()
-            is None
-        )
-
-    def test_create(self) -> None:
-        check: ActiveCalendarEvent = ActiveCalendarEvent.create(
-            "name",
-            config_section(
-                {
-                    "url": "foobar",
-                    "username": "user",
-                    "password": "pass",
-                    "timeout": "3",
-                }
-            ),
-        )  # type: ignore
-        assert check._url == "foobar"
-        assert check._username == "user"
-        assert check._password == "pass"
-        assert check._timeout == 3
 
 
 class TestActiveConnection(CheckTest):
