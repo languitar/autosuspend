@@ -2,10 +2,8 @@ from datetime import datetime, timedelta, timezone
 from pathlib import Path
 import re
 import subprocess
-from typing import Callable
 from unittest.mock import Mock
 
-import dateutil.parser
 import pytest
 from pytest_mock import MockFixture
 
@@ -16,7 +14,6 @@ from autosuspend.checks import (
     TemporaryCheckError,
 )
 from autosuspend.checks.wakeup import (
-    Calendar,
     Command,
     File,
     Periodic,
@@ -27,101 +24,6 @@ from autosuspend.checks.wakeup import (
 
 from . import CheckTest
 from .utils import config_section
-
-
-class TestCalendar(CheckTest):
-    def create_instance(self, name: str) -> Calendar:
-        return Calendar(name, url="file:///asdf", timeout=3)
-
-    def test_create(self) -> None:
-        section = config_section(
-            {
-                "url": "url",
-                "username": "user",
-                "password": "pass",
-                "timeout": "42",
-            }
-        )
-        check: Calendar = Calendar.create(
-            "name",
-            section,
-        )  # type: ignore
-        assert check._url == "url"
-        assert check._username == "user"
-        assert check._password == "pass"
-        assert check._timeout == 42
-
-    def test_empty(self, datadir: Path, serve_file: Callable[[Path], str]) -> None:
-        timestamp = dateutil.parser.parse("20050605T130000Z")
-        assert (
-            Calendar(
-                "test",
-                url=serve_file(datadir / "old-event.ics"),
-                timeout=3,
-            ).check(timestamp)
-            is None
-        )
-
-    def test_smoke(self, datadir: Path, serve_file: Callable[[Path], str]) -> None:
-        timestamp = dateutil.parser.parse("20040605T090000Z")
-        desired_start = dateutil.parser.parse("20040605T110000Z")
-
-        assert (
-            Calendar(
-                "test",
-                url=serve_file(datadir / "old-event.ics"),
-                timeout=3,
-            ).check(timestamp)
-            == desired_start
-        )
-
-    def test_select_earliest(
-        self, datadir: Path, serve_file: Callable[[Path], str]
-    ) -> None:
-        timestamp = dateutil.parser.parse("20040401T090000Z")
-        desired_start = dateutil.parser.parse("20040405T110000Z")
-
-        assert (
-            Calendar(
-                "test",
-                url=serve_file(datadir / "multiple.ics"),
-                timeout=3,
-            ).check(timestamp)
-            == desired_start
-        )
-
-    def test_ignore_running(
-        self, datadir: Path, serve_file: Callable[[Path], str]
-    ) -> None:
-        url = serve_file(datadir / "old-event.ics")
-        timestamp = dateutil.parser.parse("20040605T110000Z")
-        # events are taken if start hits exactly the current time
-        assert Calendar("test", url=url, timeout=3).check(timestamp) is not None
-        timestamp = timestamp + timedelta(seconds=1)
-        assert Calendar("test", url=url, timeout=3).check(timestamp) is None
-
-    def test_limited_horizon(
-        self, datadir: Path, serve_file: Callable[[Path], str]
-    ) -> None:
-        timestamp = dateutil.parser.parse("20040101T000000Z")
-
-        assert (
-            Calendar(
-                "test",
-                url=serve_file(datadir / "after-horizon.ics"),
-                timeout=3,
-            ).check(timestamp)
-            is None
-        )
-
-        assert (
-            Calendar(
-                "test",
-                url=serve_file(datadir / "before-horizon.ics"),
-                timeout=3,
-            ).check(timestamp)
-            is not None
-        )
 
 
 class TestFile(CheckTest):

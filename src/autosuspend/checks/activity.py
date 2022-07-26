@@ -2,7 +2,6 @@ import configparser
 from contextlib import suppress
 import copy
 from datetime import datetime, timedelta, timezone
-from io import BytesIO
 import json
 import os
 from pathlib import Path
@@ -36,31 +35,12 @@ from ..util.xorg import list_sessions_logind, list_sessions_sockets, XorgSession
 if TYPE_CHECKING:
     from jsonpath_ng import JSONPath
 
+# isort: off
 
-class ActiveCalendarEvent(NetworkMixin, Activity):
-    """Determines activity by checking against events in an icalendar file."""
+with suppress(ModuleNotFoundError):
+    from .ical import ActiveCalendarEvent  # noqa
 
-    def __init__(self, name: str, **kwargs: Any) -> None:
-        NetworkMixin.__init__(self, **kwargs)
-        Activity.__init__(self, name)
-
-    def check(self) -> Optional[str]:
-        from ..util.ical import list_calendar_events
-
-        response = self.request()
-        start = datetime.now(timezone.utc)
-        end = start + timedelta(minutes=1)
-        events = list_calendar_events(BytesIO(response.content), start, end)
-        self.logger.debug(
-            "Listing active events between %s and %s returned %s events",
-            start,
-            end,
-            len(events),
-        )
-        if events:
-            return "Calendar event {} is active".format(events[0])
-        else:
-            return None
+# isort: on
 
 
 class ActiveConnection(Activity):

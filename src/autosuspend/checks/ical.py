@@ -1,7 +1,19 @@
 from contextlib import suppress
 from dataclasses import dataclass
-from datetime import date, datetime, timedelta, tzinfo
-from typing import cast, Dict, IO, Iterable, List, Optional, Sequence, TypeVar, Union
+from datetime import date, datetime, timedelta, timezone, tzinfo
+from io import BytesIO
+from typing import (
+    Any,
+    cast,
+    Dict,
+    IO,
+    Iterable,
+    List,
+    Optional,
+    Sequence,
+    TypeVar,
+    Union,
+)
 
 from dateutil.rrule import rrule, rruleset, rrulestr
 import icalendar
@@ -9,7 +21,9 @@ import icalendar.cal
 import pytz
 import tzlocal
 
-from .datetime import is_aware, to_tz_unaware
+from . import Activity, Wakeup
+from .util import NetworkMixin
+from ..util.datetime import is_aware, to_tz_unaware
 
 
 @dataclass
@@ -271,3 +285,52 @@ def list_calendar_events(
         )
 
     return sorted(events, key=lambda e: e.start)
+
+
+class ActiveCalendarEvent(NetworkMixin, Activity):
+    """Determines activity by checking against events in an icalendar file."""
+
+    def __init__(self, name: str, **kwargs: Any) -> None:
+        NetworkMixin.__init__(self, **kwargs)
+        Activity.__init__(self, name)
+
+    def check(self) -> Optional[str]:
+        response = self.request()
+        start = datetime.now(timezone.utc)
+        end = start + timedelta(minutes=1)
+        events = list_calendar_events(BytesIO(response.content), start, end)
+        self.logger.debug(
+            "Listing active events between %s and %s returned %s events",
+            start,
+            end,
+            len(events),
+        )
+        if events:
+            return "Calendar event {} is active".format(events[0])
+        else:
+            return None
+
+
+class Calendar(NetworkMixin, Wakeup):
+    """Uses an ical calendar to wake up on the next scheduled event."""
+
+    def __init__(self, name: str, **kwargs: Any) -> None:
+        NetworkMixin.__init__(self, **kwargs)
+        Wakeup.__init__(self, name)
+
+    def check(self, timestamp: datetime) -> Optional[datetime]:
+        response = self.request()
+
+        end = timestamp + timedelta(weeks=6 * 4)
+        events = list_calendar_events(BytesIO(response.content), timestamp, end)
+        # Filter out currently active events. They are not our business.
+        events = [e for e in events if e.start >= timestamp]
+
+        if events:
+            candidate = events[0]
+            if isinstance(candidate.start, datetime):
+                return candidate.start
+            else:
+                return datetime.combine(candidate.start, datetime.min.time())
+        else:
+            return None

@@ -1,10 +1,21 @@
 from datetime import timedelta
 from pathlib import Path
+from typing import Callable
 
 from dateutil import parser
 from dateutil.tz import tzlocal
+from freezegun import freeze_time
 
-from autosuspend.util.ical import CalendarEvent, list_calendar_events
+from autosuspend.checks import Check
+from autosuspend.checks.ical import (
+    ActiveCalendarEvent,
+    Calendar,
+    CalendarEvent,
+    list_calendar_events,
+)
+
+from . import CheckTest
+from .utils import config_section
 
 
 class TestCalendarEvent:
@@ -388,3 +399,162 @@ class TestListCalendarEvents:
             ]
 
             assert expected_start_times == [e.start for e in events]
+
+
+class TestActiveCalendarEvent(CheckTest):
+    def create_instance(self, name: str) -> Check:
+        return ActiveCalendarEvent(name, url="asdfasdf", timeout=5)
+
+    def test_smoke(self, datadir: Path, serve_file: Callable[[Path], str]) -> None:
+        result = ActiveCalendarEvent(
+            "test",
+            url=serve_file(datadir / "long-event.ics"),
+            timeout=3,
+        ).check()
+        assert result is not None
+        assert "long-event" in result
+
+    def test_exact_range(
+        self, datadir: Path, serve_file: Callable[[Path], str]
+    ) -> None:
+        with freeze_time("2016-06-05 13:00:00", tz_offset=-2):
+            result = ActiveCalendarEvent(
+                "test",
+                url=serve_file(datadir / "long-event.ics"),
+                timeout=3,
+            ).check()
+            assert result is not None
+            assert "long-event" in result
+
+    def test_before_exact_range(
+        self, datadir: Path, serve_file: Callable[[Path], str]
+    ) -> None:
+        with freeze_time("2016-06-05 12:58:00", tz_offset=-2):
+            result = ActiveCalendarEvent(
+                "test",
+                url=serve_file(datadir / "long-event.ics"),
+                timeout=3,
+            ).check()
+            assert result is None
+
+    def test_no_event(self, datadir: Path, serve_file: Callable[[Path], str]) -> None:
+        assert (
+            ActiveCalendarEvent(
+                "test",
+                url=serve_file(datadir / "old-event.ics"),
+                timeout=3,
+            ).check()
+            is None
+        )
+
+    def test_create(self) -> None:
+        check: ActiveCalendarEvent = ActiveCalendarEvent.create(
+            "name",
+            config_section(
+                {
+                    "url": "foobar",
+                    "username": "user",
+                    "password": "pass",
+                    "timeout": "3",
+                }
+            ),
+        )  # type: ignore
+        assert check._url == "foobar"
+        assert check._username == "user"
+        assert check._password == "pass"
+        assert check._timeout == 3
+
+
+class TestCalendar(CheckTest):
+    def create_instance(self, name: str) -> Calendar:
+        return Calendar(name, url="file:///asdf", timeout=3)
+
+    def test_create(self) -> None:
+        section = config_section(
+            {
+                "url": "url",
+                "username": "user",
+                "password": "pass",
+                "timeout": "42",
+            }
+        )
+        check: Calendar = Calendar.create(
+            "name",
+            section,
+        )  # type: ignore
+        assert check._url == "url"
+        assert check._username == "user"
+        assert check._password == "pass"
+        assert check._timeout == 42
+
+    def test_empty(self, datadir: Path, serve_file: Callable[[Path], str]) -> None:
+        timestamp = parser.parse("20050605T130000Z")
+        assert (
+            Calendar(
+                "test",
+                url=serve_file(datadir / "old-event.ics"),
+                timeout=3,
+            ).check(timestamp)
+            is None
+        )
+
+    def test_smoke(self, datadir: Path, serve_file: Callable[[Path], str]) -> None:
+        timestamp = parser.parse("20040605T090000Z")
+        desired_start = parser.parse("20040605T110000Z")
+
+        assert (
+            Calendar(
+                "test",
+                url=serve_file(datadir / "old-event.ics"),
+                timeout=3,
+            ).check(timestamp)
+            == desired_start
+        )
+
+    def test_select_earliest(
+        self, datadir: Path, serve_file: Callable[[Path], str]
+    ) -> None:
+        timestamp = parser.parse("20040401T090000Z")
+        desired_start = parser.parse("20040405T110000Z")
+
+        assert (
+            Calendar(
+                "test",
+                url=serve_file(datadir / "multiple.ics"),
+                timeout=3,
+            ).check(timestamp)
+            == desired_start
+        )
+
+    def test_ignore_running(
+        self, datadir: Path, serve_file: Callable[[Path], str]
+    ) -> None:
+        url = serve_file(datadir / "old-event.ics")
+        timestamp = parser.parse("20040605T110000Z")
+        # events are taken if start hits exactly the current time
+        assert Calendar("test", url=url, timeout=3).check(timestamp) is not None
+        timestamp = timestamp + timedelta(seconds=1)
+        assert Calendar("test", url=url, timeout=3).check(timestamp) is None
+
+    def test_limited_horizon(
+        self, datadir: Path, serve_file: Callable[[Path], str]
+    ) -> None:
+        timestamp = parser.parse("20040101T000000Z")
+
+        assert (
+            Calendar(
+                "test",
+                url=serve_file(datadir / "after-horizon.ics"),
+                timeout=3,
+            ).check(timestamp)
+            is None
+        )
+
+        assert (
+            Calendar(
+                "test",
+                url=serve_file(datadir / "before-horizon.ics"),
+                timeout=3,
+            ).check(timestamp)
+            is not None
+        )

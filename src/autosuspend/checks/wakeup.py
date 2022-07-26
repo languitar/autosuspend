@@ -1,42 +1,23 @@
 import configparser
+from contextlib import suppress
 from datetime import datetime, timedelta, timezone
-from io import BytesIO
 from pathlib import Path
 import re
 import subprocess
 from typing import Any, Optional, Pattern
 
 from . import ConfigurationError, TemporaryCheckError, Wakeup
-from .util import CommandMixin, NetworkMixin, XPathMixin
+from .util import CommandMixin, XPathMixin
 from ..util.subprocess import raise_severe_if_command_not_found
 from ..util.systemd import next_timer_executions
 
 
-class Calendar(NetworkMixin, Wakeup):
-    """Uses an ical calendar to wake up on the next scheduled event."""
+# isort: off
 
-    def __init__(self, name: str, **kwargs: Any) -> None:
-        NetworkMixin.__init__(self, **kwargs)
-        Wakeup.__init__(self, name)
+with suppress(ModuleNotFoundError):
+    from .ical import Calendar  # noqa
 
-    def check(self, timestamp: datetime) -> Optional[datetime]:
-        from ..util.ical import list_calendar_events
-
-        response = self.request()
-
-        end = timestamp + timedelta(weeks=6 * 4)
-        events = list_calendar_events(BytesIO(response.content), timestamp, end)
-        # Filter out currently active events. They are not our business.
-        events = [e for e in events if e.start >= timestamp]
-
-        if events:
-            candidate = events[0]
-            if isinstance(candidate.start, datetime):
-                return candidate.start
-            else:
-                return datetime.combine(candidate.start, datetime.min.time())
-        else:
-            return None
+# isort: on
 
 
 class File(Wakeup):
