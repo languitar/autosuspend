@@ -3,6 +3,7 @@ from datetime import datetime, timedelta, timezone
 from typing import Any, Dict, Optional, Sequence
 
 from lxml import etree  # noqa: S410 using safe parser
+from lxml.etree import XPath, XPathSyntaxError  # noqa: S410 our input
 import requests
 import requests.exceptions
 
@@ -13,7 +14,6 @@ from .util import NetworkMixin
 class XPathMixin(NetworkMixin):
     @classmethod
     def collect_init_args(cls, config: configparser.SectionProxy) -> Dict[str, Any]:
-        from lxml.etree import XPath, XPathSyntaxError  # noqa: S410 our input
 
         try:
             args = NetworkMixin.collect_init_args(config)
@@ -36,7 +36,6 @@ class XPathMixin(NetworkMixin):
     def __init__(self, xpath: str, **kwargs: Any) -> None:
         NetworkMixin.__init__(self, **kwargs)
         self._xpath = xpath
-        from lxml import etree  # noqa: S410 required flag set
 
         self._parser = etree.XMLParser(resolve_entities=False)
 
