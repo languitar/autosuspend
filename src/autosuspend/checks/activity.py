@@ -43,6 +43,8 @@ with suppress(ModuleNotFoundError):
     from .xpath import XPathActivity as XPath  # noqa
 with suppress(ModuleNotFoundError):
     from .systemd import LogindSessionsIdle  # noqa
+with suppress(ModuleNotFoundError):
+    from .mpd import Mpd  # noqa
 
 from .kodi import Kodi, KodiIdleTime  # noqa
 
@@ -143,49 +145,6 @@ class Load(Activity):
             return "Load {} > threshold {}".format(loadcurrent, self._threshold)
         else:
             return None
-
-
-class Mpd(Activity):
-    @classmethod
-    def create(cls, name: str, config: configparser.SectionProxy) -> "Mpd":
-        try:
-            host = config.get("host", fallback="localhost")
-            port = config.getint("port", fallback=6600)
-            timeout = config.getint("timeout", fallback=5)
-            return cls(name, host, port, timeout)
-        except ValueError as error:
-            raise ConfigurationError(
-                "Host port or timeout configuration wrong: {}".format(error)
-            ) from error
-
-    def __init__(self, name: str, host: str, port: int, timeout: float) -> None:
-        Check.__init__(self, name)
-        self._host = host
-        self._port = port
-        self._timeout = timeout
-
-    def _get_state(self) -> Dict:
-        from mpd import MPDClient
-
-        client = MPDClient()
-        client.timeout = self._timeout
-        client.connect(self._host, self._port)
-        state = client.status()
-        client.close()
-        client.disconnect()
-        return state
-
-    def check(self) -> Optional[str]:
-        from mpd import MPDError
-
-        try:
-            state = self._get_state()
-            if state["state"] == "play":
-                return "MPD currently playing"
-            else:
-                return None
-        except (MPDError, ConnectionError, socket.timeout, socket.gaierror) as error:
-            raise TemporaryCheckError("Unable to get the current MPD state") from error
 
 
 class NetworkBandwidth(Activity):
