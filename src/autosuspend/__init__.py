@@ -434,11 +434,9 @@ def _set_up_single_check(
     check = klass.create(name, section)
     if not isinstance(check, target_class):
         raise ConfigurationError(
-            "Check {} is not a correct {} instance".format(check, target_class.__name__)
+            "Check %s is not a correct %s instance", check, target_class.__name__
         )
-    _logger.debug(
-        "Created check instance {} with options {}".format(check, check.options())
-    )
+    _logger.debug("Created check instance %s with options %s", check, check.options())
 
     return check
 
@@ -473,7 +471,7 @@ def set_up_checks(
         section = config[section_name]
 
         if not section.getboolean("enabled", fallback=False):
-            _logger.debug("Skipping disabled check {}".format(section_name))
+            _logger.debug("Skipping disabled check %s", section_name)
             continue
 
         configured_checks.append(
