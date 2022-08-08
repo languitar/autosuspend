@@ -297,7 +297,7 @@ class Ping(Activity):
                     )
                     == 0
                 ):
-                    self.logger.debug("host " + host + " appears to be up")
+                    self.logger.debug("host %s appears to be up", host)
                     return "Host {} is up".format(host)
             return None
         except FileNotFoundError as error:
