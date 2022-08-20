@@ -2,25 +2,19 @@ import configparser
 from contextlib import suppress
 import copy
 from datetime import datetime, timedelta, timezone
-import json
 import os
 from pathlib import Path
 import re
 import subprocess
-from textwrap import shorten
-from typing import Any, Callable, Dict, Iterable, List, Optional, Pattern, TYPE_CHECKING
+from typing import Callable, Iterable, List, Optional, Pattern
 import warnings
 
 import psutil
 
 from . import Activity, ConfigurationError, SevereCheckError, TemporaryCheckError
-from .util import NetworkMixin
 from ..util.systemd import LogindDBusException
 from ..util.xorg import list_sessions_logind, list_sessions_sockets, XorgSession
 
-
-if TYPE_CHECKING:
-    from jsonpath_ng import JSONPath
 
 # isort: off
 
@@ -36,6 +30,8 @@ from .linux import (  # noqa
 
 with suppress(ModuleNotFoundError):
     from .ical import ActiveCalendarEvent  # noqa
+with suppress(ModuleNotFoundError):
+    from .json import JsonPath  # noqa
 with suppress(ModuleNotFoundError):
     from .xpath import XPathActivity as XPath  # noqa
 with suppress(ModuleNotFoundError):
@@ -215,44 +211,6 @@ class XIdleTime(Activity):
                 )
 
         return None
-
-
-class JsonPath(NetworkMixin, Activity):
-    """Requests a URL and evaluates whether a JSONPath expression matches."""
-
-    @classmethod
-    def collect_init_args(cls, config: configparser.SectionProxy) -> Dict[str, Any]:
-        from jsonpath_ng.ext import parse
-
-        try:
-            args = NetworkMixin.collect_init_args(config)
-            args["jsonpath"] = parse(config["jsonpath"])
-            return args
-        except KeyError as error:
-            raise ConfigurationError("Property jsonpath is missing") from error
-        except Exception as error:
-            raise ConfigurationError(f"JSONPath error {str(error)}") from error
-
-    def __init__(self, name: str, jsonpath: "JSONPath", **kwargs: Any) -> None:
-        Activity.__init__(self, name)
-        NetworkMixin.__init__(self, accept="application/json", **kwargs)
-        self._jsonpath = jsonpath
-
-    def check(self) -> Optional[str]:
-        import requests
-        import requests.exceptions
-
-        try:
-            reply = self.request().json()
-            matched = self._jsonpath.find(reply)
-            if matched:
-                # shorten to avoid excessive logging output
-                return f"JSONPath {self._jsonpath} found elements " + shorten(
-                    str(matched), 24
-                )
-            return None
-        except (json.JSONDecodeError, requests.exceptions.RequestException) as error:
-            raise TemporaryCheckError(error) from error
 
 
 class LastLogActivity(Activity):
