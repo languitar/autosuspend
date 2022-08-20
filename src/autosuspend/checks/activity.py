@@ -24,9 +24,9 @@ if TYPE_CHECKING:
 
 # isort: off
 
+from .command import CommandActivity as ExternalCommand  # noqa
 from .linux import (  # noqa
     ActiveConnection,  # noqa
-    ExternalCommand,  # noqa
     Load,  # noqa
     NetworkBandwidth,  # noqa
     Ping,  # noqa

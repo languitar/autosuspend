@@ -8,7 +8,8 @@ from . import ConfigurationError, Wakeup
 
 # isort: off
 
-from .linux import Command, File  # noqa
+from .linux import File  # noqa
+from .command import CommandWakeup as Command  # noqa
 
 with suppress(ModuleNotFoundError):
     from .ical import Calendar  # noqa

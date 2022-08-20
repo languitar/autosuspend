@@ -22,8 +22,6 @@ from . import (
     TemporaryCheckError,
     Wakeup,
 )
-from .util import CommandMixin
-from ..util.subprocess import raise_severe_if_command_not_found
 
 
 class ActiveConnection(Activity):
@@ -82,20 +80,6 @@ class ActiveConnection(Activity):
         if connected:
             return "Ports {} are connected".format(connected)
         else:
-            return None
-
-
-class ExternalCommand(CommandMixin, Activity):
-    def __init__(self, name: str, command: str) -> None:
-        CommandMixin.__init__(self, command)
-        Activity.__init__(self, name)
-
-    def check(self) -> Optional[str]:
-        try:
-            subprocess.check_call(self._command, shell=True)  # noqa: S602
-            return "Command {} succeeded".format(self._command)
-        except subprocess.CalledProcessError as error:
-            raise_severe_if_command_not_found(error)
             return None
 
 
@@ -382,40 +366,4 @@ class File(Wakeup):
         except (ValueError, IOError) as error:
             raise TemporaryCheckError(
                 "Next wakeup time cannot be read despite a file being present"
-            ) from error
-
-
-class Command(CommandMixin, Wakeup):
-    """Determine wake up times based on an external command.
-
-    The called command must return a timestamp in UTC or nothing in case no
-    wake up is planned.
-    """
-
-    def __init__(self, name: str, command: str) -> None:
-        CommandMixin.__init__(self, command)
-        Wakeup.__init__(self, name)
-
-    def check(self, timestamp: datetime) -> Optional[datetime]:
-        try:
-            output = subprocess.check_output(
-                self._command,
-                shell=True,  # noqa: S602
-            ).splitlines()[0]
-            self.logger.debug(
-                "Command %s succeeded with output %s", self._command, output
-            )
-            if output.strip():
-                return datetime.fromtimestamp(float(output.strip()), timezone.utc)
-            else:
-                return None
-
-        except subprocess.CalledProcessError as error:
-            raise_severe_if_command_not_found(error)
-            raise TemporaryCheckError(
-                "Unable to call the configured command"
-            ) from error
-        except ValueError as error:
-            raise TemporaryCheckError(
-                "Return value cannot be interpreted as a timestamp"
             ) from error

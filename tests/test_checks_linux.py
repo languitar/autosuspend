@@ -3,7 +3,6 @@ from datetime import datetime, timezone
 from pathlib import Path
 import re
 import socket
-import subprocess
 import sys
 from typing import Any, Mapping
 
@@ -22,8 +21,6 @@ from autosuspend.checks import (
 )
 from autosuspend.checks.linux import (
     ActiveConnection,
-    Command,
-    ExternalCommand,
     File,
     Load,
     NetworkBandwidth,
@@ -34,35 +31,6 @@ from autosuspend.checks.linux import (
 
 from . import CheckTest
 from tests.utils import config_section
-
-
-class TestExternalCommand(CheckTest):
-    def create_instance(self, name: str) -> Check:
-        return ExternalCommand(name, "asdfasdf")
-
-    def test_check(self, mocker: MockFixture) -> None:
-        mock = mocker.patch("subprocess.check_call")
-        assert (
-            ExternalCommand.create(
-                "name", config_section({"command": "foo bar"})
-            ).check()  # type: ignore
-            is not None
-        )
-        mock.assert_called_once_with("foo bar", shell=True)
-
-    def test_check_no_match(self, mocker: MockFixture) -> None:
-        mock = mocker.patch("subprocess.check_call")
-        mock.side_effect = subprocess.CalledProcessError(2, "foo bar")
-        assert (
-            ExternalCommand.create("name", config_section({"command": "foo bar"})).check() is None  # type: ignore
-        )
-        mock.assert_called_once_with("foo bar", shell=True)
-
-    def test_command_not_found(self) -> None:
-        with pytest.raises(SevereCheckError):
-            ExternalCommand.create(
-                "name", config_section({"command": "thisreallydoesnotexist"})
-            ).check()  # type: ignore
 
 
 class TestUsers(CheckTest):
@@ -627,49 +595,3 @@ class TestFile(CheckTest):
         test_file.write_text("nonumber\n\n")
         with pytest.raises(TemporaryCheckError):
             File("name", test_file).check(datetime.now(timezone.utc))
-
-
-class TestCommand(CheckTest):
-    def create_instance(self, name: str) -> Check:
-        return Command(name, "asdf")
-
-    def test_smoke(self) -> None:
-        check = Command("test", "echo 1234")
-        assert check.check(datetime.now(timezone.utc)) == datetime.fromtimestamp(
-            1234, timezone.utc
-        )
-
-    def test_no_output(self) -> None:
-        check = Command("test", "echo")
-        assert check.check(datetime.now(timezone.utc)) is None
-
-    def test_not_parseable(self) -> None:
-        check = Command("test", "echo asdfasdf")
-        with pytest.raises(TemporaryCheckError):
-            check.check(datetime.now(timezone.utc))
-
-    def test_multiple_lines(self, mocker: MockFixture) -> None:
-        mock = mocker.patch("subprocess.check_output")
-        mock.return_value = "1234\nignore\n"
-        check = Command("test", "echo bla")
-        assert check.check(datetime.now(timezone.utc)) == datetime.fromtimestamp(
-            1234, timezone.utc
-        )
-
-    def test_multiple_lines_but_empty(self, mocker: MockFixture) -> None:
-        mock = mocker.patch("subprocess.check_output")
-        mock.return_value = "   \nignore\n"
-        check = Command("test", "echo bla")
-        assert check.check(datetime.now(timezone.utc)) is None
-
-    def test_process_error(self, mocker: MockFixture) -> None:
-        mock = mocker.patch("subprocess.check_output")
-        mock.side_effect = subprocess.CalledProcessError(2, "foo bar")
-        check = Command("test", "echo bla")
-        with pytest.raises(TemporaryCheckError):
-            check.check(datetime.now(timezone.utc))
-
-    def test_missing_executable(self) -> None:
-        check = Command("test", "reallydoesntexist bla")
-        with pytest.raises(SevereCheckError):
-            check.check(datetime.now(timezone.utc))

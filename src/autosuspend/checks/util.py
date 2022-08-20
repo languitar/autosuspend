@@ -10,20 +10,6 @@ if TYPE_CHECKING:
     import requests.models
 
 
-class CommandMixin:
-    """Mixin for configuring checks based on external commands."""
-
-    @classmethod
-    def create(cls, name: str, config: configparser.SectionProxy) -> Check:
-        try:
-            return cls(name, config["command"].strip())  # type: ignore
-        except KeyError as error:
-            raise ConfigurationError("Missing command specification") from error
-
-    def __init__(self, command: str) -> None:
-        self._command = command
-
-
 class NetworkMixin:
     @staticmethod
     def _ensure_credentials_consistent(args: Dict[str, Any]) -> None:

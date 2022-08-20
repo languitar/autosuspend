@@ -1,5 +1,5 @@
 from pathlib import Path
-from typing import Callable, Optional, Tuple
+from typing import Callable, Tuple
 from unittest.mock import ANY
 
 import pytest
@@ -7,33 +7,10 @@ from pytest_httpserver import HTTPServer
 from pytest_mock import MockFixture
 import requests
 
-from autosuspend.checks import Activity, ConfigurationError, TemporaryCheckError
-from autosuspend.checks.util import CommandMixin, NetworkMixin
+from autosuspend.checks import ConfigurationError, TemporaryCheckError
+from autosuspend.checks.util import NetworkMixin
 
 from .utils import config_section
-
-
-class _CommandMixinSub(CommandMixin, Activity):
-    def __init__(self, name: str, command: str) -> None:
-        Activity.__init__(self, name)
-        CommandMixin.__init__(self, command)
-
-    def check(self) -> Optional[str]:
-        pass
-
-
-class TestCommandMixin:
-    def test_create(self) -> None:
-        section = config_section({"command": "narf bla"})
-        check: _CommandMixinSub = _CommandMixinSub.create(
-            "name",
-            section,
-        )  # type: ignore
-        assert check._command == "narf bla"
-
-    def test_create_no_command(self) -> None:
-        with pytest.raises(ConfigurationError):
-            _CommandMixinSub.create("name", config_section())
 
 
 class TestNetworkMixin:
