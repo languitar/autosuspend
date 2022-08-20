@@ -1,7 +1,7 @@
 import json
 
 import pytest
-from pytest_mock import MockFixture
+from pytest_mock import MockerFixture
 import requests.exceptions
 
 from autosuspend.checks import Check, ConfigurationError, TemporaryCheckError
@@ -15,7 +15,7 @@ class TestKodi(CheckTest):
     def create_instance(self, name: str) -> Check:
         return Kodi(name, url="url", timeout=10)
 
-    def test_playing(self, mocker: MockFixture) -> None:
+    def test_playing(self, mocker: MockerFixture) -> None:
         mock_reply = mocker.MagicMock()
         mock_reply.json.return_value = {
             "id": 1,
@@ -28,7 +28,7 @@ class TestKodi(CheckTest):
 
         mock_reply.json.assert_called_once_with()
 
-    def test_not_playing(self, mocker: MockFixture) -> None:
+    def test_not_playing(self, mocker: MockerFixture) -> None:
         mock_reply = mocker.MagicMock()
         mock_reply.json.return_value = {"id": 1, "jsonrpc": "2.0", "result": []}
         mocker.patch("requests.Session.get", return_value=mock_reply)
@@ -37,7 +37,7 @@ class TestKodi(CheckTest):
 
         mock_reply.json.assert_called_once_with()
 
-    def test_playing_suspend_while_paused(self, mocker: MockFixture) -> None:
+    def test_playing_suspend_while_paused(self, mocker: MockerFixture) -> None:
         mock_reply = mocker.MagicMock()
         mock_reply.json.return_value = {
             "id": 1,
@@ -53,7 +53,7 @@ class TestKodi(CheckTest):
 
         mock_reply.json.assert_called_once_with()
 
-    def test_not_playing_suspend_while_paused(self, mocker: MockFixture) -> None:
+    def test_not_playing_suspend_while_paused(self, mocker: MockerFixture) -> None:
         mock_reply = mocker.MagicMock()
         mock_reply.json.return_value = {
             "id": 1,
@@ -69,7 +69,7 @@ class TestKodi(CheckTest):
 
         mock_reply.json.assert_called_once_with()
 
-    def test_assertion_no_result(self, mocker: MockFixture) -> None:
+    def test_assertion_no_result(self, mocker: MockerFixture) -> None:
         mock_reply = mocker.MagicMock()
         mock_reply.json.return_value = {"id": 1, "jsonrpc": "2.0"}
         mocker.patch("requests.Session.get", return_value=mock_reply)
@@ -77,7 +77,7 @@ class TestKodi(CheckTest):
         with pytest.raises(TemporaryCheckError):
             Kodi("foo", url="url", timeout=10).check()
 
-    def test_request_error(self, mocker: MockFixture) -> None:
+    def test_request_error(self, mocker: MockerFixture) -> None:
         mocker.patch(
             "requests.Session.get", side_effect=requests.exceptions.RequestException()
         )
@@ -85,7 +85,7 @@ class TestKodi(CheckTest):
         with pytest.raises(TemporaryCheckError):
             Kodi("foo", url="url", timeout=10).check()
 
-    def test_json_error(self, mocker: MockFixture) -> None:
+    def test_json_error(self, mocker: MockerFixture) -> None:
         mock_reply = mocker.MagicMock()
         mock_reply.json.side_effect = json.JSONDecodeError("test", "test", 42)
         mocker.patch("requests.Session.get", return_value=mock_reply)
@@ -156,7 +156,7 @@ class TestKodiIdleTime(CheckTest):
                 "name", config_section({"url": "anurl", "idle_time": "string"})
             )
 
-    def test_no_result(self, mocker: MockFixture) -> None:
+    def test_no_result(self, mocker: MockerFixture) -> None:
         mock_reply = mocker.MagicMock()
         mock_reply.json.return_value = {"id": 1, "jsonrpc": "2.0"}
         mocker.patch("requests.Session.get", return_value=mock_reply)
@@ -164,7 +164,7 @@ class TestKodiIdleTime(CheckTest):
         with pytest.raises(TemporaryCheckError):
             KodiIdleTime("foo", url="url", timeout=10, idle_time=42).check()
 
-    def test_result_is_list(self, mocker: MockFixture) -> None:
+    def test_result_is_list(self, mocker: MockerFixture) -> None:
         mock_reply = mocker.MagicMock()
         mock_reply.json.return_value = {"id": 1, "jsonrpc": "2.0", "result": []}
         mocker.patch("requests.Session.get", return_value=mock_reply)
@@ -172,7 +172,7 @@ class TestKodiIdleTime(CheckTest):
         with pytest.raises(TemporaryCheckError):
             KodiIdleTime("foo", url="url", timeout=10, idle_time=42).check()
 
-    def test_result_no_entry(self, mocker: MockFixture) -> None:
+    def test_result_no_entry(self, mocker: MockerFixture) -> None:
         mock_reply = mocker.MagicMock()
         mock_reply.json.return_value = {"id": 1, "jsonrpc": "2.0", "result": {}}
         mocker.patch("requests.Session.get", return_value=mock_reply)
@@ -180,7 +180,7 @@ class TestKodiIdleTime(CheckTest):
         with pytest.raises(TemporaryCheckError):
             KodiIdleTime("foo", url="url", timeout=10, idle_time=42).check()
 
-    def test_result_wrong_entry(self, mocker: MockFixture) -> None:
+    def test_result_wrong_entry(self, mocker: MockerFixture) -> None:
         mock_reply = mocker.MagicMock()
         mock_reply.json.return_value = {
             "id": 1,
@@ -192,7 +192,7 @@ class TestKodiIdleTime(CheckTest):
         with pytest.raises(TemporaryCheckError):
             KodiIdleTime("foo", url="url", timeout=10, idle_time=42).check()
 
-    def test_active(self, mocker: MockFixture) -> None:
+    def test_active(self, mocker: MockerFixture) -> None:
         mock_reply = mocker.MagicMock()
         mock_reply.json.return_value = {
             "id": 1,
@@ -205,7 +205,7 @@ class TestKodiIdleTime(CheckTest):
             KodiIdleTime("foo", url="url", timeout=10, idle_time=42).check() is not None
         )
 
-    def test_inactive(self, mocker: MockFixture) -> None:
+    def test_inactive(self, mocker: MockerFixture) -> None:
         mock_reply = mocker.MagicMock()
         mock_reply.json.return_value = {
             "id": 1,
@@ -216,7 +216,7 @@ class TestKodiIdleTime(CheckTest):
 
         assert KodiIdleTime("foo", url="url", timeout=10, idle_time=42).check() is None
 
-    def test_request_error(self, mocker: MockFixture) -> None:
+    def test_request_error(self, mocker: MockerFixture) -> None:
         mocker.patch(
             "requests.Session.get", side_effect=requests.exceptions.RequestException()
         )

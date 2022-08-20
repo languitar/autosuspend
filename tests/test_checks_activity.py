@@ -9,7 +9,7 @@ from dbus.proxies import ProxyObject
 from freezegun import freeze_time
 from jsonpath_ng.ext import parse
 import pytest
-from pytest_mock import MockFixture
+from pytest_mock import MockerFixture
 import pytz
 
 from autosuspend.checks import (
@@ -40,14 +40,14 @@ class TestSmb(CheckTest):
     def create_instance(self, name: str) -> Check:
         return Smb(name)
 
-    def test_no_connections(self, datadir: Path, mocker: MockFixture) -> None:
+    def test_no_connections(self, datadir: Path, mocker: MockerFixture) -> None:
         mocker.patch("subprocess.check_output").return_value = (
             datadir / "smbstatus_no_connections"
         ).read_bytes()
 
         assert Smb("foo").check() is None
 
-    def test_with_connections(self, datadir: Path, mocker: MockFixture) -> None:
+    def test_with_connections(self, datadir: Path, mocker: MockerFixture) -> None:
         mocker.patch("subprocess.check_output").return_value = (
             datadir / "smbstatus_with_connections"
         ).read_bytes()
@@ -56,7 +56,7 @@ class TestSmb(CheckTest):
         assert res is not None
         assert len(res.splitlines()) == 3
 
-    def test_call_error(self, mocker: MockFixture) -> None:
+    def test_call_error(self, mocker: MockerFixture) -> None:
         mocker.patch(
             "subprocess.check_output",
             side_effect=subprocess.CalledProcessError(2, "cmd"),
@@ -65,7 +65,7 @@ class TestSmb(CheckTest):
         with pytest.raises(TemporaryCheckError):
             Smb("foo").check()
 
-    def test_missing_executable(self, mocker: MockFixture) -> None:
+    def test_missing_executable(self, mocker: MockerFixture) -> None:
         mocker.patch("subprocess.check_output", side_effect=FileNotFoundError)
 
         with pytest.raises(SevereCheckError):
@@ -80,7 +80,7 @@ class TestXIdleTime(CheckTest):
         # concrete values are never used in the test
         return XIdleTime(name, 10, "sockets", None, None)  # type: ignore
 
-    def test_smoke(self, mocker: MockFixture) -> None:
+    def test_smoke(self, mocker: MockerFixture) -> None:
         check = XIdleTime("name", 100, "logind", re.compile(r"a^"), re.compile(r"a^"))
         mocker.patch.object(check, "_provide_sessions").return_value = [
             XorgSession(42, getuser()),
@@ -98,7 +98,7 @@ class TestXIdleTime(CheckTest):
         assert kwargs["env"]["DISPLAY"] == ":42"
         assert getuser() in kwargs["env"]["XAUTHORITY"]
 
-    def test_no_activity(self, mocker: MockFixture) -> None:
+    def test_no_activity(self, mocker: MockerFixture) -> None:
         check = XIdleTime("name", 100, "logind", re.compile(r"a^"), re.compile(r"a^"))
         mocker.patch.object(check, "_provide_sessions").return_value = [
             XorgSession(42, getuser()),
@@ -108,7 +108,7 @@ class TestXIdleTime(CheckTest):
 
         assert check.check() is None
 
-    def test_multiple_sessions(self, mocker: MockFixture) -> None:
+    def test_multiple_sessions(self, mocker: MockerFixture) -> None:
         check = XIdleTime("name", 100, "logind", re.compile(r"a^"), re.compile(r"a^"))
         mocker.patch.object(check, "_provide_sessions").return_value = [
             XorgSession(42, getuser()),
@@ -132,7 +132,7 @@ class TestXIdleTime(CheckTest):
         assert kwargs["env"]["DISPLAY"] == ":17"
         assert "root" in kwargs["env"]["XAUTHORITY"]
 
-    def test_handle_call_error(self, mocker: MockFixture) -> None:
+    def test_handle_call_error(self, mocker: MockerFixture) -> None:
         check = XIdleTime("name", 100, "logind", re.compile(r"a^"), re.compile(r"a^"))
         mocker.patch.object(check, "_provide_sessions").return_value = [
             XorgSession(42, getuser()),
@@ -185,7 +185,7 @@ class TestXIdleTime(CheckTest):
         with pytest.raises(ConfigurationError):
             XIdleTime.create("name", config_section({"method": "asdfasdf"}))
 
-    def test_list_sessions_logind_dbus_error(self, mocker: MockFixture) -> None:
+    def test_list_sessions_logind_dbus_error(self, mocker: MockerFixture) -> None:
         check = XIdleTime.create("name", config_section())
         mocker.patch.object(
             check, "_provide_sessions"
@@ -194,7 +194,7 @@ class TestXIdleTime(CheckTest):
         with pytest.raises(TemporaryCheckError):
             check._safe_provide_sessions()
 
-    def test_sudo_not_found(self, mocker: MockFixture) -> None:
+    def test_sudo_not_found(self, mocker: MockerFixture) -> None:
         check = XIdleTime("name", 100, "logind", re.compile(r"a^"), re.compile(r"a^"))
         mocker.patch.object(check, "_provide_sessions").return_value = [
             XorgSession(42, getuser()),

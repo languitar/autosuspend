@@ -2,7 +2,7 @@ from typing import Any, Dict
 
 import mpd
 import pytest
-from pytest_mock import MockFixture
+from pytest_mock import MockerFixture
 
 from autosuspend.checks import Check, ConfigurationError, TemporaryCheckError
 from autosuspend.checks.mpd import Mpd
@@ -38,7 +38,7 @@ class TestMpd(CheckTest):
 
         assert check.check() is None
 
-    def test_correct_mpd_interaction(self, mocker: MockFixture) -> None:
+    def test_correct_mpd_interaction(self, mocker: MockerFixture) -> None:
         mock_instance = mocker.MagicMock(spec=mpd.MPDClient)
         mock_instance.status.return_value = {"state": "play"}
         timeout_property = mocker.PropertyMock()

@@ -3,7 +3,7 @@ from pathlib import Path
 from typing import Any, Callable, Optional, Tuple
 
 import pytest
-from pytest_mock import MockFixture
+from pytest_mock import MockerFixture
 
 from autosuspend.checks import Activity, Check, ConfigurationError, TemporaryCheckError
 from autosuspend.checks.xpath import (
@@ -37,7 +37,7 @@ class TestXPathMixin:
         assert result is not None
         assert len(result) == 0
 
-    def test_broken_xml(self, mocker: MockFixture) -> None:
+    def test_broken_xml(self, mocker: MockerFixture) -> None:
         mock_reply = mocker.MagicMock()
         content_property = mocker.PropertyMock()
         type(mock_reply).content = content_property
@@ -47,7 +47,7 @@ class TestXPathMixin:
         with pytest.raises(TemporaryCheckError):
             _XPathMixinSub("foo", xpath="/b", url="nourl", timeout=5).evaluate()
 
-    def test_xml_with_encoding(self, mocker: MockFixture) -> None:
+    def test_xml_with_encoding(self, mocker: MockerFixture) -> None:
         mock_reply = mocker.MagicMock()
         content_property = mocker.PropertyMock()
         type(mock_reply).content = content_property
@@ -92,7 +92,7 @@ class TestXPathActivity(CheckTest):
             xpath="/b",
         )
 
-    def test_matching(self, mocker: MockFixture) -> None:
+    def test_matching(self, mocker: MockerFixture) -> None:
         mock_reply = mocker.MagicMock()
         content_property = mocker.PropertyMock()
         type(mock_reply).content = content_property
@@ -105,7 +105,7 @@ class TestXPathActivity(CheckTest):
         mock_method.assert_called_once_with(url, timeout=5, headers=None)
         content_property.assert_called_once_with()
 
-    def test_not_matching(self, mocker: MockFixture) -> None:
+    def test_not_matching(self, mocker: MockerFixture) -> None:
         mock_reply = mocker.MagicMock()
         content_property = mocker.PropertyMock()
         type(mock_reply).content = content_property
@@ -151,7 +151,7 @@ class TestXPathWakeup(CheckTest):
     def create_instance(self, name: str) -> Check:
         return XPathWakeup(name, xpath="/a", url="nourl", timeout=5)
 
-    def test_matching(self, mocker: MockFixture) -> None:
+    def test_matching(self, mocker: MockerFixture) -> None:
         mock_reply = mocker.MagicMock()
         content_property = mocker.PropertyMock()
         type(mock_reply).content = content_property
@@ -166,7 +166,7 @@ class TestXPathWakeup(CheckTest):
         mock_method.assert_called_once_with(url, timeout=5, headers=None)
         content_property.assert_called_once_with()
 
-    def test_not_matching(self, mocker: MockFixture) -> None:
+    def test_not_matching(self, mocker: MockerFixture) -> None:
         mock_reply = mocker.MagicMock()
         content_property = mocker.PropertyMock()
         type(mock_reply).content = content_property
@@ -180,7 +180,7 @@ class TestXPathWakeup(CheckTest):
             is None
         )
 
-    def test_not_a_string(self, mocker: MockFixture) -> None:
+    def test_not_a_string(self, mocker: MockerFixture) -> None:
         mock_reply = mocker.MagicMock()
         content_property = mocker.PropertyMock()
         type(mock_reply).content = content_property
@@ -192,7 +192,7 @@ class TestXPathWakeup(CheckTest):
                 datetime.now(timezone.utc)
             )
 
-    def test_not_a_number(self, mocker: MockFixture) -> None:
+    def test_not_a_number(self, mocker: MockerFixture) -> None:
         mock_reply = mocker.MagicMock()
         content_property = mocker.PropertyMock()
         type(mock_reply).content = content_property
@@ -204,7 +204,7 @@ class TestXPathWakeup(CheckTest):
                 datetime.now(timezone.utc)
             )
 
-    def test_multiple_min(self, mocker: MockFixture) -> None:
+    def test_multiple_min(self, mocker: MockerFixture) -> None:
         mock_reply = mocker.MagicMock()
         content_property = mocker.PropertyMock()
         type(mock_reply).content = content_property
@@ -251,7 +251,7 @@ class TestXPathDeltaWakeup(CheckTest):
             ("weeks", 60 * 60 * 24 * 7),
         ],
     )
-    def test_smoke(self, mocker: MockFixture, unit: str, factor: float) -> None:
+    def test_smoke(self, mocker: MockerFixture, unit: str, factor: float) -> None:
         mock_reply = mocker.MagicMock()
         content_property = mocker.PropertyMock()
         type(mock_reply).content = content_property

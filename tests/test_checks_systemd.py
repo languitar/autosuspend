@@ -3,7 +3,7 @@ import re
 from unittest.mock import Mock
 
 import pytest
-from pytest_mock import MockFixture
+from pytest_mock import MockerFixture
 
 from autosuspend.checks import Check, ConfigurationError
 from autosuspend.checks.systemd import next_timer_executions, SystemdTimer
@@ -20,7 +20,7 @@ def test_next_timer_executions() -> None:
 class TestSystemdTimer(CheckTest):
     @staticmethod
     @pytest.fixture()
-    def next_timer_executions(mocker: MockFixture) -> Mock:
+    def next_timer_executions(mocker: MockerFixture) -> Mock:
         return mocker.patch("autosuspend.checks.systemd.next_timer_executions")
 
     def create_instance(self, name: str) -> Check:

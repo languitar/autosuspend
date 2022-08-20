@@ -5,7 +5,7 @@ from typing import Any, Iterable
 
 from freezegun import freeze_time
 import pytest
-from pytest_mock import MockFixture
+from pytest_mock import MockerFixture
 
 import autosuspend
 
@@ -30,7 +30,7 @@ def configure_config(config: str, datadir: Path, tmp_path: Path) -> Path:
 
 
 @pytest.fixture()
-def _rapid_sleep(mocker: MockFixture) -> Iterable[None]:
+def _rapid_sleep(mocker: MockerFixture) -> Iterable[None]:
     with freeze_time() as frozen_time:
         sleep_mock = mocker.patch("time.sleep")
         sleep_mock.side_effect = lambda seconds: frozen_time.tick(
@@ -191,7 +191,7 @@ def test_temporary_errors_logged(tmp_path: Path, datadir: Path, caplog: Any) -> 
     assert len(warnings) > 0
 
 
-def test_loop_defaults(tmp_path: Path, datadir: Path, mocker: MockFixture) -> None:
+def test_loop_defaults(tmp_path: Path, datadir: Path, mocker: MockerFixture) -> None:
     loop = mocker.patch("autosuspend.loop")
     loop.side_effect = StopIteration
     with pytest.raises(StopIteration):

@@ -10,7 +10,7 @@ from freezegun import freeze_time
 import psutil
 import pytest
 from pytest_httpserver import HTTPServer
-from pytest_mock import MockFixture
+from pytest_mock import MockerFixture
 import requests
 
 from autosuspend.checks import (
@@ -43,7 +43,7 @@ class TestUsers(CheckTest):
     ) -> psutil._common.suser:
         return psutil._common.suser(name, terminal, host, started, pid)
 
-    def test_no_users(self, mocker: MockFixture) -> None:
+    def test_no_users(self, mocker: MockerFixture) -> None:
         mocker.patch("psutil.users").return_value = []
 
         assert (
@@ -54,7 +54,7 @@ class TestUsers(CheckTest):
     def test_smoke(self) -> None:
         Users("users", re.compile(".*"), re.compile(".*"), re.compile(".*")).check()
 
-    def test_matching_users(self, mocker: MockFixture) -> None:
+    def test_matching_users(self, mocker: MockerFixture) -> None:
         mocker.patch("psutil.users").return_value = [
             self.create_suser("foo", "pts1", "host", 12345, 12345)
         ]
@@ -64,7 +64,7 @@ class TestUsers(CheckTest):
             is not None
         )
 
-    def test_non_matching_user(self, mocker: MockFixture) -> None:
+    def test_non_matching_user(self, mocker: MockerFixture) -> None:
         mocker.patch("psutil.users").return_value = [
             self.create_suser("foo", "pts1", "host", 12345, 12345)
         ]
@@ -117,7 +117,7 @@ class TestProcesses(CheckTest):
         def name(self) -> str:
             raise psutil.NoSuchProcess(42)
 
-    def test_matching_process(self, mocker: MockFixture) -> None:
+    def test_matching_process(self, mocker: MockerFixture) -> None:
         mocker.patch("psutil.process_iter").return_value = [
             self.StubProcess("blubb"),
             self.StubProcess("nonmatching"),
@@ -125,12 +125,12 @@ class TestProcesses(CheckTest):
 
         assert Processes("foo", ["dummy", "blubb", "other"]).check() is not None
 
-    def test_ignore_no_such_process(self, mocker: MockFixture) -> None:
+    def test_ignore_no_such_process(self, mocker: MockerFixture) -> None:
         mocker.patch("psutil.process_iter").return_value = [self.RaisingProcess()]
 
         Processes("foo", ["dummy"]).check()
 
-    def test_non_matching_process(self, mocker: MockFixture) -> None:
+    def test_non_matching_process(self, mocker: MockerFixture) -> None:
         mocker.patch("psutil.process_iter").return_value = [
             self.StubProcess("asdfasdf"),
             self.StubProcess("nonmatching"),
@@ -217,7 +217,7 @@ class TestActiveConnection(CheckTest):
         ],
     )
     def test_connected(
-        self, mocker: MockFixture, connection: psutil._common.sconn
+        self, mocker: MockerFixture, connection: psutil._common.sconn
     ) -> None:
         mocker.patch("psutil.net_if_addrs").return_value = {
             "dummy": [
@@ -288,7 +288,7 @@ class TestActiveConnection(CheckTest):
         ],
     )
     def test_not_connected(
-        self, mocker: MockFixture, connection: psutil._common.sconn
+        self, mocker: MockerFixture, connection: psutil._common.sconn
     ) -> None:
         mocker.patch("psutil.net_if_addrs").return_value = {
             "dummy": [
@@ -323,7 +323,7 @@ class TestLoad(CheckTest):
 
         assert Load("foo", threshold).check() is None
 
-    def test_above(self, mocker: MockFixture) -> None:
+    def test_above(self, mocker: MockerFixture) -> None:
         threshold = 1.34
         mocker.patch("os.getloadavg").return_value = [0, threshold + 0.2, 0]
 
@@ -356,7 +356,7 @@ class TestNetworkBandwidth(CheckTest):
         assert check.check() is not None
 
     @pytest.fixture()
-    def _mock_interfaces(self, mocker: MockFixture) -> None:
+    def _mock_interfaces(self, mocker: MockerFixture) -> None:
         mock = mocker.patch("psutil.net_if_addrs")
         mock.return_value = {"foo": None, "bar": None, "baz": None}
 
@@ -470,7 +470,7 @@ class TestNetworkBandwidth(CheckTest):
         check.check()
         assert old_state != check._previous_values
 
-    def test_delta_calculation_send(self, mocker: MockFixture) -> None:
+    def test_delta_calculation_send(self, mocker: MockerFixture) -> None:
         first = mocker.MagicMock()
         type(first).bytes_sent = mocker.PropertyMock(return_value=1000)
         type(first).bytes_recv = mocker.PropertyMock(return_value=800)
@@ -493,7 +493,7 @@ class TestNetworkBandwidth(CheckTest):
             assert res is not None
             assert " 222.0 " in res
 
-    def test_delta_calculation_receive(self, mocker: MockFixture) -> None:
+    def test_delta_calculation_receive(self, mocker: MockerFixture) -> None:
         first = mocker.MagicMock()
         type(first).bytes_sent = mocker.PropertyMock(return_value=1000)
         type(first).bytes_recv = mocker.PropertyMock(return_value=800)
@@ -521,7 +521,7 @@ class TestPing(CheckTest):
     def create_instance(self, name: str) -> Check:
         return Ping(name, "8.8.8.8")
 
-    def test_smoke(self, mocker: MockFixture) -> None:
+    def test_smoke(self, mocker: MockerFixture) -> None:
         mock = mocker.patch("subprocess.call")
         mock.return_value = 1
 
@@ -533,14 +533,14 @@ class TestPing(CheckTest):
         for (args, _), host in zip(mock.call_args_list, hosts):
             assert args[0][-1] == host
 
-    def test_missing_ping_binary(self, mocker: MockFixture) -> None:
+    def test_missing_ping_binary(self, mocker: MockerFixture) -> None:
         mock = mocker.patch("subprocess.call")
         mock.side_effect = FileNotFoundError()
 
         with pytest.raises(SevereCheckError):
             Ping("name", ["test"]).check()
 
-    def test_matching(self, mocker: MockFixture) -> None:
+    def test_matching(self, mocker: MockerFixture) -> None:
         mock = mocker.patch("subprocess.call")
         mock.return_value = 0
         assert Ping("name", ["foo"]).check() is not None
@@ -583,7 +583,7 @@ class TestFile(CheckTest):
         with pytest.raises(TemporaryCheckError):
             File("name", file_path).check(datetime.now(timezone.utc))
 
-    def test_handle_io_error(self, tmp_path: Path, mocker: MockFixture) -> None:
+    def test_handle_io_error(self, tmp_path: Path, mocker: MockerFixture) -> None:
         file_path = tmp_path / "test"
         file_path.write_bytes(b"2314898")
         mocker.patch("pathlib.Path.read_text").side_effect = IOError

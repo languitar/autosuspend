@@ -4,7 +4,7 @@ from unittest.mock import ANY
 
 import pytest
 from pytest_httpserver import HTTPServer
-from pytest_mock import MockFixture
+from pytest_mock import MockerFixture
 import requests
 
 from autosuspend.checks import ConfigurationError, TemporaryCheckError
@@ -54,7 +54,7 @@ class TestNetworkMixin:
         assert reply is not None
         assert reply.status_code == 200
 
-    def test_requests_exception(self, mocker: MockFixture) -> None:
+    def test_requests_exception(self, mocker: MockerFixture) -> None:
         mock_method = mocker.patch("requests.Session.get")
         mock_method.side_effect = requests.exceptions.ReadTimeout()
 
@@ -90,7 +90,7 @@ class TestNetworkMixin:
     def test_file_url(self) -> None:
         NetworkMixin("file://" + __file__, 5).request()
 
-    def test_content_type(self, mocker: MockFixture) -> None:
+    def test_content_type(self, mocker: MockerFixture) -> None:
         mock_method = mocker.patch("requests.Session.get")
 
         content_type = "foo/bar"
