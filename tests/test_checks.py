@@ -4,23 +4,23 @@ from typing import Optional
 from autosuspend.checks import Check
 
 
+class DummyCheck(Check):
+    @classmethod
+    def create(cls, name: str, config: configparser.SectionProxy) -> "DummyCheck":
+        raise NotImplementedError()
+
+    def check(self) -> Optional[str]:
+        pass
+
+
 class TestCheck:
-    class DummyCheck(Check):
-        @classmethod
-        def create(
-            cls, name: str, config: configparser.SectionProxy
-        ) -> "TestCheck.DummyCheck":
-            raise NotImplementedError()
+    class TestName:
+        def test_returns_the_provided_name(self) -> None:
+            name = "test"
+            assert DummyCheck(name).name == name
 
-        def check(self) -> Optional[str]:
-            pass
+        def test_has_a_sensible_default(self) -> None:
+            assert DummyCheck().name is not None
 
-    def test_name(self) -> None:
-        name = "test"
-        assert self.DummyCheck(name).name == name
-
-    def test_name_default(self) -> None:
-        assert self.DummyCheck().name is not None
-
-    def test_str(self) -> None:
-        assert isinstance(str(self.DummyCheck("test")), str)
+    def test_has_a_string_representation(self) -> None:
+        assert isinstance(str(DummyCheck("test")), str)
