@@ -90,50 +90,51 @@ class TestJsonPath(CheckTest):
                 jsonpath=parse("b"),
             ).check()
 
-    def test_create(self) -> None:
-        check: JsonPath = JsonPath.create(
-            "name",
-            config_section(
-                {
-                    "url": "url",
-                    "jsonpath": "a.b",
-                    "username": "user",
-                    "password": "pass",
-                    "timeout": "42",
-                }
-            ),
-        )  # type: ignore
-        assert check._jsonpath == parse("a.b")
-        assert check._url == "url"
-        assert check._username == "user"
-        assert check._password == "pass"
-        assert check._timeout == 42
-
-    def test_create_missing_path(self) -> None:
-        with pytest.raises(ConfigurationError):
-            JsonPath.create(
+    class TestCreate:
+        def test_it_works(self) -> None:
+            check: JsonPath = JsonPath.create(
                 "name",
                 config_section(
                     {
                         "url": "url",
+                        "jsonpath": "a.b",
                         "username": "user",
                         "password": "pass",
                         "timeout": "42",
                     }
                 ),
-            )
+            )  # type: ignore
+            assert check._jsonpath == parse("a.b")
+            assert check._url == "url"
+            assert check._username == "user"
+            assert check._password == "pass"
+            assert check._timeout == 42
 
-    def test_create_invalid_path(self) -> None:
-        with pytest.raises(ConfigurationError):
-            JsonPath.create(
-                "name",
-                config_section(
-                    {
-                        "url": "url",
-                        "jsonpath": ",.asdfjasdklf",
-                        "username": "user",
-                        "password": "pass",
-                        "timeout": "42",
-                    }
-                ),
-            )
+        def test_raises_on_missing_json_path(self) -> None:
+            with pytest.raises(ConfigurationError):
+                JsonPath.create(
+                    "name",
+                    config_section(
+                        {
+                            "url": "url",
+                            "username": "user",
+                            "password": "pass",
+                            "timeout": "42",
+                        }
+                    ),
+                )
+
+        def test_raises_on_invalid_json_path(self) -> None:
+            with pytest.raises(ConfigurationError):
+                JsonPath.create(
+                    "name",
+                    config_section(
+                        {
+                            "url": "url",
+                            "jsonpath": ",.asdfjasdklf",
+                            "username": "user",
+                            "password": "pass",
+                            "timeout": "42",
+                        }
+                    ),
+                )
