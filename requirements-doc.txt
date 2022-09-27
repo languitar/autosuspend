@@ -2,5 +2,5 @@ sphinx_issues
 sphinx==5.2.1
 sphinx_rtd_theme
 sphinxcontrib-plantuml
-sphinx-autodoc-typehints==1.19.2
+sphinx-autodoc-typehints==1.19.3
 recommonmark
