@@ -33,4 +33,4 @@ Please report bugs at the project repository at https://github.com/languitar/aut
 See also
 ********
 
-:manpage:`autosuspend.conf(5)`
+:manpage:`autosuspend.conf(5)`, online documentation including FAQs at https://autosuspend.readthedocs.io/
