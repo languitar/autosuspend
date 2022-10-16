@@ -1,5 +1,5 @@
 sphinx_issues
-sphinx==5.2.3
+sphinx==5.3.0
 sphinx_rtd_theme
 sphinxcontrib-plantuml
 sphinx-autodoc-typehints==1.19.4
