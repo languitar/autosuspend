@@ -456,6 +456,13 @@ Users
 Checks whether a user currently logged in at the system matches several criteria.
 All provided criteria must match to indicate activity on the host.
 
+To find the applicable values for a given scenario on a system, use the following command:
+
+.. code-block:: console
+
+   $ python3 -c "import psutil; print(psutil.users())"
+   [suser(name='someone', terminal='tty7', host='', started=1670269568.0, pid=77179)]
+
 Options
 =======
 
@@ -472,7 +479,10 @@ Capturing substrings needs to be explicitly enabled using wildcard matching.
 
 .. option:: host
 
-   A regular expression specifying the host from which a user needs to be logged in, default: ``.*``.
+   A regular expression specifying the host from which a user needs to be logged in.
+   Users logged in locally on the machine are usually reported with an empty string as the host value.
+   In case this check should only match local users, use ``^$`` as the value for this option.
+   default: ``.*`` (i.e. accept users from any host).
 
 Requirements
 ============
