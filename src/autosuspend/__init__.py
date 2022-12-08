@@ -266,10 +266,13 @@ class Processor:
         self._logger.info("System is idle since %s", idle_since)
 
         # determine if systems is idle long enough
-        self._logger.debug("Idle seconds: %s", (timestamp - idle_since).total_seconds())
-        if (timestamp - idle_since).total_seconds() <= self._idle_time:
+        idle_seconds = (timestamp - idle_since).total_seconds()
+        self._logger.debug("Idle seconds: %s", idle_seconds)
+        if idle_seconds <= self._idle_time:
             self._logger.info(
-                "Desired idle time of %s s not reached yet.", self._idle_time
+                "Desired idle time of %s s not reached yet. Currently idle since %s s",
+                self._idle_time,
+                idle_seconds,
             )
             return
 
