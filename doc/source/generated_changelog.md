@@ -1,3 +1,10 @@
+# [4.3.0](https://github.com/languitar/autosuspend/compare/v4.2.0...v4.3.0) (2022-12-08)
+
+
+### Features
+
+* add seconds since the system became idle to logs ([cba13db](https://github.com/languitar/autosuspend/commit/cba13db8c50a5fbab05447c3f6ce74cf85898100)), closes [#281](https://github.com/languitar/autosuspend/issues/281)
+
 # [4.2.0](https://github.com/languitar/autosuspend/compare/v4.1.1...v4.2.0) (2022-07-24)
 
 
