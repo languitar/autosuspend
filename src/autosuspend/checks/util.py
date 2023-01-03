@@ -72,7 +72,10 @@ class NetworkMixin:
             return None
 
     def _create_auth_from_failed_request(
-        self, reply: "requests.models.Response"
+        self,
+        reply: "requests.models.Response",
+        username: str,
+        password: str,
     ) -> Any:
         from requests.auth import HTTPBasicAuth, HTTPDigestAuth
 
@@ -87,7 +90,7 @@ class NetworkMixin:
                 "Unsupported authentication scheme {}".format(auth_scheme)
             )
 
-        return auth_map[auth_scheme](self._username, self._password)
+        return auth_map[auth_scheme](username, password)
 
     def request(self) -> "requests.models.Response":
         import requests
@@ -107,7 +110,9 @@ class NetworkMixin:
                 reply = session.get(
                     self._url,
                     timeout=self._timeout,
-                    auth=self._create_auth_from_failed_request(reply),
+                    auth=self._create_auth_from_failed_request(
+                        reply, self._username, self._password
+                    ),
                     headers=self._request_headers(),
                 )
 
