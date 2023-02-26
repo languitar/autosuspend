@@ -99,7 +99,6 @@ class NetworkMixin:
         session = self._create_session()
 
         try:
-
             reply = session.get(
                 self._url, timeout=self._timeout, headers=self._request_headers()
             )

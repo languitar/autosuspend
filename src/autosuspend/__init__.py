@@ -159,7 +159,6 @@ def _safe_execute_wakeup(
 def execute_wakeups(
     wakeups: Iterable[Wakeup], timestamp: datetime, logger: logging.Logger
 ) -> Optional[datetime]:
-
     wakeup_at = None
     for wakeup in wakeups:
         this_at = _safe_execute_wakeup(wakeup, timestamp, logger)

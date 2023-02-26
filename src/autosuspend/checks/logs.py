@@ -14,7 +14,6 @@ from . import Activity, ConfigurationError, TemporaryCheckError
 class LastLogActivity(Activity):
     @classmethod
     def create(cls, name: str, config: configparser.SectionProxy) -> "LastLogActivity":
-
         try:
             return cls(
                 name,
@@ -58,7 +57,6 @@ class LastLogActivity(Activity):
         self.default_timezone = default_timezone
 
     def _safe_parse_date(self, match: str, now: datetime) -> datetime:
-
         try:
             match_date = default_tzinfo(parse(match), self.default_timezone)
             if match_date > now:

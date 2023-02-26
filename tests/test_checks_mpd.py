@@ -17,7 +17,6 @@ class TestMpd(CheckTest):
         return Mpd(name, None, None, None)  # type: ignore
 
     def test_playing(self, monkeypatch: Any) -> None:
-
         check = Mpd("test", None, None, None)  # type: ignore
 
         def get_state() -> Dict:
@@ -28,7 +27,6 @@ class TestMpd(CheckTest):
         assert check.check() is not None
 
     def test_not_playing(self, monkeypatch: Any) -> None:
-
         check = Mpd("test", None, None, None)  # type: ignore
 
         def get_state() -> Dict:
@@ -60,7 +58,6 @@ class TestMpd(CheckTest):
 
     @pytest.mark.parametrize("exception_type", [ConnectionError, mpd.ConnectionError])
     def test_handle_connection_errors(self, exception_type: type) -> None:
-
         check = Mpd("test", None, None, None)  # type: ignore
 
         def _get_state() -> Dict:
