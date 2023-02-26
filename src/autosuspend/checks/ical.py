@@ -120,7 +120,6 @@ def _expand_rrule(
     start_at: datetime,
     end_at: datetime,
 ) -> Sequence[datetime]:
-
     # unify everything to a single timezone and then strip it to handle DST
     # changes correctly
     orig_tz = start.tzinfo

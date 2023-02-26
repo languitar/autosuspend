@@ -165,7 +165,6 @@ snic = namedtuple("snic", ["family", "address", "netmask", "broadcast", "ptp"])
 
 
 class TestActiveConnection(CheckTest):
-
     MY_PORT = 22
     MY_ADDRESS = "123.456.123.456"
     MY_ADDRESS_IPV6 = "fe80::5193:518c:5c69:aedb"

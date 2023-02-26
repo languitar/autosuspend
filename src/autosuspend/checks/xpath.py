@@ -14,7 +14,6 @@ from .util import NetworkMixin
 class XPathMixin(NetworkMixin):
     @classmethod
     def collect_init_args(cls, config: configparser.SectionProxy) -> Dict[str, Any]:
-
         try:
             args = NetworkMixin.collect_init_args(config)
             args["xpath"] = config["xpath"].strip()
@@ -91,7 +90,6 @@ class XPathWakeup(XPathMixin, Wakeup):
 
 
 class XPathDeltaWakeup(XPathWakeup):
-
     UNITS = [
         "days",
         "seconds",

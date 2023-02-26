@@ -33,7 +33,6 @@ class JsonPath(NetworkMixin, Activity):
         self._jsonpath = jsonpath
 
     def check(self) -> Optional[str]:
-
         try:
             reply = self.request().json()
             matched = self._jsonpath.find(reply)
