@@ -360,7 +360,7 @@ class TestNetworkBandwidth(CheckTest):
     def test_detects_non_mocked_activity(self, serve_data_url: str) -> None:
         check = NetworkBandwidth("name", psutil.net_if_addrs().keys(), 0, 0)
         # make some traffic
-        requests.get(serve_data_url)
+        requests.get(serve_data_url, timeout=5)
         assert check.check() is not None
 
     @pytest.fixture()
@@ -458,7 +458,7 @@ class TestNetworkBandwidth(CheckTest):
             "name", psutil.net_if_addrs().keys(), send_threshold, receive_threshold
         )
         # make some traffic
-        requests.get(serve_data_url)
+        requests.get(serve_data_url, timeout=5)
         res = check.check()
         assert res is not None
         assert match in res
@@ -468,7 +468,7 @@ class TestNetworkBandwidth(CheckTest):
             "name", psutil.net_if_addrs().keys(), sys.float_info.max, sys.float_info.max
         )
         # make some traffic
-        requests.get(serve_data_url)
+        requests.get(serve_data_url, timeout=5)
         assert check.check() is None
 
     def test_internal_state_updating_works(self, serve_data_url: str) -> None:
@@ -477,7 +477,7 @@ class TestNetworkBandwidth(CheckTest):
         )
         check.check()
         old_state = check._previous_values
-        requests.get(serve_data_url)
+        requests.get(serve_data_url, timeout=5)
         check.check()
         assert old_state != check._previous_values
 
