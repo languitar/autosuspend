@@ -5,12 +5,12 @@ from contextlib import suppress
 
 from .command import CommandActivity as ExternalCommand  # noqa
 from .linux import (  # noqa
-    ActiveConnection,  # noqa
-    Load,  # noqa
-    NetworkBandwidth,  # noqa
-    Ping,  # noqa
-    Processes,  # noqa
-    Users,  # noqa
+    ActiveConnection,
+    Load,
+    NetworkBandwidth,
+    Ping,
+    Processes,
+    Users,
 )
 from .smb import Smb  # noqa
 from .xorg import XIdleTime  # noqa

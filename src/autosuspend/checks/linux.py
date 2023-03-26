@@ -170,8 +170,8 @@ class NetworkBandwidth(Activity):
     def _check_interface(
         self,
         interface: str,
-        new: psutil._common.snetio,
-        old: psutil._common.snetio,
+        new: psutil._common.snetio,  # noqa: SLF001
+        old: psutil._common.snetio,  # noqa: SLF001
         new_time: float,
         old_time: float,
     ) -> None:
@@ -249,7 +249,7 @@ class Ping(Activity):
             for host in self._hosts:
                 cmd = ["ping", "-q", "-c", "1", host]
                 if (
-                    subprocess.call(  # noqa: S603 we know the input from the config
+                    subprocess.call(  # we know the input from the config
                         cmd,
                         stdout=subprocess.DEVNULL,
                         stderr=subprocess.DEVNULL,
@@ -321,7 +321,7 @@ class Users(Activity):
                 and self._host_regex.fullmatch(entry.host) is not None
             ):
                 self.logger.debug(
-                    "User %s on terminal %s from host %s " "matches criteria.",
+                    "User %s on terminal %s from host %s matches criteria.",
                     entry.name,
                     entry.terminal,
                     entry.host,
@@ -356,7 +356,7 @@ class File(Wakeup):
         Wakeup.__init__(self, name)
         self._path = path
 
-    def check(self, timestamp: datetime) -> Optional[datetime]:
+    def check(self, timestamp: datetime) -> Optional[datetime]:  # noqa: ARG002
         try:
             first_line = self._path.read_text().splitlines()[0]
             return datetime.fromtimestamp(float(first_line.strip()), timezone.utc)

@@ -46,7 +46,6 @@ def _expand_rrule_all_day(
     To my mind, these events cannot have changes, just exclusions, because
     changes only affect the time, which doesn't exist for all-day events.
     """
-
     rules = cast(rruleset, rrulestr(rrule, dtstart=start, ignoretz=True, forceset=True))
 
     # add exclusions
@@ -73,8 +72,7 @@ def _prepare_rruleset_for_expanding(
     changes: Iterable[icalendar.cal.Event],
     tz: Optional[tzinfo],
 ) -> rruleset:
-    """
-    Prepare an rruleset for expanding.
+    """Prepare an rruleset for expanding.
 
     Every timestamp is converted to a single timezone and then made unaware to avoid DST
     issues.
@@ -264,7 +262,6 @@ def list_calendar_events(
         end_at:
             do not include events that start after or exactly at this time
     """
-
     # some useful notes:
     # * end times and dates are non-inclusive for ical events
     # * start and end are dates for all-day events

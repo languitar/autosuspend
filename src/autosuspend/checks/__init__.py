@@ -13,8 +13,7 @@ class ConfigurationError(RuntimeError):
 
 
 class TemporaryCheckError(RuntimeError):
-    """
-    Indicates a temporary error while performing a check.
+    """Indicates a temporary error while performing a check.
 
     Such an error can be ignored for some time since it might recover
     automatically.
@@ -22,8 +21,7 @@ class TemporaryCheckError(RuntimeError):
 
 
 class SevereCheckError(RuntimeError):
-    """
-    Indicates a sever check error that will probably not recover.
+    """Indicates a sever check error that will probably not recover.
 
     There is no hope this situation recovers.
     """

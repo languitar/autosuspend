@@ -1,7 +1,7 @@
 from pathlib import Path
 from typing import Any, Callable, Iterable, Tuple
 
-from dbus import Bus
+from dbus import Bus  # noqa: TCH002
 from dbus.proxies import ProxyObject
 import dbusmock
 import pytest
@@ -13,8 +13,7 @@ from autosuspend.util import systemd as util_systemd
 
 @pytest.fixture()
 def serve_file(httpserver: HTTPServer) -> Callable[[Path], str]:
-    """
-    Serve a file via HTTP.
+    """Serve a file via HTTP.
 
     Returns:
         A callable that expected the file path to server. It returns the URL to
@@ -31,8 +30,7 @@ def serve_file(httpserver: HTTPServer) -> Callable[[Path], str]:
 
 @pytest.fixture()
 def serve_protected(httpserver: HTTPServer) -> Callable[[Path], Tuple[str, str, str]]:
-    """
-    Serve a file behind basic authentication.
+    """Serve a file behind basic authentication.
 
     Returns:
         A callable that accepts the file path to serve. It returns as a tuple
@@ -40,7 +38,7 @@ def serve_protected(httpserver: HTTPServer) -> Callable[[Path], Tuple[str, str, 
     """
     realm = "the_realm"
     username = "the_user"
-    password = "the_password"  # noqa: S105 only for testing
+    password = "the_password"  # only for testing
 
     def serve(the_file: Path) -> Tuple[str, str, str]:
         def handler(request: Request) -> Response:

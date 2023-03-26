@@ -40,7 +40,7 @@ class CommandActivity(CommandMixin, Activity):
 
     def check(self) -> Optional[str]:
         try:
-            subprocess.check_call(self._command, shell=True)  # noqa: S602
+            subprocess.check_call(self._command, shell=True)
             return "Command {} succeeded".format(self._command)
         except subprocess.CalledProcessError as error:
             raise_severe_if_command_not_found(error)
@@ -58,11 +58,11 @@ class CommandWakeup(CommandMixin, Wakeup):
         CommandMixin.__init__(self, command)
         Wakeup.__init__(self, name)
 
-    def check(self, timestamp: datetime) -> Optional[datetime]:
+    def check(self, timestamp: datetime) -> Optional[datetime]:  # noqa: ARG002
         try:
             output = subprocess.check_output(
                 self._command,
-                shell=True,  # noqa: S602
+                shell=True,
             ).splitlines()[0]
             self.logger.debug(
                 "Command %s succeeded with output %s", self._command, output

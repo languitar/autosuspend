@@ -186,7 +186,7 @@ class XIdleTime(Activity):
         env["XAUTHORITY"] = str(Path("~" + session.user).expanduser() / ".Xauthority")
 
         try:
-            idle_time_output = subprocess.check_output(  # noqa: S603, S607
+            idle_time_output = subprocess.check_output(
                 ["sudo", "-u", session.user, "xprintidle"], env=env
             )
             return float(idle_time_output.strip()) / 1000.0

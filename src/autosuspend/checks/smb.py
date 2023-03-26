@@ -7,14 +7,14 @@ from . import Activity, SevereCheckError, TemporaryCheckError
 
 class Smb(Activity):
     @classmethod
-    def create(cls, name: str, config: Optional[configparser.SectionProxy]) -> "Smb":
+    def create(
+        cls, name: str, config: Optional[configparser.SectionProxy]  # noqa: ARG003
+    ) -> "Smb":
         return cls(name)
 
     def _safe_get_status(self) -> str:
         try:
-            return subprocess.check_output(  # noqa: S603, S607
-                ["smbstatus", "-b"]
-            ).decode("utf-8")
+            return subprocess.check_output(["smbstatus", "-b"]).decode("utf-8")
         except FileNotFoundError as error:
             raise SevereCheckError("smbstatus binary not found") from error
         except subprocess.CalledProcessError as error:

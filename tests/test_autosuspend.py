@@ -188,7 +188,7 @@ class TestSetUpChecks:
             == 1
         )
 
-    def test_no_such_class(self, mocker: MockerFixture) -> None:
+    def test_no_such_class(self) -> None:
         parser = configparser.ConfigParser()
         parser.read_string(
             """
@@ -443,7 +443,7 @@ class TestNotifySuspend:
 
     def test_info_no_command(self, caplog: Any) -> None:
         with caplog.at_level(logging.INFO):
-            autosuspend.notify_suspend(None, None, datetime.now())
+            autosuspend.notify_suspend(None, None, datetime.now(tz=timezone.utc))
             assert "suitable" in caplog.text
 
 
