@@ -17,7 +17,7 @@ class Periodic(Wakeup):
             kwargs = {config["unit"]: float(config["value"])}
             return cls(name, timedelta(**kwargs))
         except (ValueError, KeyError, TypeError) as error:
-            raise ConfigurationError(str(error))
+            raise ConfigurationError(str(error)) from error
 
     def __init__(self, name: str, delta: timedelta) -> None:
         Wakeup.__init__(self, name)

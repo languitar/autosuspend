@@ -47,13 +47,13 @@ class SystemdTimer(Wakeup):
         try:
             return cls(name, re.compile(config["match"]))
         except (re.error, ValueError, KeyError, TypeError) as error:
-            raise ConfigurationError(str(error))
+            raise ConfigurationError(str(error)) from error
 
     def __init__(self, name: str, match: Pattern) -> None:
         Wakeup.__init__(self, name)
         self._match = match
 
-    def check(self, timestamp: datetime) -> Optional[datetime]:
+    def check(self, timestamp: datetime) -> Optional[datetime]:  # noqa: ARG002
         executions = next_timer_executions()
         matching_executions = [
             next_run for name, next_run in executions.items() if self._match.match(name)

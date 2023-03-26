@@ -37,9 +37,11 @@ def execute_suspend(
         wakeup_at:
             potential next wakeup time. Only informative.
     """
-    _logger.info("Suspending using command: %s", command)
+    _logger.info(
+        "Suspending using command: %s with next wake up at %s", command, wakeup_at
+    )
     try:
-        subprocess.check_call(command, shell=True)  # noqa: S602
+        subprocess.check_call(command, shell=True)
     except subprocess.CalledProcessError:
         _logger.warning("Unable to execute suspend command: %s", command, exc_info=True)
 
@@ -52,7 +54,7 @@ def notify_suspend(
     """Call a command to notify on suspending.
 
     Args:
-        command_no_wakeup_template:
+        command_wakeup_template:
             A template for the command to execute in case a wakeup is
             scheduled.
             It will be executed using shell execution.
@@ -70,7 +72,7 @@ def notify_suspend(
     def safe_exec(command: str) -> None:
         _logger.info("Notifying using command: %s", command)
         try:
-            subprocess.check_call(command, shell=True)  # noqa: S602
+            subprocess.check_call(command, shell=True)
         except subprocess.CalledProcessError:
             _logger.warning(
                 "Unable to execute notification command: %s", command, exc_info=True
@@ -103,7 +105,7 @@ def schedule_wakeup(command_template: str, wakeup_at: datetime) -> None:
     )
     _logger.info("Scheduling wakeup using command: %s", command)
     try:
-        subprocess.check_call(command, shell=True)  # noqa: S602
+        subprocess.check_call(command, shell=True)
     except subprocess.CalledProcessError:
         _logger.warning(
             "Unable to execute wakeup scheduling command: %s", command, exc_info=True
@@ -129,6 +131,8 @@ def execute_checks(
         all_checks:
             if ``True``, execute all checks even if a previous one already
             matched.
+        logger:
+            the logger instance to use
 
     Return:
         ``True`` if a check matched
@@ -253,9 +257,7 @@ class Processor:
 
         # determine system activity
         active = execute_checks(self._activities, self._all_activities, self._logger)
-        self._logger.debug(
-            "All activity checks have been executed. " "Active: %s", active
-        )
+        self._logger.debug("All activity checks have been executed. Active: %s", active)
         if active:
             self._reset_state("System is active")
             return
@@ -368,7 +370,6 @@ def loop(
         lock_timeout:
             time in seconds to wait for acquiring the lock file
     """
-
     start_time = datetime.now(timezone.utc)
     while _continue_looping(run_for, start_time):
         _do_loop_iteration(processor, woke_up_file, lock_file, lock_timeout)
@@ -511,7 +512,7 @@ def parse_arguments(args: Optional[Sequence[str]]) -> argparse.Namespace:
             ones determined via the :module:`sys` module.
     """
     parser = argparse.ArgumentParser(
-        description="Automatically suspends a server " "based on several criteria",
+        description="Automatically suspends a server based on several criteria",
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
     )
 
@@ -519,7 +520,7 @@ def parse_arguments(args: Optional[Sequence[str]]) -> argparse.Namespace:
     with suppress(FileNotFoundError, IsADirectoryError, PermissionError):
         # The open file is required after this function finishes inside the argparse
         # result. Therefore, a context manager is not easily usable here.
-        default_config = open("/etc/autosuspend.conf", "r")  # noqa: SIM115
+        default_config = Path("/etc/autosuspend.conf").open("r")
     parser.add_argument(
         "-c",
         "--config",
@@ -546,7 +547,7 @@ def parse_arguments(args: Optional[Sequence[str]]) -> argparse.Namespace:
         "--debug",
         action="store_true",
         default=False,
-        help="Configures the logging system to provide full debug output " "on stdout.",
+        help="Configures the logging system to provide full debug output on stdout.",
     )
 
     subparsers = parser.add_subparsers(title="subcommands", dest="subcommand")
@@ -605,7 +606,7 @@ def configure_logging(config_file: Optional[IO], debug: bool) -> None:
     if config_file:
         try:
             logging.config.fileConfig(config_file)
-        except Exception:  # noqa: PIE786 probably ok for main-like function
+        except Exception:  # probably ok for main-like function
             # at least configure warnings
             logging.basicConfig(level=logging.WARNING)
             _logger.warning(
@@ -735,7 +736,9 @@ def hook(
         )
 
 
-def main_hook(args: argparse.Namespace, config: configparser.ConfigParser) -> None:
+def main_hook(
+    args: argparse.Namespace, config: configparser.ConfigParser  # noqa: ARG001
+) -> None:
     wakeups = set_up_checks(
         config,
         "wakeup",
@@ -754,7 +757,6 @@ def main_hook(args: argparse.Namespace, config: configparser.ConfigParser) -> No
 
 def main_daemon(args: argparse.Namespace, config: configparser.ConfigParser) -> None:
     """Run the daemon."""
-
     checks = set_up_checks(
         config,
         "check",

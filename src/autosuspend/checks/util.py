@@ -17,7 +17,7 @@ class NetworkMixin:
             raise ConfigurationError("Username and password must be set")
 
     @classmethod
-    def collect_init_args(  # noqa: CCR001
+    def collect_init_args(
         cls,
         config: configparser.SectionProxy,
     ) -> Dict[str, Any]:

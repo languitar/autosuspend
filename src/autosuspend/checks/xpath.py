@@ -2,8 +2,8 @@ import configparser
 from datetime import datetime, timedelta, timezone
 from typing import Any, Dict, Optional, Sequence
 
-from lxml import etree  # noqa: S410 using safe parser
-from lxml.etree import XPath, XPathSyntaxError  # noqa: S410 our input
+from lxml import etree  # using safe parser
+from lxml.etree import XPath, XPathSyntaxError  # our input
 import requests
 import requests.exceptions
 
@@ -71,7 +71,9 @@ class XPathWakeup(XPathMixin, Wakeup):
         Wakeup.__init__(self, name)
         XPathMixin.__init__(self, **kwargs)
 
-    def convert_result(self, result: str, timestamp: datetime) -> datetime:
+    def convert_result(
+        self, result: str, timestamp: datetime  # noqa: ARG002
+    ) -> datetime:
         return datetime.fromtimestamp(float(result), timezone.utc)
 
     def check(self, timestamp: datetime) -> Optional[datetime]:
@@ -84,9 +86,11 @@ class XPathWakeup(XPathMixin, Wakeup):
         except TypeError as error:
             raise TemporaryCheckError(
                 "XPath returned a result that is not a string: " + str(error)
-            )
+            ) from None
         except ValueError as error:
-            raise TemporaryCheckError("Result cannot be parsed: " + str(error))
+            raise TemporaryCheckError(
+                "Result cannot be parsed: " + str(error)
+            ) from error
 
 
 class XPathDeltaWakeup(XPathWakeup):
@@ -107,7 +111,7 @@ class XPathDeltaWakeup(XPathWakeup):
             args["unit"] = config.get("unit", fallback="minutes")
             return cls(name, **args)
         except ValueError as error:
-            raise ConfigurationError(str(error))
+            raise ConfigurationError(str(error)) from error
 
     def __init__(self, name: str, unit: str, **kwargs: Any) -> None:
         if unit not in self.UNITS:
