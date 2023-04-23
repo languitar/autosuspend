@@ -46,6 +46,12 @@ ignore = [
     "ANN401",
     # We use assert only for documentation purposes and debugging.
     "S101",
+    # We want this as a feature of the configuration. The user is warned.
+    "S602",
+    # This one is hard to get around here
+    "S603",
+    # Required to be location-independent
+    "S607",
     # I don't like this style
     "TRY300",
     # Gives some readability sometimes, No need to prevent this style
@@ -66,6 +72,8 @@ ignore = [
     "S106",
     # Allow potentially insecure temp directory access
     "S108",
+    # shell access in tests it ok
+    "S604",
     # Sometimes needed for the current tests
     "SLF",
 ]
