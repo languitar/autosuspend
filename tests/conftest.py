@@ -1,7 +1,7 @@
 from pathlib import Path
 from typing import Any, Callable, Iterable, Tuple
 
-from dbus import Bus  # noqa: TCH002
+from dbus import Bus
 from dbus.proxies import ProxyObject
 import dbusmock
 import pytest
