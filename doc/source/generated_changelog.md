@@ -1,3 +1,10 @@
+## [4.3.1](https://github.com/languitar/autosuspend/compare/v4.3.0...v4.3.1) (2023-05-16)
+
+
+### Bug Fixes
+
+* **ical:** support all versions of tzlocal ([9eb0b95](https://github.com/languitar/autosuspend/commit/9eb0b9549e11b612d47d007777cb83eac4c53f31))
+
 # [4.3.0](https://github.com/languitar/autosuspend/compare/v4.2.0...v4.3.0) (2022-12-08)
 
 
