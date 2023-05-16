@@ -129,7 +129,7 @@ def _expand_rrule(
     # expand the rrule
     dates = []
     for candidate in rules.between(start_at - instance_duration, end_at, inc=True):
-        localized = orig_tz.localize(candidate)  # type: ignore
+        localized = _localize(candidate, orig_tz)
         dates.append(localized)
     return dates
 
@@ -221,6 +221,17 @@ def _extract_events_from_single_component(
     return events
 
 
+def _localize(dt: datetime, tz: Any) -> datetime:
+    """Localizes a datetime with the provided timezone.
+
+    This method handles the different return types of tzlocal in different versions.
+    """
+    try:
+        return tz.localize(dt)
+    except AttributeError:
+        return dt.astimezone(tz)
+
+
 def _extract_events_from_component(
     component: icalendar.Event,
     recurring_changes: ChangeMapping,
@@ -236,8 +247,8 @@ def _extract_events_from_component(
     if isinstance(start, datetime) and not is_aware(start):
         assert not is_aware(end)
         local_time = tzlocal.get_localzone()
-        start = local_time.localize(start)
-        end = local_time.localize(end)
+        start = _localize(start, local_time)
+        end = _localize(end, local_time)
 
     if component.get("rrule"):
         return _extract_events_from_recurring_component(
