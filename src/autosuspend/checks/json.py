@@ -25,7 +25,7 @@ class JsonPath(NetworkMixin, Activity):
         except KeyError as error:
             raise ConfigurationError("Property jsonpath is missing") from error
         except Exception as error:
-            raise ConfigurationError(f"JSONPath error {str(error)}") from error
+            raise ConfigurationError(f"JSONPath error {error}") from error
 
     def __init__(self, name: str, jsonpath: JSONPath, **kwargs: Any) -> None:
         Activity.__init__(self, name)
