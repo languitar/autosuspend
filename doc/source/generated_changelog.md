@@ -1,3 +1,10 @@
+## [4.3.2](https://github.com/languitar/autosuspend/compare/v4.3.1...v4.3.2) (2023-06-05)
+
+
+### Bug Fixes
+
+* release for sphinx 7 support ([569dfa5](https://github.com/languitar/autosuspend/commit/569dfa5954617929ae11529ece84f32810e10bee))
+
 ## [4.3.1](https://github.com/languitar/autosuspend/compare/v4.3.0...v4.3.1) (2023-05-16)
 
 
