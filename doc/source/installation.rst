@@ -37,7 +37,7 @@ Installation from official package sources::
     apt-get install autosuspend
 
 Archlinux (AUR)
-~~~~~~~~~~~~~~~
+===============
 
 |project| is available as an `Archlinux AUR package <https://aur.archlinux.org/packages/autosuspend/>`_.
 
