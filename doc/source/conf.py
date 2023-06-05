@@ -81,16 +81,12 @@ intersphinx_mapping = {'python': ('https://docs.python.org/3.7', None)}
 
 # HTML options
 
-html_theme = 'sphinx_rtd_theme'
+html_theme = 'furo'
 # html_theme_options = {}
 
 # html_static_path = ['_static']
 
 html_sidebars = {
-    '**': [
-        'relations.html',  # needs 'show_related': True theme option to display
-        'searchbox.html',
-    ]
 }
 
 # MANPAGE options

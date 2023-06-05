@@ -16,7 +16,7 @@ The following diagram visualizes the periodic processing performed by |project|.
    @startuml
 
    skinparam shadowing false
-   skinparam backgroundcolor transparent
+   skinparam backgroundcolor #eeeeee
 
    skinparam Padding 8
 
@@ -92,4 +92,3 @@ Indices and tables
 ##################
 
 * :ref:`genindex`
-* :ref:`search`

@@ -1,6 +1,6 @@
-sphinx_issues
-sphinx==6.2.1
-sphinx_rtd_theme
-sphinxcontrib-plantuml
+sphinx-issues==3.0.1
+sphinx==7.0.1
+furo==2023.5.20
+sphinxcontrib-plantuml==0.25
 sphinx-autodoc-typehints==1.23.0
-recommonmark
+recommonmark==0.7.1
