@@ -37,15 +37,15 @@ Installation from official package sources::
     apt-get install autosuspend
 
 Archlinux (AUR)
-~~~~~~~~~~~~~~~
+===============
 
 |project| is available as an `Archlinux AUR package <https://aur.archlinux.org/packages/autosuspend/>`_.
 
-Installation via :program:`aurman`::
+Installation via some `AUR helpers <https://wiki.archlinux.org/index.php/AUR_helpers>` such as :program:`paru`::
 
-    aurman|yay -S autosuspend
+    paru -S autosuspend
 
-Other `AUR helpers <https://wiki.archlinux.org/index.php/AUR_helpers>`_ may be used, too.
+Other AUR helpers may be used, too.
 
 Gentoo
 ======
