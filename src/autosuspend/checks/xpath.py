@@ -94,7 +94,7 @@ class XPathWakeup(XPathMixin, Wakeup):
 
 
 class XPathDeltaWakeup(XPathWakeup):
-    UNITS = [
+    UNITS = (
         "days",
         "seconds",
         "microseconds",
@@ -102,7 +102,7 @@ class XPathDeltaWakeup(XPathWakeup):
         "minutes",
         "hours",
         "weeks",
-    ]
+    )
 
     @classmethod
     def create(cls, name: str, config: configparser.SectionProxy) -> "XPathDeltaWakeup":
