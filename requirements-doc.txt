@@ -2,5 +2,5 @@ sphinx-issues==3.0.1
 sphinx==7.0.1
 furo==2023.5.20
 sphinxcontrib-plantuml==0.25
-sphinx-autodoc-typehints==1.23.2
+sphinx-autodoc-typehints==1.23.3
 recommonmark==0.7.1
