@@ -22,6 +22,9 @@ def next_timer_executions() -> Dict[str, datetime]:
         properties_interface = dbus.Interface(obj, "org.freedesktop.DBus.Properties")
         props = properties_interface.GetAll("org.freedesktop.systemd1.Timer")
 
+        if not props["Unit"].endswith(".timer"):
+            continue
+
         next_time: Optional[datetime] = None
         if props["NextElapseUSecRealtime"]:
             next_time = datetime.fromtimestamp(
