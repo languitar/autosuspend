@@ -1,3 +1,10 @@
+## [4.3.3](https://github.com/languitar/autosuspend/compare/v4.3.2...v4.3.3) (2023-08-10)
+
+
+### Bug Fixes
+
+* **systemd:** handle timers without next execution time ([9fb83ea](https://github.com/languitar/autosuspend/commit/9fb83eac7d6cbe981e2ebfc1ec3c3b54fca19804)), closes [#403](https://github.com/languitar/autosuspend/issues/403)
+
 ## [4.3.2](https://github.com/languitar/autosuspend/compare/v4.3.1...v4.3.2) (2023-06-05)
 
 
