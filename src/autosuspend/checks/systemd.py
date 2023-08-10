@@ -1,12 +1,15 @@
 import configparser
 from datetime import datetime, timedelta, timezone
 import re
-from typing import Dict, Iterable, Optional, Pattern, Tuple
+from typing import Any, Dict, Iterable, Optional, Pattern, Tuple
 
 import dbus
 
 from . import Activity, ConfigurationError, TemporaryCheckError, Wakeup
 from ..util.systemd import list_logind_sessions, LogindDBusException
+
+
+_UINT64_MAX = 18446744073709551615
 
 
 def next_timer_executions() -> Dict[str, datetime]:
@@ -16,21 +19,31 @@ def next_timer_executions() -> Dict[str, datetime]:
     units = systemd.ListUnits(dbus_interface="org.freedesktop.systemd1.Manager")
     timers = [unit for unit in units if unit[0].endswith(".timer")]
 
+    def get_if_set(props: Dict[str, Any], key: str) -> Optional[int]:
+        # For timers running after boot, next execution time might not be available. In
+        # this case, the expected keys are all set to uint64 max.
+        if props[key] and props[key] != _UINT64_MAX:
+            return props[key]
+        else:
+            return None
+
     result: Dict[str, datetime] = {}
     for timer in timers:
         obj = bus.get_object("org.freedesktop.systemd1", timer[6])
         properties_interface = dbus.Interface(obj, "org.freedesktop.DBus.Properties")
         props = properties_interface.GetAll("org.freedesktop.systemd1.Timer")
 
+        realtime = get_if_set(props, "NextElapseUSecRealtime")
+        monotonic = get_if_set(props, "NextElapseUSecMonotonic")
         next_time: Optional[datetime] = None
-        if props["NextElapseUSecRealtime"]:
+        if realtime is not None:
             next_time = datetime.fromtimestamp(
-                props["NextElapseUSecRealtime"] / 1000000,
+                realtime / 1000000,
                 tz=timezone.utc,
             )
-        elif props["NextElapseUSecMonotonic"]:
+        elif monotonic is not None:
             next_time = datetime.now(tz=timezone.utc) + timedelta(
-                seconds=props["NextElapseUSecMonotonic"] / 1000000
+                seconds=monotonic / 1000000
             )
 
         if next_time:
