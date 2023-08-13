@@ -1,3 +1,15 @@
+# [5.0.0](https://github.com/languitar/autosuspend/compare/v4.3.3...v5.0.0) (2023-08-13)
+
+
+* feat(logind)!: configure which session classes to process ([986e558](https://github.com/languitar/autosuspend/commit/986e558c2913bf30ebbab87025fe9722d5997aa7)), closes [#366](https://github.com/languitar/autosuspend/issues/366)
+
+
+### BREAKING CHANGES
+
+* LogindSessionIdle now only processes sessions of type
+    "user" by default. Use the new configuration option classes to also
+    include other types in case you need to include them in the checks.
+
 ## [4.3.3](https://github.com/languitar/autosuspend/compare/v4.3.2...v4.3.3) (2023-08-10)
 
 
