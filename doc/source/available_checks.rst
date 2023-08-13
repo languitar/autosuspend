@@ -316,6 +316,12 @@ Options
    For instance, ``lingering`` sessions used for background programs might not be of interest.
    Default: ``active``, ``online``
 
+.. option:: classes
+
+   A comma-separated list of session classes to inspect.
+   For instance, ``greeter`` sessions used by greeters such as lightdm might not be of interest.
+   Default: ``user``
+
 Requirements
 ============
 

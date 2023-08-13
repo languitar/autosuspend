@@ -93,12 +93,21 @@ class LogindSessionsIdle(Activity):
         types = [t.strip() for t in types]
         states = config.get("states", fallback="active,online").split(",")
         states = [t.strip() for t in states]
-        return cls(name, types, states)
+        classes = config.get("classes", fallback="user").split(",")
+        classes = [t.strip() for t in classes]
+        return cls(name, types, states, classes)
 
-    def __init__(self, name: str, types: Iterable[str], states: Iterable[str]) -> None:
+    def __init__(
+        self,
+        name: str,
+        types: Iterable[str],
+        states: Iterable[str],
+        classes: Iterable[str] = ("user"),
+    ) -> None:
         Activity.__init__(self, name)
         self._types = types
         self._states = states
+        self._classes = classes
 
     @staticmethod
     def _list_logind_sessions() -> Iterable[Tuple[str, dict]]:
@@ -119,6 +128,11 @@ class LogindSessionsIdle(Activity):
             if properties["State"] not in self._states:
                 self.logger.debug(
                     "Ignoring session because its state is %s", properties["State"]
+                )
+                continue
+            if properties["Class"] not in self._classes:
+                self.logger.debug(
+                    "Ignoring session because its class is %s", properties["Class"]
                 )
                 continue
 

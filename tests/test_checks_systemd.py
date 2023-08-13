@@ -93,6 +93,14 @@ class TestLogindSessionsIdle(CheckTest):
         check = LogindSessionsIdle("test", ["not_test"], ["active", "online"])
         assert check.check() is None
 
+    def test_ignore_unknown_class(self, logind: ProxyObject) -> None:
+        logind.AddSession("c1", "seat0", 1042, "user", True)
+
+        check = LogindSessionsIdle(
+            "test", ["test"], ["active", "online"], ["nosuchclass"]
+        )
+        assert check.check() is None
+
     def test_configure_defaults(self) -> None:
         check = LogindSessionsIdle.create("name", config_section())
         assert check._types == ["tty", "x11", "wayland"]
@@ -109,6 +117,12 @@ class TestLogindSessionsIdle(CheckTest):
             "name", config_section({"states": "test, bla,foo"})
         )
         assert check._states == ["test", "bla", "foo"]
+
+    def test_configure_classes(self) -> None:
+        check = LogindSessionsIdle.create(
+            "name", config_section({"classes": "test, bla,foo"})
+        )
+        assert check._classes == ["test", "bla", "foo"]
 
     @pytest.mark.usefixtures("_logind_dbus_error")
     def test_dbus_error(self) -> None:
