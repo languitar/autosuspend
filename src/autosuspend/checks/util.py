@@ -86,9 +86,7 @@ class NetworkMixin:
 
         auth_scheme = reply.headers["WWW-Authenticate"].split(" ")[0].lower()
         if auth_scheme not in auth_map:
-            raise SevereCheckError(
-                "Unsupported authentication scheme {}".format(auth_scheme)
-            )
+            raise SevereCheckError(f"Unsupported authentication scheme {auth_scheme}")
 
         return auth_map[auth_scheme](username, password)
 

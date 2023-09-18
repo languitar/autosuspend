@@ -17,7 +17,7 @@ class Mpd(Activity):
             return cls(name, host, port, timeout)
         except ValueError as error:
             raise ConfigurationError(
-                "Host port or timeout configuration wrong: {}".format(error)
+                f"Host port or timeout configuration wrong: {error}"
             ) from error
 
     def __init__(self, name: str, host: str, port: int, timeout: float) -> None:

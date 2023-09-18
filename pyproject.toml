@@ -3,6 +3,7 @@ requires = ["setuptools", "wheel"]
 
 [tool.ruff]
 src = ["src"]
+target-version = "py39"
 select = [
     "E",
     "F",
@@ -32,6 +33,7 @@ select = [
     "ERA",
     "TRY",
     "RUF",
+    "UP032",
 ]
 ignore = [
     # Not available in all supported Python versions

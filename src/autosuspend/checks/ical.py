@@ -313,7 +313,7 @@ class ActiveCalendarEvent(NetworkMixin, Activity):
             len(events),
         )
         if events:
-            return "Calendar event {} is active".format(events[0])
+            return f"Calendar event {events[0]} is active"
         else:
             return None
 

@@ -78,7 +78,7 @@ class ActiveConnection(Activity):
             )
         ]
         if connected:
-            return "Ports {} are connected".format(connected)
+            return f"Ports {connected} are connected"
         else:
             return None
 
@@ -90,7 +90,7 @@ class Load(Activity):
             return cls(name, config.getfloat("threshold", fallback=2.5))
         except ValueError as error:
             raise ConfigurationError(
-                "Unable to parse threshold as float: {}".format(error)
+                f"Unable to parse threshold as float: {error}"
             ) from error
 
     def __init__(self, name: str, threshold: float) -> None:
@@ -101,7 +101,7 @@ class Load(Activity):
         loadcurrent = os.getloadavg()[1]
         self.logger.debug("Load: %s", loadcurrent)
         if loadcurrent > self._threshold:
-            return "Load {} > threshold {}".format(loadcurrent, self._threshold)
+            return f"Load {loadcurrent} > threshold {self._threshold}"
         else:
             return None
 
@@ -113,7 +113,7 @@ class NetworkBandwidth(Activity):
         for interface in interfaces:
             if interface not in host_interfaces:
                 raise ConfigurationError(
-                    "Network interface {} does not exist".format(interface)
+                    f"Network interface {interface} does not exist"
                 )
 
     @classmethod
@@ -137,13 +137,9 @@ class NetworkBandwidth(Activity):
             threshold_receive = config.getfloat("threshold_receive", fallback=100)
             return cls(name, interfaces, threshold_send, threshold_receive)
         except KeyError as error:
-            raise ConfigurationError(
-                "Missing configuration key: {}".format(error)
-            ) from error
+            raise ConfigurationError(f"Missing configuration key: {error}") from error
         except ValueError as error:
-            raise ConfigurationError(
-                "Threshold in wrong format: {}".format(error)
-            ) from error
+            raise ConfigurationError(f"Threshold in wrong format: {error}") from error
 
     def __init__(
         self,
@@ -179,20 +175,16 @@ class NetworkBandwidth(Activity):
         rate_send = self._rate(new.bytes_sent, old.bytes_sent, new_time, old_time)
         if rate_send > self._threshold_send:
             raise self._InterfaceActive(
-                "Interface {} sending rate {} byte/s "
-                "higher than threshold {}".format(
-                    interface, rate_send, self._threshold_send
-                )
+                f"Interface {interface} sending rate {rate_send} byte/s "
+                f"higher than threshold {self._threshold_send}"
             )
 
         # receive direction
         rate_receive = self._rate(new.bytes_recv, old.bytes_recv, new_time, old_time)
         if rate_receive > self._threshold_receive:
             raise self._InterfaceActive(
-                "Interface {} receive rate {} byte/s "
-                "higher than threshold {}".format(
-                    interface, rate_receive, self._threshold_receive
-                )
+                f"Interface {interface} receive rate {rate_receive} byte/s "
+                f"higher than threshold {self._threshold_receive}"
             )
 
     def check(self) -> Optional[str]:
@@ -210,7 +202,7 @@ class NetworkBandwidth(Activity):
 
         for interface in self._interfaces:
             if interface not in new_values or interface not in self._previous_values:
-                raise TemporaryCheckError("Interface {} is missing".format(interface))
+                raise TemporaryCheckError(f"Interface {interface} is missing")
 
             try:
                 self._check_interface(
@@ -237,7 +229,7 @@ class Ping(Activity):
             return cls(name, hosts)
         except KeyError as error:
             raise ConfigurationError(
-                "Unable to determine hosts to ping: {}".format(error)
+                f"Unable to determine hosts to ping: {error}"
             ) from error
 
     def __init__(self, name: str, hosts: Iterable[str]) -> None:
@@ -257,7 +249,7 @@ class Ping(Activity):
                     == 0
                 ):
                     self.logger.debug("host %s appears to be up", host)
-                    return "Host {} is up".format(host)
+                    return f"Host {host} is up"
             return None
         except FileNotFoundError as error:
             raise SevereCheckError("Binary ping cannot be found") from error
@@ -282,7 +274,7 @@ class Processes(Activity):
             with suppress(psutil.NoSuchProcess):
                 pinfo = proc.name()
                 if pinfo in self._processes:
-                    return "Process {} is running".format(pinfo)
+                    return f"Process {pinfo} is running"
         return None
 
 
@@ -298,7 +290,7 @@ class Users(Activity):
                 return cls(name, user_regex, terminal_regex, host_regex)
             except re.error as error:
                 raise ConfigurationError(
-                    "Regular expression is invalid: {}".format(error),
+                    f"Regular expression is invalid: {error}",
                 ) from error
 
     def __init__(
@@ -327,13 +319,8 @@ class Users(Activity):
                     entry.host,
                 )
                 return (
-                    "User {user} is logged in on terminal {terminal} "
-                    "from {host} since {started}".format(
-                        user=entry.name,
-                        terminal=entry.terminal,
-                        host=entry.host,
-                        started=entry.started,
-                    )
+                    f"User {entry.name} is logged in on terminal {entry.terminal} "
+                    f"from {entry.host} since {entry.started}"
                 )
         return None
 

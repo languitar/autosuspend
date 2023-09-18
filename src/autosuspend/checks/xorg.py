@@ -118,11 +118,11 @@ class XIdleTime(Activity):
                 )
             except re.error as error:
                 raise ConfigurationError(
-                    "Regular expression is invalid: {}".format(error),
+                    f"Regular expression is invalid: {error}",
                 ) from error
             except ValueError as error:
                 raise ConfigurationError(
-                    "Unable to parse configuration: {}".format(error),
+                    f"Unable to parse configuration: {error}",
                 ) from error
 
     @staticmethod
@@ -132,7 +132,7 @@ class XIdleTime(Activity):
         elif method == "logind":
             return list_sessions_logind
         else:
-            raise ValueError("Unknown session discovery method {}".format(method))
+            raise ValueError(f"Unknown session discovery method {method}")
 
     def __init__(
         self,
@@ -182,7 +182,7 @@ class XIdleTime(Activity):
 
     def _get_idle_time(self, session: XorgSession) -> float:
         env = copy.deepcopy(os.environ)
-        env["DISPLAY"] = ":{}".format(session.display)
+        env["DISPLAY"] = f":{session.display}"
         env["XAUTHORITY"] = str(Path("~" + session.user).expanduser() / ".Xauthority")
 
         try:
@@ -226,10 +226,8 @@ class XIdleTime(Activity):
 
             if idle_time < self._timeout:
                 return (
-                    "X session {} of user {} "
-                    "has idle time {} < threshold {}".format(
-                        session.display, session.user, idle_time, self._timeout
-                    )
+                    f"X session {session.display} of user {session.user} "
+                    f"has idle time {idle_time} < threshold {self._timeout}"
                 )
 
         return None

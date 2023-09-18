@@ -41,7 +41,7 @@ class CommandActivity(CommandMixin, Activity):
     def check(self) -> Optional[str]:
         try:
             subprocess.check_call(self._command, shell=True)
-            return "Command {} succeeded".format(self._command)
+            return f"Command {self._command} succeeded"
         except subprocess.CalledProcessError as error:
             raise_severe_if_command_not_found(error)
             return None

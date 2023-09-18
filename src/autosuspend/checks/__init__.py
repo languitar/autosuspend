@@ -76,9 +76,7 @@ class Check(abc.ABC):
         }
 
     def __str__(self) -> str:
-        return "{name}[class={clazz}]".format(
-            name=self.name, clazz=self.__class__.__name__
-        )
+        return f"{self.name}[class={self.__class__.__name__}]"
 
 
 class Activity(Check):
@@ -102,9 +100,7 @@ class Activity(Check):
         """
 
     def __str__(self) -> str:
-        return "{name}[class={clazz}]".format(
-            name=self.name, clazz=self.__class__.__name__
-        )
+        return f"{self.name}[class={self.__class__.__name__}]"
 
 
 class Wakeup(Check):

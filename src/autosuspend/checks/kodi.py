@@ -22,7 +22,7 @@ class Kodi(NetworkMixin, Activity):
             )
             return args
         except ValueError as error:
-            raise ConfigurationError("Configuration error {}".format(error)) from error
+            raise ConfigurationError(f"Configuration error {error}") from error
 
     @classmethod
     def create(cls, name: str, config: configparser.SectionProxy) -> "Kodi":
@@ -81,7 +81,7 @@ class KodiIdleTime(NetworkMixin, Activity):
         request = url + (
             '?request={{"jsonrpc": "2.0", "id": 1, '
             '"method": "XBMC.GetInfoBooleans",'
-            '"params": {{"booleans": ["System.IdleTime({})"]}}}}'.format(idle_time)
+            f'"params": {{"booleans": ["System.IdleTime({idle_time})"]}}}}'
         )
         NetworkMixin.__init__(self, url=request, **kwargs)
         Activity.__init__(self, name)
@@ -90,7 +90,7 @@ class KodiIdleTime(NetworkMixin, Activity):
     def check(self) -> Optional[str]:
         try:
             reply = self.request().json()
-            if not reply["result"]["System.IdleTime({})".format(self._idle_time)]:
+            if not reply["result"][f"System.IdleTime({self._idle_time})"]:
                 return "Someone interacts with Kodi"
             else:
                 return None

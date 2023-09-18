@@ -25,15 +25,15 @@ class LastLogActivity(Activity):
             )
         except KeyError as error:
             raise ConfigurationError(
-                "Missing config key {}".format(error),
+                f"Missing config key {error}",
             ) from error
         except re.error as error:
             raise ConfigurationError(
-                "Regular expression is invalid: {}".format(error),
+                f"Regular expression is invalid: {error}",
             ) from error
         except ValueError as error:
             raise ConfigurationError(
-                "Unable to parse configuration: {}".format(error),
+                f"Unable to parse configuration: {error}",
             ) from error
 
     def __init__(
@@ -61,16 +61,16 @@ class LastLogActivity(Activity):
             match_date = default_tzinfo(parse(match), self.default_timezone)
             if match_date > now:
                 raise TemporaryCheckError(
-                    "Detected date {} is in the future".format(match_date)
+                    f"Detected date {match_date} is in the future"
                 )
             return match_date
         except ValueError as error:
             raise TemporaryCheckError(
-                "Detected date {} cannot be parsed as a date".format(match)
+                f"Detected date {match} cannot be parsed as a date"
             ) from error
         except OverflowError as error:
             raise TemporaryCheckError(
-                "Detected date {} is out of the valid range".format(match)
+                f"Detected date {match} is out of the valid range"
             ) from error
 
     def _file_lines_reversed(self) -> Iterable[str]:
@@ -82,7 +82,7 @@ class LastLogActivity(Activity):
             )
         except IOError as error:
             raise TemporaryCheckError(
-                "Cannot access log file {}".format(self.log_file)
+                f"Cannot access log file {self.log_file}"
             ) from error
 
     def check(self) -> Optional[str]:
@@ -98,7 +98,7 @@ class LastLogActivity(Activity):
 
             # Only check the first line (reverse order) that has a match, not all
             if (now - match_date) < self.delta:
-                return "Log activity in {} at {}".format(self.log_file, match_date)
+                return f"Log activity in {self.log_file} at {match_date}"
             else:
                 return None
 

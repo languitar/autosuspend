@@ -390,7 +390,7 @@ def _determine_check_class_and_module(
         import_module, import_class = class_name.rsplit(".", maxsplit=1)
     else:
         # no dot means internal class
-        import_module = "autosuspend.checks.{}".format(internal_module)
+        import_module = f"autosuspend.checks.{internal_module}"
         import_class = class_name
 
     return import_module, import_class
@@ -408,7 +408,7 @@ def _set_up_single_check(
     internal_module: str,
     target_class: Type[CheckType],
 ) -> CheckType:
-    name = section.name[len("{}.".format(prefix)) :]
+    name = section.name[len(f"{prefix}.") :]
 
     class_name = _determine_check_class_name(name, section)
 
@@ -430,8 +430,7 @@ def _set_up_single_check(
         )
     except AttributeError as error:
         raise ConfigurationError(
-            "Cannot create built-in check named {}: "
-            "Class does not exist".format(class_name)
+            f"Cannot create built-in check named {class_name}: Class does not exist"
         ) from error
 
     check = klass.create(name, section)
@@ -469,7 +468,7 @@ def set_up_checks(
     """
     configured_checks = []
 
-    check_section = [s for s in config.sections() if s.startswith("{}.".format(prefix))]
+    check_section = [s for s in config.sections() if s.startswith(f"{prefix}.")]
     for section_name in check_section:
         section = config[section_name]
 

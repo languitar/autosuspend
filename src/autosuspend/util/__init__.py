@@ -7,7 +7,7 @@ def logger_by_class(klass: Type, name: Optional[str] = None) -> logging.Logger:
         "{module}.{klass}{name}".format(
             module=klass.__module__,
             klass=klass.__name__,
-            name=".{}".format(name) if name else "",
+            name=f".{name}" if name else "",
         )
     )
 
