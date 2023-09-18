@@ -1,3 +1,14 @@
+# [6.0.0](https://github.com/languitar/autosuspend/compare/v5.0.0...v6.0.0) (2023-09-18)
+
+
+* build!: modernize supported Python version ([31c8ccc](https://github.com/languitar/autosuspend/commit/31c8cccb503218691ffb045142b1297133ce5340))
+
+
+### BREAKING CHANGES
+
+* Python 3.8 has been deprecated and is not officially
+  supported anymore.
+
 # [5.0.0](https://github.com/languitar/autosuspend/compare/v4.3.3...v5.0.0) (2023-08-13)
 
 
