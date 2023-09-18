@@ -6,8 +6,9 @@ import logging
 import os
 from pathlib import Path
 import re
+from re import Pattern
 import subprocess
-from typing import Callable, List, Optional, Pattern
+from typing import Callable, Optional
 import warnings
 
 import psutil
@@ -25,7 +26,7 @@ class XorgSession:
 _logger = logging.getLogger(__name__)
 
 
-def list_sessions_sockets(socket_path: Optional[Path] = None) -> List[XorgSession]:
+def list_sessions_sockets(socket_path: Optional[Path] = None) -> list[XorgSession]:
     """List running X sessions by iterating the X sockets.
 
     This method assumes that X servers are run under the users using the
@@ -64,7 +65,7 @@ def list_sessions_sockets(socket_path: Optional[Path] = None) -> List[XorgSessio
     return results
 
 
-def list_sessions_logind() -> List[XorgSession]:
+def list_sessions_logind() -> list[XorgSession]:
     """List running X sessions using logind.
 
     This method assumes that a ``Display`` variable is set in the logind
@@ -126,7 +127,7 @@ class XIdleTime(Activity):
                 ) from error
 
     @staticmethod
-    def _get_session_method(method: str) -> Callable[[], List[XorgSession]]:
+    def _get_session_method(method: str) -> Callable[[], list[XorgSession]]:
         if method == "sockets":
             return list_sessions_sockets
         elif method == "logind":
@@ -144,13 +145,13 @@ class XIdleTime(Activity):
     ) -> None:
         Activity.__init__(self, name)
         self._timeout = timeout
-        self._provide_sessions: Callable[[], List[XorgSession]]
+        self._provide_sessions: Callable[[], list[XorgSession]]
         self._provide_sessions = self._get_session_method(method)
         self._ignore_process_re = ignore_process_re
         self._ignore_users_re = ignore_users_re
 
     @staticmethod
-    def _get_user_processes(user: str) -> List[psutil.Process]:
+    def _get_user_processes(user: str) -> list[psutil.Process]:
         user_processes = []
         for process in psutil.process_iter():
             with suppress(
@@ -174,7 +175,7 @@ class XIdleTime(Activity):
 
         return False
 
-    def _safe_provide_sessions(self) -> List[XorgSession]:
+    def _safe_provide_sessions(self) -> list[XorgSession]:
         try:
             return self._provide_sessions()
         except LogindDBusException as error:

@@ -2,6 +2,7 @@
 """A daemon to suspend a system on inactivity."""
 
 import argparse
+from collections.abc import Iterable, Sequence
 import configparser
 from contextlib import suppress
 from datetime import datetime, timedelta, timezone
@@ -11,7 +12,7 @@ import logging.config
 from pathlib import Path
 import subprocess
 import time
-from typing import Callable, IO, Iterable, List, Optional, Sequence, Tuple, Type, Union
+from typing import Callable, IO, Optional, Union
 
 import portalocker
 
@@ -383,7 +384,7 @@ def config_section_string(section: configparser.SectionProxy) -> str:
 
 def _determine_check_class_and_module(
     class_name: str, internal_module: str
-) -> Tuple[str, str]:
+) -> tuple[str, str]:
     """Determine module and class of a check depending on whether it is internal."""
     if "." in class_name:
         # dot in class name means external class
@@ -406,7 +407,7 @@ def _set_up_single_check(
     section: configparser.SectionProxy,
     prefix: str,
     internal_module: str,
-    target_class: Type[CheckType],
+    target_class: type[CheckType],
 ) -> CheckType:
     name = section.name[len(f"{prefix}.") :]
 
@@ -447,9 +448,9 @@ def set_up_checks(
     config: configparser.ConfigParser,
     prefix: str,
     internal_module: str,
-    target_class: Type[CheckType],
+    target_class: type[CheckType],
     error_none: bool = False,
-) -> List[CheckType]:
+) -> list[CheckType]:
     """Set up :py.class:`Check` instances from a given configuration.
 
     Args:
@@ -686,7 +687,7 @@ def configure_processor(
 
 
 def hook(
-    wakeups: List[Wakeup],
+    wakeups: list[Wakeup],
     wakeup_delta: float,
     wakeup_fn: Callable[[datetime], None],
     woke_up_file: Path,

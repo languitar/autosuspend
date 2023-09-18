@@ -1,6 +1,6 @@
 import configparser
 from contextlib import suppress
-from typing import Any, Dict, Optional, TYPE_CHECKING
+from typing import Any, Optional, TYPE_CHECKING
 
 from . import Check, ConfigurationError, SevereCheckError, TemporaryCheckError
 
@@ -12,7 +12,7 @@ if TYPE_CHECKING:
 
 class NetworkMixin:
     @staticmethod
-    def _ensure_credentials_consistent(args: Dict[str, Any]) -> None:
+    def _ensure_credentials_consistent(args: dict[str, Any]) -> None:
         if (args["username"] is None) != (args["password"] is None):
             raise ConfigurationError("Username and password must be set")
 
@@ -20,9 +20,9 @@ class NetworkMixin:
     def collect_init_args(
         cls,
         config: configparser.SectionProxy,
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         try:
-            args: Dict[str, Any] = {}
+            args: dict[str, Any] = {}
             args["timeout"] = config.getint("timeout", fallback=5)
             args["url"] = config["url"]
             args["username"] = config.get("username")
@@ -65,7 +65,7 @@ class NetworkMixin:
 
         return session
 
-    def _request_headers(self) -> Optional[Dict[str, str]]:
+    def _request_headers(self) -> Optional[dict[str, str]]:
         if self._accept:
             return {"Accept": self._accept}
         else:

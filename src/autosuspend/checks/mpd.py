@@ -1,6 +1,6 @@
 import configparser
 import socket
-from typing import Dict, Optional
+from typing import Optional
 
 from mpd import MPDClient, MPDError
 
@@ -26,7 +26,7 @@ class Mpd(Activity):
         self._port = port
         self._timeout = timeout
 
-    def _get_state(self) -> Dict:
+    def _get_state(self) -> dict:
         client = MPDClient()
         client.timeout = self._timeout
         client.connect(self._host, self._port)

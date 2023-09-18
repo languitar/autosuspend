@@ -1,5 +1,5 @@
 from pathlib import Path
-from typing import Any, Callable, Tuple
+from typing import Any, Callable
 
 from jsonpath_ng.ext import parse
 import pytest
@@ -69,7 +69,7 @@ class TestJsonPath(CheckTest):
         json_get_mock().json.assert_called_once()
 
     def test_network_errors_are_passed(
-        self, datadir: Path, serve_protected: Callable[[Path], Tuple[str, str, str]]
+        self, datadir: Path, serve_protected: Callable[[Path], tuple[str, str, str]]
     ) -> None:
         with pytest.raises(TemporaryCheckError):
             JsonPath(

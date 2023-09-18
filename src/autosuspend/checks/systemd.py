@@ -1,7 +1,9 @@
+from collections.abc import Iterable
 import configparser
 from datetime import datetime, timedelta, timezone
 import re
-from typing import Any, Dict, Iterable, Optional, Pattern, Tuple
+from re import Pattern
+from typing import Any, Optional
 
 import dbus
 
@@ -12,14 +14,14 @@ from ..util.systemd import list_logind_sessions, LogindDBusException
 _UINT64_MAX = 18446744073709551615
 
 
-def next_timer_executions() -> Dict[str, datetime]:
+def next_timer_executions() -> dict[str, datetime]:
     bus = dbus.SystemBus()
 
     systemd = bus.get_object("org.freedesktop.systemd1", "/org/freedesktop/systemd1")
     units = systemd.ListUnits(dbus_interface="org.freedesktop.systemd1.Manager")
     timers = [unit for unit in units if unit[0].endswith(".timer")]
 
-    def get_if_set(props: Dict[str, Any], key: str) -> Optional[int]:
+    def get_if_set(props: dict[str, Any], key: str) -> Optional[int]:
         # For timers running after boot, next execution time might not be available. In
         # this case, the expected keys are all set to uint64 max.
         if props[key] and props[key] != _UINT64_MAX:
@@ -27,7 +29,7 @@ def next_timer_executions() -> Dict[str, datetime]:
         else:
             return None
 
-    result: Dict[str, datetime] = {}
+    result: dict[str, datetime] = {}
     for timer in timers:
         obj = bus.get_object("org.freedesktop.systemd1", timer[6])
         properties_interface = dbus.Interface(obj, "org.freedesktop.DBus.Properties")
@@ -110,7 +112,7 @@ class LogindSessionsIdle(Activity):
         self._classes = classes
 
     @staticmethod
-    def _list_logind_sessions() -> Iterable[Tuple[str, dict]]:
+    def _list_logind_sessions() -> Iterable[tuple[str, dict]]:
         try:
             return list_logind_sessions()
         except LogindDBusException as error:

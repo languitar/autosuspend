@@ -1,4 +1,4 @@
-from typing import Any, Dict
+from typing import Any
 
 import mpd
 import pytest
@@ -19,7 +19,7 @@ class TestMpd(CheckTest):
     def test_playing(self, monkeypatch: Any) -> None:
         check = Mpd("test", None, None, None)  # type: ignore
 
-        def get_state() -> Dict:
+        def get_state() -> dict:
             return {"state": "play"}
 
         monkeypatch.setattr(check, "_get_state", get_state)
@@ -29,7 +29,7 @@ class TestMpd(CheckTest):
     def test_not_playing(self, monkeypatch: Any) -> None:
         check = Mpd("test", None, None, None)  # type: ignore
 
-        def get_state() -> Dict:
+        def get_state() -> dict:
             return {"state": "pause"}
 
         monkeypatch.setattr(check, "_get_state", get_state)
@@ -60,7 +60,7 @@ class TestMpd(CheckTest):
     def test_handle_connection_errors(self, exception_type: type) -> None:
         check = Mpd("test", None, None, None)  # type: ignore
 
-        def _get_state() -> Dict:
+        def _get_state() -> dict:
             raise exception_type()
 
         # https://github.com/python/mypy/issues/2427

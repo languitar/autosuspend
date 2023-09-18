@@ -1,7 +1,8 @@
+from collections.abc import Iterable
 from datetime import datetime, timedelta, timezone
 import logging
 from pathlib import Path
-from typing import Any, Iterable
+from typing import Any
 
 from freezegun import freeze_time
 import pytest

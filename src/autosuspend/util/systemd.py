@@ -1,4 +1,5 @@
-from typing import Iterable, Tuple, TYPE_CHECKING
+from collections.abc import Iterable
+from typing import TYPE_CHECKING
 
 
 if TYPE_CHECKING:
@@ -15,7 +16,7 @@ class LogindDBusException(RuntimeError):
     """Indicates an error communicating to Logind via DBus."""
 
 
-def list_logind_sessions() -> Iterable[Tuple[str, dict]]:
+def list_logind_sessions() -> Iterable[tuple[str, dict]]:
     """List running logind sessions and their properties.
 
     Returns:

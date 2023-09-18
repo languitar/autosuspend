@@ -1,8 +1,10 @@
+from collections.abc import Iterable
 import configparser
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 import re
-from typing import Iterable, Optional, Pattern
+from re import Pattern
+from typing import Optional
 
 from dateutil.parser import parse
 from dateutil.utils import default_tzinfo
@@ -80,7 +82,7 @@ class LastLogActivity(Activity):
             return reversed(
                 self.log_file.read_text(encoding=self.encoding).splitlines()
             )
-        except IOError as error:
+        except OSError as error:
             raise TemporaryCheckError(
                 f"Cannot access log file {self.log_file}"
             ) from error

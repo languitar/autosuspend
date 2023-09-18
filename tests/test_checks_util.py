@@ -1,5 +1,5 @@
 from pathlib import Path
-from typing import Callable, Tuple
+from typing import Callable
 from unittest.mock import ANY
 
 import pytest
@@ -71,13 +71,13 @@ class TestNetworkMixin:
             NetworkMixin(httpserver.url_for("/does/not/exist"), timeout=5).request()
 
     def test_authentication(
-        self, datadir: Path, serve_protected: Callable[[Path], Tuple[str, str, str]]
+        self, datadir: Path, serve_protected: Callable[[Path], tuple[str, str, str]]
     ) -> None:
         url, username, password = serve_protected(datadir / "data.txt")
         NetworkMixin(url, 5, username=username, password=password).request()
 
     def test_invalid_authentication(
-        self, datadir: Path, serve_protected: Callable[[Path], Tuple[str, str, str]]
+        self, datadir: Path, serve_protected: Callable[[Path], tuple[str, str, str]]
     ) -> None:
         with pytest.raises(TemporaryCheckError):
             NetworkMixin(

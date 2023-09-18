@@ -1,5 +1,6 @@
+from collections.abc import Iterable
 from pathlib import Path
-from typing import Any, Callable, Iterable, Tuple
+from typing import Any, Callable
 
 from dbus import Bus
 from dbus.proxies import ProxyObject
@@ -29,7 +30,7 @@ def serve_file(httpserver: HTTPServer) -> Callable[[Path], str]:
 
 
 @pytest.fixture()
-def serve_protected(httpserver: HTTPServer) -> Callable[[Path], Tuple[str, str, str]]:
+def serve_protected(httpserver: HTTPServer) -> Callable[[Path], tuple[str, str, str]]:
     """Serve a file behind basic authentication.
 
     Returns:
@@ -40,7 +41,7 @@ def serve_protected(httpserver: HTTPServer) -> Callable[[Path], Tuple[str, str, 
     username = "the_user"
     password = "the_password"  # only for testing
 
-    def serve(the_file: Path) -> Tuple[str, str, str]:
+    def serve(the_file: Path) -> tuple[str, str, str]:
         def handler(request: Request) -> Response:
             auth = request.authorization
 

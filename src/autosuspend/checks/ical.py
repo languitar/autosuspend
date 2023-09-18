@@ -1,19 +1,9 @@
+from collections.abc import Iterable, Sequence
 from contextlib import suppress
 from dataclasses import dataclass
 from datetime import date, datetime, timedelta, timezone, tzinfo
 from io import BytesIO
-from typing import (
-    Any,
-    cast,
-    Dict,
-    IO,
-    Iterable,
-    List,
-    Optional,
-    Sequence,
-    TypeVar,
-    Union,
-)
+from typing import Any, cast, IO, Optional, TypeVar, Union
 
 from dateutil.rrule import rrule, rruleset, rrulestr
 import icalendar
@@ -134,7 +124,7 @@ def _expand_rrule(
     return dates
 
 
-ChangeMapping = Dict[str, List[icalendar.cal.Event]]
+ChangeMapping = dict[str, list[icalendar.cal.Event]]
 
 
 def _collect_recurrence_changes(calendar: icalendar.Calendar) -> ChangeMapping:
@@ -147,7 +137,7 @@ def _collect_recurrence_changes(calendar: icalendar.Calendar) -> ChangeMapping:
     return recurring_changes
 
 
-def _get_recurrence_exclusions_as_list(component: Dict) -> List:
+def _get_recurrence_exclusions_as_list(component: dict) -> list:
     exclusions = component.get("exdate")
     if exclusions and not isinstance(exclusions, list):
         exclusions = [exclusions]
@@ -164,7 +154,7 @@ def _extract_events_from_recurring_component(
     start_at: datetime,
     end_at: datetime,
     recurring_changes: ChangeMapping,
-) -> List[CalendarEvent]:
+) -> list[CalendarEvent]:
     summary = component.get("summary")
     rrule = component.get("rrule").to_ical().decode("utf-8")
     exclusions = _get_recurrence_exclusions_as_list(component)
@@ -203,7 +193,7 @@ def _extract_events_from_single_component(
     component_end: DateType,
     start_at: datetime,
     end_at: datetime,
-) -> List[CalendarEvent]:
+) -> list[CalendarEvent]:
     summary = component.get("summary")
 
     events = []
@@ -237,7 +227,7 @@ def _extract_events_from_component(
     recurring_changes: ChangeMapping,
     start_at: datetime,
     end_at: datetime,
-) -> List[CalendarEvent]:
+) -> list[CalendarEvent]:
     start = component.get("dtstart").dt
     end = component.get("dtend").dt
 

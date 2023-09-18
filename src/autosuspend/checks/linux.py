@@ -1,16 +1,18 @@
 """Contains checks directly using the Linux operating system concepts."""
 
 
+from collections.abc import Iterable
 import configparser
 from contextlib import suppress
 from datetime import datetime, timezone
 import os
 from pathlib import Path
 import re
+from re import Pattern
 import socket
 import subprocess
 import time
-from typing import Iterable, List, Optional, Pattern, Tuple
+from typing import Optional
 import warnings
 
 import psutil
@@ -48,7 +50,7 @@ class ActiveConnection(Activity):
 
     def normalize_address(
         self, family: socket.AddressFamily, address: str
-    ) -> Tuple[socket.AddressFamily, str]:
+    ) -> tuple[socket.AddressFamily, str]:
         if family == socket.AF_INET6:
             # strip scope
             return family, address.split("%")[0]
@@ -117,7 +119,7 @@ class NetworkBandwidth(Activity):
                 )
 
     @classmethod
-    def _extract_interfaces(cls, config: configparser.SectionProxy) -> List[str]:
+    def _extract_interfaces(cls, config: configparser.SectionProxy) -> list[str]:
         interfaces = config["interfaces"].split(",")
         interfaces = [i.strip() for i in interfaces if i.strip()]
         if not interfaces:
@@ -350,7 +352,7 @@ class File(Wakeup):
         except FileNotFoundError:
             # this is ok
             return None
-        except (ValueError, IOError) as error:
+        except (OSError, ValueError) as error:
             raise TemporaryCheckError(
                 "Next wakeup time cannot be read despite a file being present"
             ) from error

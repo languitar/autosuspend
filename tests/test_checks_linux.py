@@ -1,10 +1,11 @@
 from collections import namedtuple
+from collections.abc import Mapping
 from datetime import datetime, timezone
 from pathlib import Path
 import re
 import socket
 import sys
-from typing import Any, Mapping
+from typing import Any
 
 from freezegun import freeze_time
 import psutil

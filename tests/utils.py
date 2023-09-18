@@ -1,5 +1,6 @@
+from collections.abc import Mapping
 import configparser
-from typing import Mapping, Optional
+from typing import Optional
 
 
 def config_section(

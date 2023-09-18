@@ -1,9 +1,10 @@
 """Provides the basic types used for checks."""
 
 import abc
+from collections.abc import Mapping
 import configparser
 from datetime import datetime
-from typing import Any, Mapping, Optional, Type, TypeVar
+from typing import Any, Optional, TypeVar
 
 from autosuspend.util import logger_by_class_instance
 
@@ -43,7 +44,7 @@ class Check(abc.ABC):
     @classmethod
     @abc.abstractmethod
     def create(
-        cls: Type[CheckType], name: str, config: configparser.SectionProxy
+        cls: type[CheckType], name: str, config: configparser.SectionProxy
     ) -> CheckType:
         """Create a new check instance from the provided configuration.
 

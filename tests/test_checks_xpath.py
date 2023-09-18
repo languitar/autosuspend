@@ -1,6 +1,6 @@
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
-from typing import Any, Callable, Optional, Tuple
+from typing import Any, Callable, Optional
 
 import pytest
 from pytest_mock import MockerFixture
@@ -134,7 +134,7 @@ class TestXPathActivity(CheckTest):
         assert check._timeout == 42
 
     def test_network_errors_are_passed(
-        self, datadir: Path, serve_protected: Callable[[Path], Tuple[str, str, str]]
+        self, datadir: Path, serve_protected: Callable[[Path], tuple[str, str, str]]
     ) -> None:
         with pytest.raises(TemporaryCheckError):
             XPathActivity(

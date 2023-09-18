@@ -1,7 +1,7 @@
 import configparser
 import json
 from textwrap import shorten
-from typing import Any, Dict, Optional
+from typing import Any, Optional
 
 from jsonpath_ng import JSONPath
 import requests
@@ -15,7 +15,7 @@ class JsonPath(NetworkMixin, Activity):
     """Requests a URL and evaluates whether a JSONPath expression matches."""
 
     @classmethod
-    def collect_init_args(cls, config: configparser.SectionProxy) -> Dict[str, Any]:
+    def collect_init_args(cls, config: configparser.SectionProxy) -> dict[str, Any]:
         from jsonpath_ng.ext import parse
 
         try:

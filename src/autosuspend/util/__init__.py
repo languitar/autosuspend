@@ -1,8 +1,8 @@
 import logging
-from typing import Any, Optional, Type
+from typing import Any, Optional
 
 
-def logger_by_class(klass: Type, name: Optional[str] = None) -> logging.Logger:
+def logger_by_class(klass: type, name: Optional[str] = None) -> logging.Logger:
     return logging.getLogger(
         "{module}.{klass}{name}".format(
             module=klass.__module__,

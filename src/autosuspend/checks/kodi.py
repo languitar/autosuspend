@@ -1,6 +1,6 @@
 import configparser
 import json
-from typing import Any, Dict, Optional
+from typing import Any, Optional
 
 from . import Activity, ConfigurationError, TemporaryCheckError
 from .util import NetworkMixin
@@ -13,7 +13,7 @@ def _add_default_kodi_url(config: configparser.SectionProxy) -> None:
 
 class Kodi(NetworkMixin, Activity):
     @classmethod
-    def collect_init_args(cls, config: configparser.SectionProxy) -> Dict[str, Any]:
+    def collect_init_args(cls, config: configparser.SectionProxy) -> dict[str, Any]:
         try:
             _add_default_kodi_url(config)
             args = NetworkMixin.collect_init_args(config)
@@ -46,7 +46,7 @@ class Kodi(NetworkMixin, Activity):
         NetworkMixin.__init__(self, url=request, **kwargs)
         Activity.__init__(self, name)
 
-    def _safe_request_result(self) -> Dict:
+    def _safe_request_result(self) -> dict:
         try:
             return self.request().json()["result"]
         except (KeyError, TypeError, json.JSONDecodeError) as error:
@@ -64,7 +64,7 @@ class Kodi(NetworkMixin, Activity):
 
 class KodiIdleTime(NetworkMixin, Activity):
     @classmethod
-    def collect_init_args(cls, config: configparser.SectionProxy) -> Dict[str, Any]:
+    def collect_init_args(cls, config: configparser.SectionProxy) -> dict[str, Any]:
         try:
             _add_default_kodi_url(config)
             args = NetworkMixin.collect_init_args(config)

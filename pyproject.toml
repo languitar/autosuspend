@@ -33,7 +33,7 @@ select = [
     "ERA",
     "TRY",
     "RUF",
-    "UP032",
+    "UP",
 ]
 ignore = [
     # Not available in all supported Python versions

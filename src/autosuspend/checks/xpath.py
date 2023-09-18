@@ -1,6 +1,7 @@
+from collections.abc import Sequence
 import configparser
 from datetime import datetime, timedelta, timezone
-from typing import Any, Dict, Optional, Sequence
+from typing import Any, Optional
 
 from lxml import etree  # using safe parser
 from lxml.etree import XPath, XPathSyntaxError  # our input
@@ -13,7 +14,7 @@ from .util import NetworkMixin
 
 class XPathMixin(NetworkMixin):
     @classmethod
-    def collect_init_args(cls, config: configparser.SectionProxy) -> Dict[str, Any]:
+    def collect_init_args(cls, config: configparser.SectionProxy) -> dict[str, Any]:
         try:
             args = NetworkMixin.collect_init_args(config)
             args["xpath"] = config["xpath"].strip()
