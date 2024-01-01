@@ -5,6 +5,7 @@ from typing import Any, Callable
 from dbus import Bus
 from dbus.proxies import ProxyObject
 import dbusmock
+from dbusmock.pytest_fixtures import dbusmock_system, PrivateDBus  # noqa: F401
 import pytest
 from pytest_httpserver import HTTPServer
 from werkzeug.wrappers import Request, Response
@@ -65,44 +66,37 @@ def serve_protected(httpserver: HTTPServer) -> Callable[[Path], tuple[str, str, 
 
 
 @pytest.fixture()
-def logind(monkeypatch: Any) -> Iterable[ProxyObject]:
+def logind(
+    monkeypatch: Any,
+    dbusmock_system: PrivateDBus,  # noqa
+) -> Iterable[ProxyObject]:
     pytest.importorskip("dbus")
     pytest.importorskip("gi")
 
-    test_case = dbusmock.DBusTestCase()
-    test_case.start_system_bus()
+    with dbusmock.SpawnedMock.spawn_with_template("logind") as server:
 
-    mock, obj = test_case.spawn_server_template("logind")
+        def get_bus() -> Bus:
+            return dbusmock_system.bustype.get_connection()
 
-    def get_bus() -> Bus:
-        return test_case.get_dbus(system_bus=True)
+        monkeypatch.setattr(util_systemd, "_get_bus", get_bus)
 
-    monkeypatch.setattr(util_systemd, "_get_bus", get_bus)
-
-    yield obj
-
-    mock.terminate()
-    mock.wait()
+        yield server.obj
 
 
 @pytest.fixture()
-def _logind_dbus_error(monkeypatch: Any) -> Iterable[None]:
+def _logind_dbus_error(
+    monkeypatch: Any, dbusmock_system: PrivateDBus  # noqa
+) -> Iterable[None]:
     pytest.importorskip("dbus")
     pytest.importorskip("gi")
 
-    test_case = dbusmock.DBusTestCase()
-    test_case.start_system_bus()
+    with dbusmock.SpawnedMock.spawn_with_template("logind"):
 
-    mock, _ = test_case.spawn_server_template("logind")
+        def get_bus() -> Bus:
+            import dbus
 
-    def get_bus() -> Bus:
-        import dbus
+            raise dbus.exceptions.ValidationException("Test")
 
-        raise dbus.exceptions.ValidationException("Test")
+        monkeypatch.setattr(util_systemd, "_get_bus", get_bus)
 
-    monkeypatch.setattr(util_systemd, "_get_bus", get_bus)
-
-    yield
-
-    mock.terminate()
-    mock.wait()
+        yield
