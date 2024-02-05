@@ -1,6 +1,5 @@
 """Contains checks directly using the Linux operating system concepts."""
 
-
 from collections.abc import Iterable
 import configparser
 from contextlib import suppress

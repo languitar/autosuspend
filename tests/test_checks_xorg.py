@@ -229,9 +229,9 @@ class TestXIdleTime(CheckTest):
 
     def test_list_sessions_logind_dbus_error(self, mocker: MockerFixture) -> None:
         check = XIdleTime.create("name", config_section())
-        mocker.patch.object(
-            check, "_provide_sessions"
-        ).side_effect = LogindDBusException()
+        mocker.patch.object(check, "_provide_sessions").side_effect = (
+            LogindDBusException()
+        )
 
         with pytest.raises(TemporaryCheckError):
             check._safe_provide_sessions()
