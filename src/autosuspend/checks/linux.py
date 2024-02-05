@@ -168,8 +168,8 @@ class NetworkBandwidth(Activity):
     def _check_interface(
         self,
         interface: str,
-        new: psutil._common.snetio,  # noqa: SLF001
-        old: psutil._common.snetio,  # noqa: SLF001
+        new: psutil._common.snetio,
+        old: psutil._common.snetio,
         new_time: float,
         old_time: float,
     ) -> None:
