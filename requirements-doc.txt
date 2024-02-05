@@ -1,4 +1,4 @@
-sphinx-issues==3.0.1
+sphinx-issues==4.0.0
 sphinx==7.2.6
 furo==2024.1.29
 sphinxcontrib-plantuml==0.27
