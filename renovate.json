@@ -13,6 +13,7 @@
         "node-version: (?<currentValue>.*)"
       ],
       "depNameTemplate": "node-version",
+      "datasourceTemplate": "node-version"
     },
   ]
 }
