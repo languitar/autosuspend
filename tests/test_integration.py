@@ -244,3 +244,13 @@ def test_hook_call_wakeup(tmp_path: Path, datadir: Path) -> None:
     assert int((tmp_path / SCHEDULED_FILE).read_text()) == int(
         round((wakeup_at - timedelta(seconds=30)).timestamp())
     )
+
+
+def test_version(tmp_path: Path, datadir: Path) -> None:
+    autosuspend.main(
+        [
+            "-c",
+            str(configure_config("would_schedule.conf", datadir, tmp_path)),
+            "version",
+        ]
+    )

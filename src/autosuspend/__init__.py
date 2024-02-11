@@ -6,6 +6,7 @@ from collections.abc import Iterable, Sequence
 import configparser
 from contextlib import suppress
 from datetime import datetime, timedelta, timezone
+from importlib.metadata import version
 import functools
 import logging
 import logging.config
@@ -553,6 +554,11 @@ def parse_arguments(args: Optional[Sequence[str]]) -> argparse.Namespace:
     subparsers = parser.add_subparsers(title="subcommands", dest="subcommand")
     subparsers.required = True
 
+    parser_version = subparsers.add_parser(
+        "version", help="Outputs the program version"
+    )
+    parser_version.set_defaults(func=main_version)
+
     parser_daemon = subparsers.add_parser(
         "daemon", help="Execute the continuously operating daemon"
     )
@@ -734,6 +740,12 @@ def hook(
         _logger.warning(
             "Hook unable to acquire lock. Not informing daemon.", exc_info=True
         )
+
+
+def main_version(
+    args: argparse.Namespace, config: configparser.ConfigParser  # noqa: ARG001
+) -> None:
+    print(version("autosuspend"))  # noqa: T201
 
 
 def main_hook(
