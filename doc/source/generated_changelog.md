@@ -1,3 +1,10 @@
+# [6.1.0](https://github.com/languitar/autosuspend/compare/v6.0.0...v6.1.0) (2024-02-11)
+
+
+### Features
+
+* **cli:** provide a version subcommand ([d51d836](https://github.com/languitar/autosuspend/commit/d51d836564a53b0dd5017fcd801e43b117542ebc)), closes [#482](https://github.com/languitar/autosuspend/issues/482)
+
 # [6.0.0](https://github.com/languitar/autosuspend/compare/v5.0.0...v6.0.0) (2023-09-18)
 
 
