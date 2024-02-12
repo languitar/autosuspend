@@ -8,7 +8,7 @@
 Synopsis
 ********
 
-|project_bold| [*options*] **daemon|presuspend** [*subcommand options*]
+|project_bold| [*options*] **daemon|presuspend|version** [*subcommand options*]
 
 Description
 ***********

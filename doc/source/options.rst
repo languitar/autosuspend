@@ -3,7 +3,7 @@ Command line options
 
 General syntax:
 
-    |project_bold| [*options*] **daemon|presuspend** [*subcommand options*]
+    |project_bold| [*options*] **daemon|presuspend|version** [*subcommand options*]
 
 General options
 ***************
@@ -53,5 +53,14 @@ Subcommand ``presuspend``
 Should be called by the system before suspending.
 
 .. program:: autosuspend presuspend
+
+No options
+
+Subcommand ``version``
+*************************
+
+Outputs the currently installed version of |project_program| to stdout.
+
+.. program:: autosuspend version
 
 No options
