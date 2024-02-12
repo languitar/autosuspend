@@ -1,3 +1,10 @@
+## [6.1.1](https://github.com/languitar/autosuspend/compare/v6.1.0...v6.1.1) (2024-02-12)
+
+
+### Bug Fixes
+
+* **docs:** add missing docs for new version subcommand ([fb248f7](https://github.com/languitar/autosuspend/commit/fb248f7a5706f81c20f7e88907e22cbd5c895cbb))
+
 # [6.1.0](https://github.com/languitar/autosuspend/compare/v6.0.0...v6.1.0) (2024-02-11)
 
 
