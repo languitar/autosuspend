@@ -1,3 +1,19 @@
+# [7.0.0](https://github.com/languitar/autosuspend/compare/v6.1.1...v7.0.0) (2024-04-25)
+
+
+* build!: drop Python 3.9 support ([3c4ae32](https://github.com/languitar/autosuspend/commit/3c4ae32c8e52f022f41e94c3a49dd89b9d02dcf2))
+
+
+### Features
+
+* officially support Python 3.12 ([de2f180](https://github.com/languitar/autosuspend/commit/de2f18010d166eb86fe15665aa7769f2105b02aa))
+
+
+### BREAKING CHANGES
+
+* Python 3.9 is not supported officially anymore. Python
+    3.10 is the supported minimum version.
+
 ## [6.1.1](https://github.com/languitar/autosuspend/compare/v6.1.0...v6.1.1) (2024-02-12)
 
 
