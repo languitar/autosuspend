@@ -1,6 +1,5 @@
 import configparser
 from datetime import datetime, timedelta
-from typing import Optional
 
 from . import ConfigurationError, Wakeup
 
@@ -23,5 +22,5 @@ class Periodic(Wakeup):
         Wakeup.__init__(self, name)
         self._delta = delta
 
-    def check(self, timestamp: datetime) -> Optional[datetime]:
+    def check(self, timestamp: datetime) -> datetime | None:
         return timestamp + self._delta

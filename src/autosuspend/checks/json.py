@@ -1,7 +1,7 @@
 import configparser
 import json
 from textwrap import shorten
-from typing import Any, Optional
+from typing import Any
 
 from jsonpath_ng import JSONPath
 import requests
@@ -32,7 +32,7 @@ class JsonPath(NetworkMixin, Activity):
         NetworkMixin.__init__(self, accept="application/json", **kwargs)
         self._jsonpath = jsonpath
 
-    def check(self) -> Optional[str]:
+    def check(self) -> str | None:
         try:
             reply = self.request().json()
             matched = self._jsonpath.find(reply)

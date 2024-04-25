@@ -11,7 +11,6 @@ from re import Pattern
 import socket
 import subprocess
 import time
-from typing import Optional
 import warnings
 
 import psutil
@@ -60,7 +59,7 @@ class ActiveConnection(Activity):
         else:
             return family, address
 
-    def check(self) -> Optional[str]:
+    def check(self) -> str | None:
         # Find the addresses of the system
         own_addresses = [
             self.normalize_address(item.family, item.address)
@@ -98,7 +97,7 @@ class Load(Activity):
         Activity.__init__(self, name)
         self._threshold = threshold
 
-    def check(self) -> Optional[str]:
+    def check(self) -> str | None:
         loadcurrent = os.getloadavg()[1]
         self.logger.debug("Load: %s", loadcurrent)
         if loadcurrent > self._threshold:
@@ -188,7 +187,7 @@ class NetworkBandwidth(Activity):
                 f"higher than threshold {self._threshold_receive}"
             )
 
-    def check(self) -> Optional[str]:
+    def check(self) -> str | None:
         # acquire the previous state and preserve it
         old_values = self._previous_values
         old_time = self._previous_time
@@ -237,7 +236,7 @@ class Ping(Activity):
         Activity.__init__(self, name)
         self._hosts = hosts
 
-    def check(self) -> Optional[str]:
+    def check(self) -> str | None:
         try:
             for host in self._hosts:
                 cmd = ["ping", "-q", "-c", "1", host]
@@ -270,7 +269,7 @@ class Processes(Activity):
         Activity.__init__(self, name)
         self._processes = processes
 
-    def check(self) -> Optional[str]:
+    def check(self) -> str | None:
         for proc in psutil.process_iter():
             with suppress(psutil.NoSuchProcess):
                 pinfo = proc.name()
@@ -306,7 +305,7 @@ class Users(Activity):
         self._terminal_regex = terminal_regex
         self._host_regex = host_regex
 
-    def check(self) -> Optional[str]:
+    def check(self) -> str | None:
         for entry in psutil.users():
             if (
                 self._user_regex.fullmatch(entry.name) is not None
@@ -344,7 +343,7 @@ class File(Wakeup):
         Wakeup.__init__(self, name)
         self._path = path
 
-    def check(self, timestamp: datetime) -> Optional[datetime]:  # noqa: ARG002
+    def check(self, timestamp: datetime) -> datetime | None:  # noqa: ARG002
         try:
             first_line = self._path.read_text().splitlines()[0]
             return datetime.fromtimestamp(float(first_line.strip()), timezone.utc)

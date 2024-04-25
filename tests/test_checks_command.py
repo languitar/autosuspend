@@ -1,6 +1,5 @@
 from datetime import datetime, timezone
 import subprocess
-from typing import Optional
 
 import pytest
 from pytest_mock import MockerFixture
@@ -23,7 +22,7 @@ class _CommandMixinSub(CommandMixin, Activity):
         Activity.__init__(self, name)
         CommandMixin.__init__(self, command)
 
-    def check(self) -> Optional[str]:
+    def check(self) -> str | None:
         pass
 
 

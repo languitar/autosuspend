@@ -1,6 +1,6 @@
 import configparser
 from contextlib import suppress
-from typing import Any, Optional, TYPE_CHECKING
+from typing import Any, TYPE_CHECKING
 
 from . import Check, ConfigurationError, SevereCheckError, TemporaryCheckError
 
@@ -42,9 +42,9 @@ class NetworkMixin:
         self,
         url: str,
         timeout: int,
-        username: Optional[str] = None,
-        password: Optional[str] = None,
-        accept: Optional[str] = None,
+        username: str | None = None,
+        password: str | None = None,
+        accept: str | None = None,
     ) -> None:
         self._url = url
         self._timeout = timeout
@@ -65,7 +65,7 @@ class NetworkMixin:
 
         return session
 
-    def _request_headers(self) -> Optional[dict[str, str]]:
+    def _request_headers(self) -> dict[str, str] | None:
         if self._accept:
             return {"Accept": self._accept}
         else:

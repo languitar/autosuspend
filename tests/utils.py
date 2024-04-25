@@ -1,10 +1,9 @@
 from collections.abc import Mapping
 import configparser
-from typing import Optional
 
 
 def config_section(
-    entries: Optional[Mapping[str, str]] = None
+    entries: Mapping[str, str] | None = None
 ) -> configparser.SectionProxy:
     parser = configparser.ConfigParser()
     section_name = "a_section"

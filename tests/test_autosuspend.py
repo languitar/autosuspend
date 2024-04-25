@@ -3,7 +3,7 @@ import configparser
 from datetime import datetime, timedelta, timezone
 import logging
 import subprocess
-from typing import Any, Optional
+from typing import Any
 
 import dateutil.parser
 import pytest
@@ -336,7 +336,7 @@ class TestExecuteWakeups:
         [None, dateutil.parser.parse("20040605T090000Z")],
     )
     def test_skips_none_outdated_and_continues(
-        self, mocker: MockerFixture, illegal: Optional[datetime]
+        self, mocker: MockerFixture, illegal: datetime | None
     ) -> None:
         wakeup_none = mocker.MagicMock(spec=autosuspend.Wakeup)
         wakeup_none.check.return_value = illegal
@@ -485,18 +485,18 @@ class _StubCheck(autosuspend.Activity):
     def create(cls, name: str, config: configparser.SectionProxy) -> "_StubCheck":
         raise NotImplementedError()
 
-    def __init__(self, name: str, match: Optional[str]) -> None:
+    def __init__(self, name: str, match: str | None) -> None:
         autosuspend.Activity.__init__(self, name)
         self.match = match
 
-    def check(self) -> Optional[str]:
+    def check(self) -> str | None:
         return self.match
 
 
 class SleepFn:
     def __init__(self) -> None:
         self.called = False
-        self.call_arg: Optional[float] = None
+        self.call_arg: float | None = None
 
     def reset(self) -> None:
         self.called = False
@@ -514,7 +514,7 @@ def sleep_fn() -> SleepFn:
 
 class WakeupFn:
     def __init__(self) -> None:
-        self.call_arg: Optional[datetime] = None
+        self.call_arg: datetime | None = None
 
     def reset(self) -> None:
         self.call_arg = None

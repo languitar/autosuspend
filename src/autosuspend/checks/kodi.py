@@ -1,6 +1,6 @@
 import configparser
 import json
-from typing import Any, Optional
+from typing import Any
 
 from . import Activity, ConfigurationError, TemporaryCheckError
 from .util import NetworkMixin
@@ -52,7 +52,7 @@ class Kodi(NetworkMixin, Activity):
         except (KeyError, TypeError, json.JSONDecodeError) as error:
             raise TemporaryCheckError("Unable to get or parse Kodi state") from error
 
-    def check(self) -> Optional[str]:
+    def check(self) -> str | None:
         reply = self._safe_request_result()
         if self._suspend_while_paused:
             return (
@@ -87,7 +87,7 @@ class KodiIdleTime(NetworkMixin, Activity):
         Activity.__init__(self, name)
         self._idle_time = idle_time
 
-    def check(self) -> Optional[str]:
+    def check(self) -> str | None:
         try:
             reply = self.request().json()
             if not reply["result"][f"System.IdleTime({self._idle_time})"]:

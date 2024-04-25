@@ -1,3 +1,4 @@
+from collections.abc import Callable
 import configparser
 from contextlib import suppress
 import copy
@@ -8,7 +9,6 @@ from pathlib import Path
 import re
 from re import Pattern
 import subprocess
-from typing import Callable, Optional
 import warnings
 
 import psutil
@@ -26,7 +26,7 @@ class XorgSession:
 _logger = logging.getLogger(__name__)
 
 
-def list_sessions_sockets(socket_path: Optional[Path] = None) -> list[XorgSession]:
+def list_sessions_sockets(socket_path: Path | None = None) -> list[XorgSession]:
     """List running X sessions by iterating the X sockets.
 
     This method assumes that X servers are run under the users using the
@@ -201,7 +201,7 @@ class XIdleTime(Activity):
             )
             raise TemporaryCheckError("Unable to call xprintidle") from error
 
-    def check(self) -> Optional[str]:
+    def check(self) -> str | None:
         for session in self._safe_provide_sessions():
             self.logger.info("Checking session %s", session)
 

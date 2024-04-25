@@ -2,7 +2,7 @@
 """A daemon to suspend a system on inactivity."""
 
 import argparse
-from collections.abc import Iterable, Sequence
+from collections.abc import Callable, Iterable, Sequence
 import configparser
 from contextlib import suppress
 from datetime import datetime, timedelta, timezone
@@ -13,7 +13,7 @@ import logging.config
 from pathlib import Path
 import subprocess
 import time
-from typing import Callable, IO, Optional, Union
+from typing import IO
 
 import portalocker
 
@@ -27,8 +27,8 @@ _logger = logging.getLogger("autosuspend")
 
 
 def execute_suspend(
-    command: Union[str, Sequence[str]],
-    wakeup_at: Optional[datetime],
+    command: str | Sequence[str],
+    wakeup_at: datetime | None,
 ) -> None:
     """Suspend the system by calling the specified command.
 
@@ -49,9 +49,9 @@ def execute_suspend(
 
 
 def notify_suspend(
-    command_wakeup_template: Optional[str],
-    command_no_wakeup: Optional[str],
-    wakeup_at: Optional[datetime],
+    command_wakeup_template: str | None,
+    command_no_wakeup: str | None,
+    wakeup_at: datetime | None,
 ) -> None:
     """Call a command to notify on suspending.
 
@@ -92,10 +92,10 @@ def notify_suspend(
 
 
 def notify_and_suspend(
-    suspend_cmd: Union[str, Sequence[str]],
-    notify_cmd_wakeup_template: Optional[str],
-    notify_cmd_no_wakeup: Optional[str],
-    wakeup_at: Optional[datetime],
+    suspend_cmd: str | Sequence[str],
+    notify_cmd_wakeup_template: str | None,
+    notify_cmd_no_wakeup: str | None,
+    wakeup_at: datetime | None,
 ) -> None:
     notify_suspend(notify_cmd_wakeup_template, notify_cmd_no_wakeup, wakeup_at)
     execute_suspend(suspend_cmd, wakeup_at)
@@ -114,7 +114,7 @@ def schedule_wakeup(command_template: str, wakeup_at: datetime) -> None:
         )
 
 
-def _safe_execute_activity(check: Activity, logger: logging.Logger) -> Optional[str]:
+def _safe_execute_activity(check: Activity, logger: logging.Logger) -> str | None:
     try:
         return check.check()
     except TemporaryCheckError:
@@ -154,7 +154,7 @@ def execute_checks(
 
 def _safe_execute_wakeup(
     check: Wakeup, timestamp: datetime, logger: logging.Logger
-) -> Optional[datetime]:
+) -> datetime | None:
     try:
         return check.check(timestamp)
     except TemporaryCheckError:
@@ -164,7 +164,7 @@ def _safe_execute_wakeup(
 
 def execute_wakeups(
     wakeups: Iterable[Wakeup], timestamp: datetime, logger: logging.Logger
-) -> Optional[datetime]:
+) -> datetime | None:
     wakeup_at = None
     for wakeup in wakeups:
         this_at = _safe_execute_wakeup(wakeup, timestamp, logger)
@@ -238,7 +238,7 @@ class Processor:
         self._sleep_fn = sleep_fn
         self._wakeup_fn = wakeup_fn
         self._all_activities = all_activities
-        self._idle_since = None  # type: Optional[datetime]
+        self._idle_since = None  # type: datetime | None
 
     def _reset_state(self, reason: str) -> None:
         self._logger.info("%s. Resetting state", reason)
@@ -314,7 +314,7 @@ class Processor:
         self._sleep_fn(wakeup_at)
 
 
-def _continue_looping(run_for: Optional[int], start_time: datetime) -> bool:
+def _continue_looping(run_for: int | None, start_time: datetime) -> bool:
     return (run_for is None) or (
         datetime.now(timezone.utc) < (start_time + timedelta(seconds=run_for))
     )
@@ -348,7 +348,7 @@ def _do_loop_iteration(
 def loop(
     processor: Processor,
     interval: float,
-    run_for: Optional[int],
+    run_for: int | None,
     woke_up_file: Path,
     lock_file: Path,
     lock_timeout: float,
@@ -504,7 +504,7 @@ def parse_config(config_file: Iterable[str]) -> configparser.ConfigParser:
     return config
 
 
-def parse_arguments(args: Optional[Sequence[str]]) -> argparse.Namespace:
+def parse_arguments(args: Sequence[str] | None) -> argparse.Namespace:
     """Parse command line arguments.
 
     Args:
@@ -517,7 +517,7 @@ def parse_arguments(args: Optional[Sequence[str]]) -> argparse.Namespace:
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
     )
 
-    default_config: Optional[IO[str]] = None
+    default_config: IO[str] | None = None
     with suppress(FileNotFoundError, IsADirectoryError, PermissionError):
         # The open file is required after this function finishes inside the argparse
         # result. Therefore, a context manager is not easily usable here.
@@ -596,7 +596,7 @@ def parse_arguments(args: Optional[Sequence[str]]) -> argparse.Namespace:
     return result
 
 
-def configure_logging(config_file: Optional[IO], debug: bool) -> None:
+def configure_logging(config_file: IO | None, debug: bool) -> None:
     """Configure the python :mod:`logging` system.
 
     Assumes that either a config file is provided, or debugging is enabled.
@@ -794,7 +794,7 @@ def main_daemon(args: argparse.Namespace, config: configparser.ConfigParser) -> 
     )
 
 
-def main(argv: Optional[Sequence[str]] = None) -> None:
+def main(argv: Sequence[str] | None = None) -> None:
     """Run the daemon."""
     args = parse_arguments(argv)
 

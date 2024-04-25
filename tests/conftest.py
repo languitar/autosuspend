@@ -1,6 +1,6 @@
-from collections.abc import Iterable
+from collections.abc import Callable, Iterable
 from pathlib import Path
-from typing import Any, Callable
+from typing import Any
 
 from dbus import Bus
 from dbus.proxies import ProxyObject

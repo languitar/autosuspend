@@ -1,5 +1,4 @@
 import configparser
-from typing import Optional
 
 from autosuspend.checks import Check
 
@@ -9,7 +8,7 @@ class DummyCheck(Check):
     def create(cls, name: str, config: configparser.SectionProxy) -> "DummyCheck":
         raise NotImplementedError()
 
-    def check(self) -> Optional[str]:
+    def check(self) -> str | None:
         pass
 
 

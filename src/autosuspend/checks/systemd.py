@@ -3,7 +3,7 @@ import configparser
 from datetime import datetime, timedelta, timezone
 import re
 from re import Pattern
-from typing import Any, Optional
+from typing import Any
 
 import dbus
 
@@ -21,7 +21,7 @@ def next_timer_executions() -> dict[str, datetime]:
     units = systemd.ListUnits(dbus_interface="org.freedesktop.systemd1.Manager")
     timers = [unit for unit in units if unit[0].endswith(".timer")]
 
-    def get_if_set(props: dict[str, Any], key: str) -> Optional[int]:
+    def get_if_set(props: dict[str, Any], key: str) -> int | None:
         # For timers running after boot, next execution time might not be available. In
         # this case, the expected keys are all set to uint64 max.
         if props[key] and props[key] != _UINT64_MAX:
@@ -37,7 +37,7 @@ def next_timer_executions() -> dict[str, datetime]:
 
         realtime = get_if_set(props, "NextElapseUSecRealtime")
         monotonic = get_if_set(props, "NextElapseUSecMonotonic")
-        next_time: Optional[datetime] = None
+        next_time: datetime | None = None
         if realtime is not None:
             next_time = datetime.fromtimestamp(
                 realtime / 1000000,
@@ -68,7 +68,7 @@ class SystemdTimer(Wakeup):
         Wakeup.__init__(self, name)
         self._match = match
 
-    def check(self, timestamp: datetime) -> Optional[datetime]:  # noqa: ARG002
+    def check(self, timestamp: datetime) -> datetime | None:  # noqa: ARG002
         executions = next_timer_executions()
         matching_executions = [
             next_run for name, next_run in executions.items() if self._match.match(name)
@@ -118,7 +118,7 @@ class LogindSessionsIdle(Activity):
         except LogindDBusException as error:
             raise TemporaryCheckError(error) from error
 
-    def check(self) -> Optional[str]:
+    def check(self) -> str | None:
         for session_id, properties in self._list_logind_sessions():
             self.logger.debug("Session %s properties: %s", session_id, properties)
 

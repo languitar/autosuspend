@@ -4,7 +4,7 @@ import abc
 from collections.abc import Mapping
 import configparser
 from datetime import datetime
-from typing import Any, Optional, TypeVar
+from typing import Any, TypeVar
 
 from autosuspend.util import logger_by_class_instance
 
@@ -60,7 +60,7 @@ class Check(abc.ABC):
 
         """
 
-    def __init__(self, name: Optional[str] = None) -> None:
+    def __init__(self, name: str | None = None) -> None:
         if name:
             self.name = name
         else:
@@ -87,7 +87,7 @@ class Activity(Check):
     """
 
     @abc.abstractmethod
-    def check(self) -> Optional[str]:
+    def check(self) -> str | None:
         """Determine if system activity exists that prevents suspending.
 
         Returns:
@@ -108,7 +108,7 @@ class Wakeup(Check):
     """Represents a check for potential wake up points."""
 
     @abc.abstractmethod
-    def check(self, timestamp: datetime) -> Optional[datetime]:
+    def check(self, timestamp: datetime) -> datetime | None:
         """Indicate if a wakeup has to be scheduled for this check.
 
         Args:
