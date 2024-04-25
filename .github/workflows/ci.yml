@@ -23,10 +23,10 @@ jobs:
     steps:
       - name: Clone repo
         uses: actions/checkout@v4
-      - name: Set up Python 3.11
+      - name: Set up Python
         uses: actions/setup-python@v5
         with:
-          python-version: "3.11"
+          python-version: "3.12"
       - name: Install native dependencies
         run: sudo apt-get update && sudo apt-get -y install libdbus-1-dev libgirepository1.0-dev
       - name: Cache Python packages
@@ -47,10 +47,10 @@ jobs:
     steps:
       - name: Clone repo
         uses: actions/checkout@v4
-      - name: Set up Python 3.11
+      - name: Set up Python 3.12
         uses: actions/setup-python@v5
         with:
-          python-version: "3.11"
+          python-version: "3.12"
       - name: Install native dependencies
         run: sudo apt-get update && sudo apt-get -y install libdbus-1-dev libgirepository1.0-dev plantuml
       - name: Cache Python packages
@@ -71,7 +71,7 @@ jobs:
     steps:
       - name: Clone repo
         uses: actions/checkout@v4
-      - name: Set up Python 3.9
+      - name: Set up Python
         uses: actions/setup-python@v5
         with:
           python-version: 3.9
@@ -93,7 +93,7 @@ jobs:
     strategy:
       max-parallel: 4
       matrix:
-        python-version: ["3.9", "3.10", "3.11"]
+        python-version: ["3.9", "3.10", "3.11", "3.12"]
 
     steps:
       - name: Clone repo
