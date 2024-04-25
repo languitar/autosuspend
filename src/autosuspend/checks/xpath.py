@@ -1,7 +1,7 @@
 from collections.abc import Sequence
 import configparser
 from datetime import datetime, timedelta, timezone
-from typing import Any, Optional
+from typing import Any
 
 from lxml import etree  # using safe parser
 from lxml.etree import XPath, XPathSyntaxError  # our input
@@ -55,7 +55,7 @@ class XPathActivity(XPathMixin, Activity):
         Activity.__init__(self, name)
         XPathMixin.__init__(self, **kwargs)
 
-    def check(self) -> Optional[str]:
+    def check(self) -> str | None:
         if self.evaluate():
             return "XPath matches for url " + self._url
         else:
@@ -77,7 +77,7 @@ class XPathWakeup(XPathMixin, Wakeup):
     ) -> datetime:
         return datetime.fromtimestamp(float(result), timezone.utc)
 
-    def check(self, timestamp: datetime) -> Optional[datetime]:
+    def check(self, timestamp: datetime) -> datetime | None:
         matches = self.evaluate()
         try:
             if matches:

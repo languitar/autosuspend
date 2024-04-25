@@ -1,6 +1,6 @@
+from collections.abc import Callable
 from datetime import timedelta
 from pathlib import Path
-from typing import Callable
 
 from dateutil import parser
 from dateutil.tz import tzlocal

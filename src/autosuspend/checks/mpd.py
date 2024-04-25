@@ -1,6 +1,5 @@
 import configparser
 import socket
-from typing import Optional
 
 from mpd import MPDClient, MPDError
 
@@ -35,12 +34,12 @@ class Mpd(Activity):
         client.disconnect()
         return state
 
-    def check(self) -> Optional[str]:
+    def check(self) -> str | None:
         try:
             state = self._get_state()
             if state["state"] == "play":
                 return "MPD currently playing"
             else:
                 return None
-        except (MPDError, ConnectionError, socket.timeout, socket.gaierror) as error:
+        except (TimeoutError, MPDError, ConnectionError, socket.gaierror) as error:
             raise TemporaryCheckError("Unable to get the current MPD state") from error

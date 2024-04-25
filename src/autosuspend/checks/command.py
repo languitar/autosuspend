@@ -1,7 +1,6 @@
 import configparser
 from datetime import datetime, timezone
 import subprocess
-from typing import Optional
 
 from . import (
     Activity,
@@ -38,7 +37,7 @@ class CommandActivity(CommandMixin, Activity):
         CommandMixin.__init__(self, command)
         Activity.__init__(self, name)
 
-    def check(self) -> Optional[str]:
+    def check(self) -> str | None:
         try:
             subprocess.check_call(self._command, shell=True)
             return f"Command {self._command} succeeded"
@@ -58,7 +57,7 @@ class CommandWakeup(CommandMixin, Wakeup):
         CommandMixin.__init__(self, command)
         Wakeup.__init__(self, name)
 
-    def check(self, timestamp: datetime) -> Optional[datetime]:  # noqa: ARG002
+    def check(self, timestamp: datetime) -> datetime | None:  # noqa: ARG002
         try:
             output = subprocess.check_output(
                 self._command,

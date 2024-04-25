@@ -3,7 +3,7 @@ from contextlib import suppress
 from dataclasses import dataclass
 from datetime import date, datetime, timedelta, timezone, tzinfo
 from io import BytesIO
-from typing import Any, cast, IO, Optional, TypeVar, Union
+from typing import Any, cast, IO, TypeVar
 
 from dateutil.rrule import rrule, rruleset, rrulestr
 import icalendar
@@ -19,8 +19,8 @@ from ..util.datetime import is_aware, to_tz_unaware
 @dataclass
 class CalendarEvent:
     summary: str
-    start: Union[datetime, date]
-    end: Union[datetime, date]
+    start: datetime | date
+    end: datetime | date
 
     def __str__(self) -> str:
         return (
@@ -60,7 +60,7 @@ def _prepare_rruleset_for_expanding(
     start: datetime,
     exclusions: Iterable,
     changes: Iterable[icalendar.cal.Event],
-    tz: Optional[tzinfo],
+    tz: tzinfo | None,
 ) -> rruleset:
     """Prepare an rruleset for expanding.
 
@@ -291,7 +291,7 @@ class ActiveCalendarEvent(NetworkMixin, Activity):
         NetworkMixin.__init__(self, **kwargs)
         Activity.__init__(self, name)
 
-    def check(self) -> Optional[str]:
+    def check(self) -> str | None:
         response = self.request()
         start = datetime.now(timezone.utc)
         end = start + timedelta(minutes=1)
@@ -315,7 +315,7 @@ class Calendar(NetworkMixin, Wakeup):
         NetworkMixin.__init__(self, **kwargs)
         Wakeup.__init__(self, name)
 
-    def check(self, timestamp: datetime) -> Optional[datetime]:
+    def check(self, timestamp: datetime) -> datetime | None:
         response = self.request()
 
         end = timestamp + timedelta(weeks=6 * 4)

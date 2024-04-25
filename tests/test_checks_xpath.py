@@ -1,6 +1,7 @@
+from collections.abc import Callable
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
-from typing import Any, Callable, Optional
+from typing import Any
 
 import pytest
 from pytest_mock import MockerFixture
@@ -22,7 +23,7 @@ class _XPathMixinSub(XPathMixin, Activity):
         Activity.__init__(self, name)
         XPathMixin.__init__(self, **kwargs)
 
-    def check(self) -> Optional[str]:
+    def check(self) -> str | None:
         pass
 
 

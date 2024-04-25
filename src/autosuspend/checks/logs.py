@@ -4,7 +4,6 @@ from datetime import datetime, timedelta, timezone
 from pathlib import Path
 import re
 from re import Pattern
-from typing import Optional
 
 from dateutil.parser import parse
 from dateutil.utils import default_tzinfo
@@ -87,7 +86,7 @@ class LastLogActivity(Activity):
                 f"Cannot access log file {self.log_file}"
             ) from error
 
-    def check(self) -> Optional[str]:
+    def check(self) -> str | None:
         lines = self._file_lines_reversed()
 
         now = datetime.now(tz=timezone.utc)

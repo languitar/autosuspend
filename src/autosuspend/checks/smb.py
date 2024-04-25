@@ -1,6 +1,5 @@
 import configparser
 import subprocess
-from typing import Optional
 
 from . import Activity, SevereCheckError, TemporaryCheckError
 
@@ -8,7 +7,7 @@ from . import Activity, SevereCheckError, TemporaryCheckError
 class Smb(Activity):
     @classmethod
     def create(
-        cls, name: str, config: Optional[configparser.SectionProxy]  # noqa: ARG003
+        cls, name: str, config: configparser.SectionProxy | None  # noqa: ARG003
     ) -> "Smb":
         return cls(name)
 
@@ -20,7 +19,7 @@ class Smb(Activity):
         except subprocess.CalledProcessError as error:
             raise TemporaryCheckError("Unable to execute smbstatus") from error
 
-    def check(self) -> Optional[str]:
+    def check(self) -> str | None:
         status_output = self._safe_get_status()
 
         self.logger.debug("Received status output:\n%s", status_output)
