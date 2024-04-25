@@ -23,8 +23,8 @@ class CalendarEvent:
     end: Union[datetime, date]
 
     def __str__(self) -> str:
-        return "CalendarEvent[summary={}, start={}, end={}]".format(
-            self.summary, self.start, self.end
+        return (
+            f"CalendarEvent[summary={self.summary}, start={self.start}, end={self.end}]"
         )
 
 
