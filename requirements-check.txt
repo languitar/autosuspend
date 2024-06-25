@@ -1,7 +1,7 @@
 ruff==0.4.9
 black==24.4.2
 isort==5.13.2
-mypy==1.10.0
+mypy==1.10.1
 types-tzlocal
 types-requests
 types-pytz
