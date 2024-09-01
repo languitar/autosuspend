@@ -353,7 +353,7 @@ class TestNetworkBandwidth(CheckTest):
         return NetworkBandwidth(name, psutil.net_if_addrs().keys(), 0, 0)
 
     @staticmethod
-    @pytest.fixture()
+    @pytest.fixture
     def serve_data_url(httpserver: HTTPServer) -> str:
         httpserver.expect_request("").respond_with_json({"foo": "bar"})
         return httpserver.url_for("")
@@ -364,7 +364,7 @@ class TestNetworkBandwidth(CheckTest):
         requests.get(serve_data_url, timeout=5)
         assert check.check() is not None
 
-    @pytest.fixture()
+    @pytest.fixture
     def _mock_interfaces(self, mocker: MockerFixture) -> None:
         mock = mocker.patch("psutil.net_if_addrs")
         mock.return_value = {"foo": None, "bar": None, "baz": None}
