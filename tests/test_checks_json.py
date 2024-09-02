@@ -25,7 +25,7 @@ class TestJsonPath(CheckTest):
         )
 
     @staticmethod
-    @pytest.fixture()
+    @pytest.fixture
     def json_get_mock(mocker: MockerFixture) -> Any:
         mock_reply = mocker.MagicMock()
         mock_reply.json.return_value = {"a": {"b": 42, "c": "ignore"}}

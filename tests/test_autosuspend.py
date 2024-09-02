@@ -507,7 +507,7 @@ class SleepFn:
         self.call_arg = arg
 
 
-@pytest.fixture()
+@pytest.fixture
 def sleep_fn() -> SleepFn:
     return SleepFn()
 
@@ -523,7 +523,7 @@ class WakeupFn:
         self.call_arg = arg
 
 
-@pytest.fixture()
+@pytest.fixture
 def wakeup_fn() -> WakeupFn:
     return WakeupFn()
 

@@ -30,7 +30,7 @@ def configure_config(config: str, datadir: Path, tmp_path: Path) -> Path:
     return out_path
 
 
-@pytest.fixture()
+@pytest.fixture
 def _rapid_sleep(mocker: MockerFixture) -> Iterable[None]:
     with freeze_time() as frozen_time:
         sleep_mock = mocker.patch("time.sleep")

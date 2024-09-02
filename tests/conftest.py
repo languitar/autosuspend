@@ -13,7 +13,7 @@ from werkzeug.wrappers import Request, Response
 from autosuspend.util import systemd as util_systemd
 
 
-@pytest.fixture()
+@pytest.fixture
 def serve_file(httpserver: HTTPServer) -> Callable[[Path], str]:
     """Serve a file via HTTP.
 
@@ -30,7 +30,7 @@ def serve_file(httpserver: HTTPServer) -> Callable[[Path], str]:
     return serve
 
 
-@pytest.fixture()
+@pytest.fixture
 def serve_protected(httpserver: HTTPServer) -> Callable[[Path], tuple[str, str, str]]:
     """Serve a file behind basic authentication.
 
@@ -65,7 +65,7 @@ def serve_protected(httpserver: HTTPServer) -> Callable[[Path], tuple[str, str, 
     return serve
 
 
-@pytest.fixture()
+@pytest.fixture
 def logind(
     monkeypatch: Any,
     dbusmock_system: PrivateDBus,  # noqa
@@ -83,7 +83,7 @@ def logind(
         yield server.obj
 
 
-@pytest.fixture()
+@pytest.fixture
 def _logind_dbus_error(
     monkeypatch: Any, dbusmock_system: PrivateDBus  # noqa
 ) -> Iterable[None]:

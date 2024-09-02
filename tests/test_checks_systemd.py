@@ -24,7 +24,7 @@ def test_next_timer_executions() -> None:
 
 class TestSystemdTimer(CheckTest):
     @staticmethod
-    @pytest.fixture()
+    @pytest.fixture
     def next_timer_executions(mocker: MockerFixture) -> Mock:
         return mocker.patch("autosuspend.checks.systemd.next_timer_executions")
 
