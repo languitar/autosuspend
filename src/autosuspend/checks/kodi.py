@@ -79,7 +79,7 @@ class KodiIdleTime(NetworkMixin, Activity):
 
     def __init__(self, name: str, url: str, idle_time: int, **kwargs: Any) -> None:
         request = url + (
-            '?request={{"jsonrpc": "2.0", "id": 1, '
+            '?request={"jsonrpc": "2.0", "id": 1, '
             '"method": "XBMC.GetInfoBooleans",'
             f'"params": {{"booleans": ["System.IdleTime({idle_time})"]}}}}'
         )
