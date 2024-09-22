@@ -1,3 +1,10 @@
+## [7.0.1](https://github.com/languitar/autosuspend/compare/v7.0.0...v7.0.1) (2024-09-22)
+
+
+### Bug Fixes
+
+* **kodi-idle-time:** Send proper request ([8bb6dad](https://github.com/languitar/autosuspend/commit/8bb6dad7f325024d011008fc1f0e3d52a0b9f222))
+
 # [7.0.0](https://github.com/languitar/autosuspend/compare/v6.1.1...v7.0.0) (2024-04-25)
 
 
