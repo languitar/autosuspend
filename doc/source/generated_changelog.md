@@ -1,3 +1,10 @@
+## [7.0.2](https://github.com/languitar/autosuspend/compare/v7.0.1...v7.0.2) (2024-10-13)
+
+
+### Bug Fixes
+
+* **icalendar:** support icalendar v6 ([49bc89f](https://github.com/languitar/autosuspend/commit/49bc89fb2461758dd4d4f07016e88c8458192161))
+
 ## [7.0.1](https://github.com/languitar/autosuspend/compare/v7.0.0...v7.0.1) (2024-09-22)
 
 
