@@ -16,6 +16,11 @@ from .util import NetworkMixin
 from ..util.datetime import is_aware, to_tz_unaware
 
 
+# Make v6 behave as if it were an older version to support a wider range.
+with suppress(AttributeError):
+    icalendar.use_pytz()
+
+
 @dataclass
 class CalendarEvent:
     summary: str
