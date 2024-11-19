@@ -119,7 +119,7 @@ def _safe_execute_activity(check: Activity, logger: logging.Logger) -> str | Non
         return check.check()
     except TemporaryCheckError:
         logger.warning("Check %s failed. Ignoring...", check, exc_info=True)
-        return None
+        return f"Check {check.name} failed temporarily"
 
 
 def execute_checks(

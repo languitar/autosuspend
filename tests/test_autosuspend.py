@@ -294,22 +294,16 @@ class TestExecuteChecks:
         matching_check.check.assert_called_once_with()
         second_check.check.assert_called_once_with()
 
-    def test_ignore_temporary_errors(self, mocker: MockerFixture) -> None:
+    def test_treat_temporary_errors_as_activity(self, mocker: MockerFixture) -> None:
         matching_check = mocker.MagicMock(spec=autosuspend.Activity)
         matching_check.name = "foo"
         matching_check.check.side_effect = autosuspend.TemporaryCheckError()
-        second_check = mocker.MagicMock()
-        second_check.name = "bar"
-        second_check.check.return_value = "matches"
 
         assert (
-            autosuspend.execute_checks(
-                [matching_check, second_check], False, mocker.MagicMock()
-            )
+            autosuspend.execute_checks([matching_check], False, mocker.MagicMock())
             is True
         )
         matching_check.check.assert_called_once_with()
-        second_check.check.assert_called_once_with()
 
 
 class TestExecuteWakeups:
