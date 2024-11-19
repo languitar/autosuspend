@@ -1,3 +1,10 @@
+## [7.0.3](https://github.com/languitar/autosuspend/compare/v7.0.2...v7.0.3) (2024-11-19)
+
+
+### Bug Fixes
+
+* treat temporary failures as activity ([8c96853](https://github.com/languitar/autosuspend/commit/8c968530f011dad814df8c55794b058f3c751e8d)), closes [#589](https://github.com/languitar/autosuspend/issues/589)
+
 ## [7.0.2](https://github.com/languitar/autosuspend/compare/v7.0.1...v7.0.2) (2024-10-13)
 
 
