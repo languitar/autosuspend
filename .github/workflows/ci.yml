@@ -12,6 +12,8 @@ jobs:
     runs-on: ubuntu-latest
     if: ${{ github.event_name == 'pull_request' }}
     steps:
+      - name: install cairo
+        run: sudo apt-get update && sudo apt-get install -y libcairo2-dev
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
@@ -28,7 +30,7 @@ jobs:
         with:
           python-version: "3.12"
       - name: Install native dependencies
-        run: sudo apt-get update && sudo apt-get -y install libdbus-1-dev libgirepository1.0-dev
+        run: sudo apt-get update && sudo apt-get -y install libdbus-1-dev libgirepository1.0-dev libcairo2-dev
       - name: Cache Python packages
         uses: actions/cache@v4
         with:
@@ -52,7 +54,7 @@ jobs:
         with:
           python-version: "3.12"
       - name: Install native dependencies
-        run: sudo apt-get update && sudo apt-get -y install libdbus-1-dev libgirepository1.0-dev plantuml
+        run: sudo apt-get update && sudo apt-get -y install libdbus-1-dev libgirepository1.0-dev plantuml libcairo2-dev
       - name: Cache Python packages
         uses: actions/cache@v4
         with:
@@ -103,7 +105,7 @@ jobs:
         with:
           python-version: ${{ matrix.python-version }}
       - name: Install native dependencies
-        run: sudo apt-get update && sudo apt-get -y install libdbus-1-dev libgirepository1.0-dev
+        run: sudo apt-get update && sudo apt-get -y install libdbus-1-dev libgirepository1.0-dev libcairo2-dev
       - name: Cache Python packages
         uses: actions/cache@v4
         with:
