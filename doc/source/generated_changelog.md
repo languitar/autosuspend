@@ -1,3 +1,10 @@
+# [7.1.0](https://github.com/languitar/autosuspend/compare/v7.0.3...v7.1.0) (2025-01-12)
+
+
+### Features
+
+* official Python 3.13 support ([a8ea72d](https://github.com/languitar/autosuspend/commit/a8ea72d414621a13ff7705330bd731ffe94eeef8))
+
 ## [7.0.3](https://github.com/languitar/autosuspend/compare/v7.0.2...v7.0.3) (2024-11-19)
 
 
