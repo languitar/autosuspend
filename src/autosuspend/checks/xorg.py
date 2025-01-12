@@ -113,7 +113,7 @@ class XIdleTime(Activity):
                 return cls(
                     name,
                     config.getint("timeout", fallback=600),
-                    config.get("method", fallback="sockets"),
+                    config.get("method", fallback="sockets"),  # type: ignore
                     re.compile(config.get("ignore_if_process", fallback=r"a^")),
                     re.compile(config.get("ignore_users", fallback=r"a^")),
                 )
