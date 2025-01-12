@@ -38,6 +38,8 @@ select = [
     "UP",
 ]
 ignore = [
+    # We do this deliberately when extending modules with functionality
+    "A005",
     # Not available in all supported Python versions
     "B905",
     # Black will handle this
