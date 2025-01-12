@@ -284,9 +284,9 @@ class Users(Activity):
         with warnings.catch_warnings():
             warnings.simplefilter("ignore", FutureWarning)
             try:
-                user_regex = re.compile(config.get("name", fallback=r".*"))
-                terminal_regex = re.compile(config.get("terminal", fallback=r".*"))
-                host_regex = re.compile(config.get("host", fallback=r".*"))
+                user_regex = re.compile(config.get("name", fallback=r".*"))  # type: ignore
+                terminal_regex = re.compile(config.get("terminal", fallback=r".*"))  # type: ignore
+                host_regex = re.compile(config.get("host", fallback=r".*"))  # type: ignore
                 return cls(name, user_regex, terminal_regex, host_regex)
             except re.error as error:
                 raise ConfigurationError(
