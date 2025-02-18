@@ -6,8 +6,8 @@ from collections.abc import Callable, Iterable, Sequence
 import configparser
 from contextlib import suppress
 from datetime import datetime, timedelta, timezone
-from importlib.metadata import version
 import functools
+from importlib.metadata import version
 import logging
 import logging.config
 from pathlib import Path
