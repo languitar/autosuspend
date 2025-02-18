@@ -104,7 +104,7 @@ class TestJsonPath(CheckTest):
                         "timeout": "42",
                     }
                 ),
-            )  # type: ignore
+            )
             assert check._jsonpath == parse("a.b")
             assert check._url == "url"
             assert check._username == "user"

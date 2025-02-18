@@ -127,7 +127,7 @@ class TestXPathActivity(CheckTest):
                     "timeout": "42",
                 }
             ),
-        )  # type: ignore
+        )
         assert check._xpath == "/xpath"
         assert check._url == "url"
         assert check._username == "user"
@@ -232,7 +232,7 @@ class TestXPathWakeup(CheckTest):
                     "timeout": "20",
                 }
             ),
-        )  # type: ignore
+        )
         assert check._xpath == "/valid"
 
 

@@ -33,7 +33,7 @@ class TestCommandMixin:
             check: _CommandMixinSub = _CommandMixinSub.create(
                 "name",
                 section,
-            )  # type: ignore
+            )
             assert check._command == "narf bla"
 
         def test_throws_if_no_command_is_configured(self) -> None:
@@ -52,7 +52,7 @@ class TestCommandActivity(CheckTest):
         assert (
             CommandActivity.create(
                 "name", config_section({"command": "foo bar"})
-            ).check()  # type: ignore
+            ).check()
             is not None
         )
         mock.assert_called_once_with("foo bar", shell=True)
@@ -63,7 +63,10 @@ class TestCommandActivity(CheckTest):
         mock = mocker.patch("subprocess.check_call")
         mock.side_effect = subprocess.CalledProcessError(2, "foo bar")
         assert (
-            CommandActivity.create("name", config_section({"command": "foo bar"})).check() is None  # type: ignore
+            CommandActivity.create(
+                "name", config_section({"command": "foo bar"})
+            ).check()
+            is None
         )
         mock.assert_called_once_with("foo bar", shell=True)
 
@@ -71,7 +74,7 @@ class TestCommandActivity(CheckTest):
         with pytest.raises(SevereCheckError):
             CommandActivity.create(
                 "name", config_section({"command": "thisreallydoesnotexist"})
-            ).check()  # type: ignore
+            ).check()
 
 
 class TestCommandWakeup(CheckTest):
