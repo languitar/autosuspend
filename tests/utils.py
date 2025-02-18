@@ -3,7 +3,7 @@ import configparser
 
 
 def config_section(
-    entries: Mapping[str, str] | None = None
+    entries: Mapping[str, str] | None = None,
 ) -> configparser.SectionProxy:
     parser = configparser.ConfigParser()
     section_name = "a_section"
