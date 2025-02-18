@@ -5,6 +5,7 @@ import subprocess
 from . import (
     Activity,
     Check,
+    CheckType,
     ConfigurationError,
     SevereCheckError,
     TemporaryCheckError,
@@ -18,11 +19,13 @@ def raise_severe_if_command_not_found(error: subprocess.CalledProcessError) -> N
         raise SevereCheckError(f"Command '{' '.join(error.cmd)}' does not exist")
 
 
-class CommandMixin:
+class CommandMixin(Check):
     """Mixin for configuring checks based on external commands."""
 
     @classmethod
-    def create(cls, name: str, config: configparser.SectionProxy) -> Check:
+    def create(
+        cls: type[CheckType], name: str, config: configparser.SectionProxy
+    ) -> CheckType:
         try:
             return cls(name, config["command"].strip())  # type: ignore
         except KeyError as error:

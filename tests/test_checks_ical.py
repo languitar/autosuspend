@@ -458,7 +458,7 @@ class TestActiveCalendarEvent(CheckTest):
                     "timeout": "3",
                 }
             ),
-        )  # type: ignore
+        )
         assert check._url == "foobar"
         assert check._username == "user"
         assert check._password == "pass"
@@ -481,7 +481,7 @@ class TestCalendar(CheckTest):
         check: Calendar = Calendar.create(
             "name",
             section,
-        )  # type: ignore
+        )
         assert check._url == "url"
         assert check._username == "user"
         assert check._password == "pass"

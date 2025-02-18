@@ -2,7 +2,13 @@ import configparser
 from contextlib import suppress
 from typing import Any, TYPE_CHECKING
 
-from . import Check, ConfigurationError, SevereCheckError, TemporaryCheckError
+from . import (
+    Check,
+    CheckType,
+    ConfigurationError,
+    SevereCheckError,
+    TemporaryCheckError,
+)
 
 
 if TYPE_CHECKING:
@@ -10,7 +16,7 @@ if TYPE_CHECKING:
     import requests.models
 
 
-class NetworkMixin:
+class NetworkMixin(Check):
     @staticmethod
     def _ensure_credentials_consistent(args: dict[str, Any]) -> None:
         if (args["username"] is None) != (args["password"] is None):
@@ -35,7 +41,9 @@ class NetworkMixin:
             raise ConfigurationError("Lacks " + str(error) + " config entry") from error
 
     @classmethod
-    def create(cls, name: str, config: configparser.SectionProxy) -> Check:
+    def create(
+        cls: type[CheckType], name: str, config: configparser.SectionProxy
+    ) -> CheckType:
         return cls(name, **cls.collect_init_args(config))  # type: ignore
 
     def __init__(

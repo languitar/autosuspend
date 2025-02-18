@@ -8,7 +8,7 @@ from lxml.etree import XPath, XPathSyntaxError  # our input
 import requests
 import requests.exceptions
 
-from . import Activity, Check, ConfigurationError, TemporaryCheckError, Wakeup
+from . import Activity, CheckType, ConfigurationError, TemporaryCheckError, Wakeup
 from .util import NetworkMixin
 
 
@@ -30,7 +30,9 @@ class XPathMixin(NetworkMixin):
             raise ConfigurationError("Lacks " + str(error) + " config entry") from error
 
     @classmethod
-    def create(cls, name: str, config: configparser.SectionProxy) -> Check:
+    def create(
+        cls: type[CheckType], name: str, config: configparser.SectionProxy
+    ) -> CheckType:
         return cls(name, **cls.collect_init_args(config))  # type: ignore
 
     def __init__(self, xpath: str, **kwargs: Any) -> None:
@@ -73,7 +75,9 @@ class XPathWakeup(XPathMixin, Wakeup):
         XPathMixin.__init__(self, **kwargs)
 
     def convert_result(
-        self, result: str, timestamp: datetime  # noqa: ARG002
+        self,
+        result: str,
+        timestamp: datetime,  # noqa: ARG002
     ) -> datetime:
         return datetime.fromtimestamp(float(result), timezone.utc)
 
