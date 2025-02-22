@@ -8,3 +8,4 @@ ExecStart=/usr/bin/autosuspend -l /etc/autosuspend-logging.conf daemon
 
 [Install]
 WantedBy=multi-user.target
+Also=autosuspend-detect-suspend.service
