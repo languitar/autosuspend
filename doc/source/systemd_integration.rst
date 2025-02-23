@@ -19,11 +19,6 @@ To start |project_program| via `systemd`_, execute:
 .. code-block:: bash
 
    systemctl enable autosuspend.service
-   systemctl enable autosuspend-detect-suspend.service
-
-.. note::
-
-   Do not forget the second ``enable`` call to ensure that wake ups are configured even if the system is manually placed into suspend.
 
 To start |project_program| automatically at system start, execute:
 
