@@ -1,3 +1,10 @@
+# [7.2.0](https://github.com/languitar/autosuspend/compare/v7.1.0...v7.2.0) (2025-02-23)
+
+
+### Features
+
+* **systemd:** automatically enable/disable suspend hook ([772797a](https://github.com/languitar/autosuspend/commit/772797a8e4d9b3db7f609d20e73a0e66805ba2f1)), closes [#625](https://github.com/languitar/autosuspend/issues/625)
+
 # [7.1.0](https://github.com/languitar/autosuspend/compare/v7.0.3...v7.1.0) (2025-01-12)
 
 
