@@ -5,7 +5,7 @@ on:
       - main
   pull_request: {}
   schedule:
-    - cron: '0 0 * * 0'
+    - cron: "0 0 * * 0"
 
 jobs:
   lint-commits:
@@ -30,7 +30,7 @@ jobs:
         with:
           python-version: "3.13"
       - name: Install native dependencies
-        run: sudo apt-get update && sudo apt-get -y install libdbus-1-dev libgirepository1.0-dev libcairo2-dev
+        run: sudo apt-get update && sudo apt-get -y install libdbus-1-dev libgirepository-2.0-dev libcairo2-dev
       - name: Cache Python packages
         uses: actions/cache@v4
         with:
@@ -54,7 +54,7 @@ jobs:
         with:
           python-version: "3.13"
       - name: Install native dependencies
-        run: sudo apt-get update && sudo apt-get -y install libdbus-1-dev libgirepository1.0-dev plantuml libcairo2-dev
+        run: sudo apt-get update && sudo apt-get -y install libdbus-1-dev libgirepository-2.0-dev plantuml libcairo2-dev
       - name: Cache Python packages
         uses: actions/cache@v4
         with:
@@ -105,7 +105,7 @@ jobs:
         with:
           python-version: ${{ matrix.python-version }}
       - name: Install native dependencies
-        run: sudo apt-get update && sudo apt-get -y install libdbus-1-dev libgirepository1.0-dev libcairo2-dev
+        run: sudo apt-get update && sudo apt-get -y install libdbus-1-dev libgirepository-2.0-dev libcairo2-dev
       - name: Cache Python packages
         uses: actions/cache@v4
         with:
@@ -133,7 +133,7 @@ jobs:
       - test
       - docs
     steps:
-      - name: 'Generate token'
+      - name: "Generate token"
         id: generate_token
         uses: tibdex/github-app-token@v2
         with:
