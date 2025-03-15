@@ -92,8 +92,8 @@ def test_wakeup_scheduled(tmp_path: Path, datadir: Path) -> None:
 
     assert (tmp_path / SUSPENSION_FILE).exists()
     assert (tmp_path / SCHEDULED_FILE).exists()
-    assert int((tmp_path / SCHEDULED_FILE).read_text()) == int(
-        round((wakeup_at - timedelta(seconds=30)).timestamp())
+    assert int((tmp_path / SCHEDULED_FILE).read_text()) == round(
+        (wakeup_at - timedelta(seconds=30)).timestamp()
     )
 
 
@@ -151,8 +151,8 @@ def test_notify_call_wakeup(tmp_path: Path, datadir: Path) -> None:
 
     assert (tmp_path / SUSPENSION_FILE).exists()
     assert (tmp_path / NOTIFY_FILE).exists()
-    assert int((tmp_path / NOTIFY_FILE).read_text()) == int(
-        round((wakeup_at - timedelta(seconds=10)).timestamp())
+    assert int((tmp_path / NOTIFY_FILE).read_text()) == round(
+        (wakeup_at - timedelta(seconds=10)).timestamp()
     )
 
 
@@ -241,8 +241,8 @@ def test_hook_call_wakeup(tmp_path: Path, datadir: Path) -> None:
     )
 
     assert (tmp_path / SCHEDULED_FILE).exists()
-    assert int((tmp_path / SCHEDULED_FILE).read_text()) == int(
-        round((wakeup_at - timedelta(seconds=30)).timestamp())
+    assert int((tmp_path / SCHEDULED_FILE).read_text()) == round(
+        (wakeup_at - timedelta(seconds=30)).timestamp()
     )
 
 
