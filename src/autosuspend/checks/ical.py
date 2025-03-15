@@ -41,7 +41,9 @@ def _expand_rrule_all_day(
     To my mind, these events cannot have changes, just exclusions, because
     changes only affect the time, which doesn't exist for all-day events.
     """
-    rules = cast(rruleset, rrulestr(rrule, dtstart=start, ignoretz=True, forceset=True))
+    rules = cast(
+        "rruleset", rrulestr(rrule, dtstart=start, ignoretz=True, forceset=True)
+    )
 
     # add exclusions
     if exclusions:
@@ -76,7 +78,7 @@ def _prepare_rruleset_for_expanding(
 
     rules = rruleset()
     first_rule = cast(
-        rrule, rrulestr(rule, dtstart=start, ignoretz=True, forceset=False)
+        "rrule", rrulestr(rule, dtstart=start, ignoretz=True, forceset=False)
     )
 
     # apply the same timezone logic for the until part of the rule after
