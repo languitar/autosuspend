@@ -258,7 +258,7 @@ def _extract_events_from_component(
 
 
 def list_calendar_events(
-    data: IO[bytes], start_at: datetime, end_at: datetime
+    data: IO[bytes], start_at: datetime, end_at: datetime, match: str
 ) -> Sequence[CalendarEvent]:
     """List all relevant calendar events in the provided interval.
 
@@ -282,11 +282,12 @@ def list_calendar_events(
 
     events = []
     for component in calendar.walk("VEVENT"):
-        events.extend(
-            _extract_events_from_component(
-                component, recurring_changes, start_at, end_at
+        if match is None or match in component.get('summary'):
+            events.extend(
+                _extract_events_from_component(
+                    component, recurring_changes, start_at, end_at
+                )
             )
-        )
 
     return sorted(events, key=lambda e: e.start)
 
@@ -294,15 +295,26 @@ def list_calendar_events(
 class ActiveCalendarEvent(NetworkMixin, Activity):
     """Determines activity by checking against events in an icalendar file."""
 
-    def __init__(self, name: str, **kwargs: Any) -> None:
+    def __init__(self, name: str, match: str,  **kwargs: Any) -> None:
         NetworkMixin.__init__(self, **kwargs)
         Activity.__init__(self, name)
+        self._match = match
+
+    @classmethod
+    def collect_init_args(
+            cls, config, *args,
+            **kwargs: Any
+    ) -> dict[str, Any]:
+        args = NetworkMixin.collect_init_args(config, *args, **kwargs)
+        args["match"] = config.get("match")
+        return args
 
     def check(self) -> str | None:
         response = self.request()
         start = datetime.now(timezone.utc)
         end = start + timedelta(minutes=1)
-        events = list_calendar_events(BytesIO(response.content), start, end)
+        events = list_calendar_events(
+                BytesIO(response.content), start, end, match=self._match)
         self.logger.debug(
             "Listing active events between %s and %s returned %s events",
             start,
