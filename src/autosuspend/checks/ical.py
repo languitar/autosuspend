@@ -291,13 +291,12 @@ def list_calendar_events(
 
     return sorted(events, key=lambda e: e.start)
 
-
-class ActiveCalendarEvent(NetworkMixin, Activity):
-    """Determines activity by checking against events in an icalendar file."""
+class GeneralCalendar(NetworkMixin):
+    """
+    Superclass of calendar events """
 
     def __init__(self, name: str, match: str,  **kwargs: Any) -> None:
         NetworkMixin.__init__(self, **kwargs)
-        Activity.__init__(self, name)
         self._match = match
 
     @classmethod
@@ -308,6 +307,14 @@ class ActiveCalendarEvent(NetworkMixin, Activity):
         args = NetworkMixin.collect_init_args(config, *args, **kwargs)
         args["match"] = config.get("match")
         return args
+
+
+class ActiveCalendarEvent(GeneralCalendar, Activity):
+    """Determines activity by checking against events in an icalendar file."""
+
+    def __init__(self, name: str, *args, **kwargs) -> None:
+        GeneralCalendar.__init__(self, **kwargs)
+        Activity.__init__(self, name)
 
     def check(self) -> str | None:
         response = self.request()
@@ -327,22 +334,12 @@ class ActiveCalendarEvent(NetworkMixin, Activity):
             return None
 
 
-class Calendar(NetworkMixin, Wakeup):
+class Calendar(GeneralCalendar, Wakeup):
     """Uses an ical calendar to wake up on the next scheduled event."""
 
-    def __init__(self, name: str, match: str, **kwargs: Any) -> None:
-        NetworkMixin.__init__(self, **kwargs)
+    def __init__(self, name: str, *args, **kwargs) -> None:
+        GeneralCalendar.__init__(self, **kwargs)
         Wakeup.__init__(self, name)
-        self._match = match
-
-    @classmethod
-    def collect_init_args(
-            cls, config, *args,
-            **kwargs: Any
-    ) -> dict[str, Any]:
-        args = NetworkMixin.collect_init_args(config, *args, **kwargs)
-        args["match"] = config.get("match")
-        return args
 
     def check(self, timestamp: datetime) -> datetime | None:
         response = self.request()
