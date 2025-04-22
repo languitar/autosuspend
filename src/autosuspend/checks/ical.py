@@ -330,15 +330,26 @@ class ActiveCalendarEvent(NetworkMixin, Activity):
 class Calendar(NetworkMixin, Wakeup):
     """Uses an ical calendar to wake up on the next scheduled event."""
 
-    def __init__(self, name: str, **kwargs: Any) -> None:
+    def __init__(self, name: str, match: str, **kwargs: Any) -> None:
         NetworkMixin.__init__(self, **kwargs)
         Wakeup.__init__(self, name)
+        self._match = match
+
+    @classmethod
+    def collect_init_args(
+            cls, config, *args,
+            **kwargs: Any
+    ) -> dict[str, Any]:
+        args = NetworkMixin.collect_init_args(config, *args, **kwargs)
+        args["match"] = config.get("match")
+        return args
 
     def check(self, timestamp: datetime) -> datetime | None:
         response = self.request()
 
         end = timestamp + timedelta(weeks=6 * 4)
-        events = list_calendar_events(BytesIO(response.content), timestamp, end)
+        events = list_calendar_events(
+                BytesIO(response.content), timestamp, end, match=self._match)
         # Filter out currently active events. They are not our business.
         events = [e for e in events if e.start >= timestamp]
 
