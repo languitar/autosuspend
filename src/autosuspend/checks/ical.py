@@ -258,7 +258,7 @@ def _extract_events_from_component(
 
 
 def list_calendar_events(
-    data: IO[bytes], start_at: datetime, end_at: datetime, match: str
+    data: IO[bytes], start_at: datetime, end_at: datetime, match: str | None
 ) -> Sequence[CalendarEvent]:
     """List all relevant calendar events in the provided interval.
 
