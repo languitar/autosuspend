@@ -148,7 +148,7 @@ def _get_recurrence_exclusions_as_list(component: dict) -> list:
     exclusions = component.get("exdate")
     if exclusions and not isinstance(exclusions, list):
         exclusions = [exclusions]
-    return exclusions
+    return exclusions  # type: ignore
 
 
 DateType = TypeVar("DateType", date, datetime)

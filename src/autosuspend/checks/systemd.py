@@ -91,11 +91,11 @@ class LogindSessionsIdle(Activity):
         name: str,
         config: configparser.SectionProxy,
     ) -> "LogindSessionsIdle":
-        types = config.get("types", fallback="tty,x11,wayland").split(",")  # type: ignore
+        types = config.get("types", fallback="tty,x11,wayland").split(",")
         types = [t.strip() for t in types]
-        states = config.get("states", fallback="active,online").split(",")  # type: ignore
+        states = config.get("states", fallback="active,online").split(",")
         states = [t.strip() for t in states]
-        classes = config.get("classes", fallback="user").split(",")  # type: ignore
+        classes = config.get("classes", fallback="user").split(",")
         classes = [t.strip() for t in classes]
         return cls(name, types, states, classes)
 
