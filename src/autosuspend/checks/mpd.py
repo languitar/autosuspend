@@ -13,7 +13,7 @@ class Mpd(Activity):
             host = config.get("host", fallback="localhost")
             port = config.getint("port", fallback=6600)
             timeout = config.getint("timeout", fallback=5)
-            return cls(name, host, port, timeout)  # type: ignore
+            return cls(name, host, port, timeout)
         except ValueError as error:
             raise ConfigurationError(
                 f"Host port or timeout configuration wrong: {error}"
