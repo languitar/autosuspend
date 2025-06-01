@@ -3,8 +3,8 @@ from datetime import timedelta
 from pathlib import Path
 
 from dateutil import parser
-from dateutil.tz import tzlocal
 from freezegun import freeze_time
+import tzlocal
 
 from autosuspend.checks import Check
 from autosuspend.checks.ical import (
@@ -142,11 +142,11 @@ class TestListCalendarEvents:
 
     def test_floating_time(self, datadir: Path) -> None:
         with (datadir / "floating.ics").open("rb") as f:
-            start = parser.parse("2018-06-09 00:00:00 +0200")
+            tzinfo = {"LOCAL": tzlocal.get_localzone()}
+
+            start = parser.parse("2018-06-09 00:00:00 LOCAL", tzinfos=tzinfo)
             end = start + timedelta(weeks=1)
             events = list_calendar_events(f, start, end)
-
-            tzinfo = {"LOCAL": tzlocal()}
 
             expected = [
                 (
@@ -180,11 +180,11 @@ class TestListCalendarEvents:
 
     def test_floating_time_other_dst(self, datadir: Path) -> None:
         with (datadir / "floating.ics").open("rb") as f:
-            start = parser.parse("2018-12-09 00:00:00 +0200")
+            tzinfo = {"LOCAL": tzlocal.get_localzone()}
+
+            start = parser.parse("2018-12-09 00:00:00 LOCAL", tzinfos=tzinfo)
             end = start + timedelta(weeks=1)
             events = list_calendar_events(f, start, end)
-
-            tzinfo = {"LOCAL": tzlocal()}
 
             expected = [
                 (

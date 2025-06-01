@@ -4,10 +4,10 @@ from datetime import datetime, timedelta, timezone
 from pathlib import Path
 import re
 from re import Pattern
+from zoneinfo import ZoneInfo
 
 from dateutil.parser import parse
 from dateutil.utils import default_tzinfo
-import pytz
 
 from . import Activity, ConfigurationError, TemporaryCheckError
 
@@ -22,7 +22,7 @@ class LastLogActivity(Activity):
                 re.compile(config["pattern"]),
                 timedelta(minutes=config.getint("minutes", fallback=10)),
                 config.get("encoding", "ascii"),
-                pytz.timezone(config.get("timezone", "UTC")),  # type: ignore
+                ZoneInfo(config.get("timezone", "UTC")),  # type: ignore
             )
         except KeyError as error:
             raise ConfigurationError(

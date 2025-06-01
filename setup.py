@@ -17,7 +17,7 @@ extras_require = {
     "Logind": ["dbus-python"],
     "ical": ["requests", "icalendar", "python-dateutil", "tzlocal"],
     "localfiles": ["requests-file"],
-    "logactivity": ["python-dateutil", "pytz"],
+    "logactivity": ["python-dateutil", "tzdata"],
     "test": [
         "pytest",
         "pytest-cov",
