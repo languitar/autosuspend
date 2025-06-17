@@ -44,7 +44,7 @@ class XPathMixin(NetworkMixin):
     def evaluate(self) -> Sequence[Any]:
         try:
             reply = self.request().content
-            root = etree.fromstring(reply, parser=self._parser)  # noqa: S320
+            root = etree.fromstring(reply, parser=self._parser)
             return root.xpath(self._xpath)
         except requests.exceptions.RequestException as error:
             raise TemporaryCheckError(error) from error
