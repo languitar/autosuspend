@@ -1,10 +1,10 @@
 from datetime import timedelta, timezone
 from pathlib import Path
 import re
+from zoneinfo import ZoneInfo
 
 from freezegun import freeze_time
 import pytest
-import pytz
 
 from autosuspend.checks import ConfigurationError, TemporaryCheckError
 from autosuspend.checks.logs import LastLogActivity
@@ -209,7 +209,7 @@ class TestLastLogActivity(CheckTest):
         assert created.pattern == re.compile(r"^foo(.*)bar$")
         assert created.delta == timedelta(minutes=42)
         assert created.encoding == "utf-8"
-        assert created.default_timezone == pytz.timezone("Europe/Berlin")
+        assert created.default_timezone == ZoneInfo("Europe/Berlin")
 
     def test_create_handles_pattern_errors(self) -> None:
         with pytest.raises(ConfigurationError):

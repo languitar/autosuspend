@@ -4,21 +4,16 @@ from dataclasses import dataclass
 from datetime import date, datetime, timedelta, timezone, tzinfo
 from io import BytesIO
 from typing import Any, cast, IO, TypeVar
+from zoneinfo import ZoneInfo
 
 from dateutil.rrule import rrule, rruleset, rrulestr
 import icalendar
 import icalendar.cal
-import pytz
 import tzlocal
 
 from . import Activity, Wakeup
 from .util import NetworkMixin
 from ..util.datetime import is_aware, to_tz_unaware
-
-
-# Make v6 behave as if it were an older version to support a wider range.
-with suppress(AttributeError):
-    icalendar.use_pytz()
 
 
 @dataclass
@@ -85,7 +80,7 @@ def _prepare_rruleset_for_expanding(
     # parsing it.
     if first_rule._until:  # type: ignore
         first_rule._until = to_tz_unaware(  # type: ignore
-            pytz.utc.localize(first_rule._until),  # type: ignore
+            first_rule._until.replace(tzinfo=ZoneInfo("UTC")),  # type: ignore
             tz,
         )
 
@@ -223,10 +218,7 @@ def _localize(dt: datetime, tz: Any) -> datetime:
 
     This method handles the different return types of tzlocal in different versions.
     """
-    try:
-        return tz.localize(dt)
-    except AttributeError:
-        return dt.astimezone(tz)
+    return dt.replace(tzinfo=tz)
 
 
 def _extract_events_from_component(
