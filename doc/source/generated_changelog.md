@@ -1,3 +1,15 @@
+# [8.0.0](https://github.com/languitar/autosuspend/compare/v7.2.0...v8.0.0) (2025-06-21)
+
+
+### Code Refactoring
+
+* **deps:** remove pytz, require tzdata ([af7ea3a](https://github.com/languitar/autosuspend/commit/af7ea3a400425933fd44ec691b9b7f812055fd71))
+
+
+### BREAKING CHANGES
+
+* **deps:** new optional dependency tzdata when doing log parsing
+
 # [7.2.0](https://github.com/languitar/autosuspend/compare/v7.1.0...v7.2.0) (2025-02-23)
 
 
