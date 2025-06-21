@@ -269,7 +269,7 @@ Requirements
 ============
 
 * `dateutil`_
-* `pytz`_
+* `tzdata`_
 
 .. _check-load:
 
