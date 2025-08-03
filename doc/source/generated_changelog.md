@@ -1,3 +1,13 @@
+# [9.0.0](https://github.com/languitar/autosuspend/compare/v8.0.0...v9.0.0) (2025-08-03)
+
+
+* build!: drop Python 3.10 support ([fa4b20c](https://github.com/languitar/autosuspend/commit/fa4b20c50ce5bcfd26ced5c460868fe0bd41f219))
+
+
+### BREAKING CHANGES
+
+* official support for Python 3.10 has been dropped
+
 # [8.0.0](https://github.com/languitar/autosuspend/compare/v7.2.0...v8.0.0) (2025-06-21)
 
 
