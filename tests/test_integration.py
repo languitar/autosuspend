@@ -1,5 +1,5 @@
 from collections.abc import Iterable
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, timedelta, UTC
 import logging
 from pathlib import Path
 from typing import Any
@@ -75,7 +75,7 @@ def test_suspend(tmp_path: Path, datadir: Path) -> None:
 @pytest.mark.usefixtures("_rapid_sleep")
 def test_wakeup_scheduled(tmp_path: Path, datadir: Path) -> None:
     # configure when to wake up
-    now = datetime.now(timezone.utc)
+    now = datetime.now(UTC)
     wakeup_at = now + timedelta(hours=4)
     (tmp_path / "wakeup_time").write_text(str(wakeup_at.timestamp()))
 
@@ -134,7 +134,7 @@ def test_notify_call(tmp_path: Path, datadir: Path) -> None:
 @pytest.mark.usefixtures("_rapid_sleep")
 def test_notify_call_wakeup(tmp_path: Path, datadir: Path) -> None:
     # configure when to wake up
-    now = datetime.now(timezone.utc)
+    now = datetime.now(UTC)
     wakeup_at = now + timedelta(hours=4)
     (tmp_path / "wakeup_time").write_text(str(wakeup_at.timestamp()))
 
@@ -227,7 +227,7 @@ def test_hook_success(tmp_path: Path, datadir: Path) -> None:
 
 def test_hook_call_wakeup(tmp_path: Path, datadir: Path) -> None:
     # configure when to wake up
-    now = datetime.now(timezone.utc)
+    now = datetime.now(UTC)
     wakeup_at = now + timedelta(hours=4)
     (tmp_path / "wakeup_time").write_text(str(wakeup_at.timestamp()))
 

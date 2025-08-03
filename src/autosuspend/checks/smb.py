@@ -1,5 +1,6 @@
 import configparser
 import subprocess
+from typing import Self
 
 from . import Activity, SevereCheckError, TemporaryCheckError
 
@@ -7,8 +8,10 @@ from . import Activity, SevereCheckError, TemporaryCheckError
 class Smb(Activity):
     @classmethod
     def create(
-        cls, name: str, config: configparser.SectionProxy | None  # noqa: ARG003
-    ) -> "Smb":
+        cls: type[Self],
+        name: str,
+        config: configparser.SectionProxy | None,  # noqa: ARG003
+    ) -> Self:
         return cls(name)
 
     def _safe_get_status(self) -> str:

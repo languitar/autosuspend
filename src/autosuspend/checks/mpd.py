@@ -1,5 +1,6 @@
 import configparser
 import socket
+from typing import Self
 
 from mpd import MPDClient, MPDError
 
@@ -8,7 +9,7 @@ from . import Activity, Check, ConfigurationError, TemporaryCheckError
 
 class Mpd(Activity):
     @classmethod
-    def create(cls, name: str, config: configparser.SectionProxy) -> "Mpd":
+    def create(cls: type[Self], name: str, config: configparser.SectionProxy) -> Self:
         try:
             host = config.get("host", fallback="localhost")
             port = config.getint("port", fallback=6600)

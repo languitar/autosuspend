@@ -1,6 +1,6 @@
 import argparse
 import configparser
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, timedelta, timezone, UTC
 import logging
 import subprocess
 from typing import Any
@@ -47,7 +47,7 @@ class TestScheduleWakeup:
 
         spy = mocker.spy(autosuspend._logger, "warning")
 
-        autosuspend.schedule_wakeup("foo", datetime.now(timezone.utc))
+        autosuspend.schedule_wakeup("foo", datetime.now(UTC))
 
         mock.assert_called_once_with("foo", shell=True)
         assert spy.call_count == 1
@@ -309,9 +309,7 @@ class TestExecuteChecks:
 class TestExecuteWakeups:
     def test_no_wakeups(self, mocker: MockerFixture) -> None:
         assert (
-            autosuspend.execute_wakeups(
-                [], datetime.now(timezone.utc), mocker.MagicMock()
-            )
+            autosuspend.execute_wakeups([], datetime.now(UTC), mocker.MagicMock())
             is None
         )
 
@@ -319,9 +317,7 @@ class TestExecuteWakeups:
         wakeup = mocker.MagicMock(spec=autosuspend.Wakeup)
         wakeup.check.return_value = None
         assert (
-            autosuspend.execute_wakeups(
-                [wakeup], datetime.now(timezone.utc), mocker.MagicMock()
-            )
+            autosuspend.execute_wakeups([wakeup], datetime.now(UTC), mocker.MagicMock())
             is None
         )
 
@@ -350,7 +346,7 @@ class TestExecuteWakeups:
 
     def test_basic_return(self, mocker: MockerFixture) -> None:
         wakeup = mocker.MagicMock(spec=autosuspend.Wakeup)
-        now = datetime.now(timezone.utc)
+        now = datetime.now(UTC)
         wakeup_time = now + timedelta(seconds=10)
         wakeup.check.return_value = wakeup_time
         assert (
@@ -359,7 +355,7 @@ class TestExecuteWakeups:
         )
 
     def test_soonest_taken(self, mocker: MockerFixture) -> None:
-        reference = datetime.now(timezone.utc)
+        reference = datetime.now(UTC)
         wakeup = mocker.MagicMock(spec=autosuspend.Wakeup)
         wakeup.check.return_value = reference + timedelta(seconds=20)
         earlier = reference + timedelta(seconds=10)
@@ -376,7 +372,7 @@ class TestExecuteWakeups:
         )
 
     def test_ignore_temporary_errors(self, mocker: MockerFixture) -> None:
-        now = datetime.now(timezone.utc)
+        now = datetime.now(UTC)
 
         wakeup = mocker.MagicMock(spec=autosuspend.Wakeup)
         wakeup.check.return_value = now + timedelta(seconds=20)
@@ -389,7 +385,7 @@ class TestExecuteWakeups:
         ) == now + timedelta(seconds=10)
 
     def test_ignore_too_early(self, mocker: MockerFixture) -> None:
-        now = datetime.now(timezone.utc)
+        now = datetime.now(UTC)
         wakeup = mocker.MagicMock(spec=autosuspend.Wakeup)
         wakeup.check.return_value = now
         assert autosuspend.execute_wakeups([wakeup], now, mocker.MagicMock()) is None
@@ -437,7 +433,7 @@ class TestNotifySuspend:
 
     def test_info_no_command(self, caplog: Any) -> None:
         with caplog.at_level(logging.INFO):
-            autosuspend.notify_suspend(None, None, datetime.now(tz=timezone.utc))
+            autosuspend.notify_suspend(None, None, datetime.now(UTC))
             assert "suitable" in caplog.text
 
 
@@ -528,7 +524,7 @@ class TestProcessor:
             [_StubCheck("stub", None)], [], 2, 0, 0, sleep_fn, wakeup_fn, False
         )
         # should init the timestamp initially
-        start = datetime.now(timezone.utc)
+        start = datetime.now(UTC)
         processor.iteration(start, False)
         assert not sleep_fn.called
         # not yet reached
@@ -561,7 +557,7 @@ class TestProcessor:
         )
 
         # should init the timestamp initially
-        start = datetime.now(timezone.utc)
+        start = datetime.now(UTC)
         processor.iteration(start, False)
         assert not sleep_fn.called
         # should go to sleep but we just woke up
@@ -582,7 +578,7 @@ class TestProcessor:
     def test_wakeup_blocks_sleep(
         self, mocker: MockerFixture, sleep_fn: SleepFn, wakeup_fn: WakeupFn
     ) -> None:
-        start = datetime.now(timezone.utc)
+        start = datetime.now(UTC)
         wakeup = mocker.MagicMock(spec=autosuspend.Wakeup)
         wakeup.check.return_value = start + timedelta(seconds=6)
         processor = autosuspend.Processor(
@@ -602,7 +598,7 @@ class TestProcessor:
         sleep_fn: SleepFn,
         wakeup_fn: WakeupFn,
     ) -> None:
-        start = datetime.now(timezone.utc)
+        start = datetime.now(UTC)
         wakeup = mocker.MagicMock(spec=autosuspend.Wakeup)
         wakeup.check.return_value = start + timedelta(seconds=6)
         processor = autosuspend.Processor(
@@ -619,7 +615,7 @@ class TestProcessor:
     def test_wakeup_scheduled(
         self, mocker: MockerFixture, sleep_fn: SleepFn, wakeup_fn: WakeupFn
     ) -> None:
-        start = datetime.now(timezone.utc)
+        start = datetime.now(UTC)
         wakeup = mocker.MagicMock(spec=autosuspend.Wakeup)
         wakeup.check.return_value = start + timedelta(seconds=25)
         processor = autosuspend.Processor(
@@ -644,7 +640,7 @@ class TestProcessor:
     def test_wakeup_delta_blocks(
         self, mocker: MockerFixture, sleep_fn: SleepFn, wakeup_fn: WakeupFn
     ) -> None:
-        start = datetime.now(timezone.utc)
+        start = datetime.now(UTC)
         wakeup = mocker.MagicMock(spec=autosuspend.Wakeup)
         wakeup.check.return_value = start + timedelta(seconds=25)
         processor = autosuspend.Processor(
@@ -660,7 +656,7 @@ class TestProcessor:
     def test_wakeup_delta_applied(
         self, mocker: MockerFixture, sleep_fn: SleepFn, wakeup_fn: WakeupFn
     ) -> None:
-        start = datetime.now(timezone.utc)
+        start = datetime.now(UTC)
         wakeup = mocker.MagicMock(spec=autosuspend.Wakeup)
         wakeup.check.return_value = start + timedelta(seconds=25)
         processor = autosuspend.Processor(

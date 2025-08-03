@@ -5,7 +5,7 @@ import argparse
 from collections.abc import Callable, Iterable, Sequence
 import configparser
 from contextlib import suppress
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, timedelta, UTC
 import functools
 from importlib.metadata import version
 import logging
@@ -316,7 +316,7 @@ class Processor:
 
 def _continue_looping(run_for: int | None, start_time: datetime) -> bool:
     return (run_for is None) or (
-        datetime.now(timezone.utc) < (start_time + timedelta(seconds=run_for))
+        datetime.now(UTC) < (start_time + timedelta(seconds=run_for))
     )
 
 
@@ -339,7 +339,7 @@ def _do_loop_iteration(
                 except FileNotFoundError:
                     _logger.warning("Just woke up file disappeared", exc_info=True)
 
-            processor.iteration(datetime.now(timezone.utc), just_woke_up)
+            processor.iteration(datetime.now(UTC), just_woke_up)
 
     except portalocker.LockException:
         _logger.warning("Failed to acquire lock, skipping iteration", exc_info=True)
@@ -372,7 +372,7 @@ def loop(
         lock_timeout:
             time in seconds to wait for acquiring the lock file
     """
-    start_time = datetime.now(timezone.utc)
+    start_time = datetime.now(UTC)
     while _continue_looping(run_for, start_time):
         _do_loop_iteration(processor, woke_up_file, lock_file, lock_timeout)
         time.sleep(interval)
@@ -724,7 +724,7 @@ def hook(
             _logger.debug("Hook acquired lock")
 
             _logger.debug("Hook executing with configured wake ups: %s", wakeups)
-            wakeup_at = execute_wakeups(wakeups, datetime.now(timezone.utc), _logger)
+            wakeup_at = execute_wakeups(wakeups, datetime.now(UTC), _logger)
             _logger.debug("Hook next wake up at %s", wakeup_at)
 
             if wakeup_at:

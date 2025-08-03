@@ -1,6 +1,6 @@
 from collections import namedtuple
 from collections.abc import Mapping
-from datetime import datetime, timezone
+from datetime import datetime, UTC
 from pathlib import Path
 import re
 import socket
@@ -584,28 +584,28 @@ class TestFile(CheckTest):
         test_file = tmp_path / "file"
         test_file.write_text("42\n\n")
         assert File("name", test_file).check(
-            datetime.now(timezone.utc)
-        ) == datetime.fromtimestamp(42, timezone.utc)
+            datetime.now(UTC)
+        ) == datetime.fromtimestamp(42, UTC)
 
     def test_reports_no_wakeup_if_file_does_not_exist(self, tmp_path: Path) -> None:
-        assert File("name", tmp_path / "narf").check(datetime.now(timezone.utc)) is None
+        assert File("name", tmp_path / "narf").check(datetime.now(UTC)) is None
 
     def test_raises_on_permissions_errors(self, tmp_path: Path) -> None:
         file_path = tmp_path / "test"
         file_path.write_bytes(b"2314898")
         file_path.chmod(0)
         with pytest.raises(TemporaryCheckError):
-            File("name", file_path).check(datetime.now(timezone.utc))
+            File("name", file_path).check(datetime.now(UTC))
 
     def test_raises_on_io_errors(self, tmp_path: Path, mocker: MockerFixture) -> None:
         file_path = tmp_path / "test"
         file_path.write_bytes(b"2314898")
         mocker.patch("pathlib.Path.read_text").side_effect = IOError
         with pytest.raises(TemporaryCheckError):
-            File("name", file_path).check(datetime.now(timezone.utc))
+            File("name", file_path).check(datetime.now(UTC))
 
     def test_raises_if_file_contents_are_not_a_timestamp(self, tmp_path: Path) -> None:
         test_file = tmp_path / "filexxx"
         test_file.write_text("nonumber\n\n")
         with pytest.raises(TemporaryCheckError):
-            File("name", test_file).check(datetime.now(timezone.utc))
+            File("name", test_file).check(datetime.now(UTC))

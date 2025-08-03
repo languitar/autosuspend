@@ -1,4 +1,4 @@
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, timedelta, UTC
 
 import pytest
 
@@ -42,5 +42,5 @@ class TestPeriodic(CheckTest):
     def test_check(self) -> None:
         delta = timedelta(seconds=10, minutes=42)
         check = Periodic("test", delta)
-        now = datetime.now(timezone.utc)
+        now = datetime.now(UTC)
         assert check.check(now) == now + delta

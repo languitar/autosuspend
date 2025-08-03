@@ -1,14 +1,8 @@
 import configparser
 from contextlib import suppress
-from typing import Any, TYPE_CHECKING
+from typing import Any, Self, TYPE_CHECKING
 
-from . import (
-    Check,
-    CheckType,
-    ConfigurationError,
-    SevereCheckError,
-    TemporaryCheckError,
-)
+from . import Check, ConfigurationError, SevereCheckError, TemporaryCheckError
 
 
 if TYPE_CHECKING:
@@ -41,10 +35,8 @@ class NetworkMixin(Check):
             raise ConfigurationError("Lacks " + str(error) + " config entry") from error
 
     @classmethod
-    def create(
-        cls: type[CheckType], name: str, config: configparser.SectionProxy
-    ) -> CheckType:
-        return cls(name, **cls.collect_init_args(config))  # type: ignore
+    def create(cls: type[Self], name: str, config: configparser.SectionProxy) -> Self:
+        return cls(name, **cls.collect_init_args(config))
 
     def __init__(
         self,

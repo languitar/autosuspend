@@ -1,14 +1,14 @@
 from collections.abc import Sequence
 import configparser
-from datetime import datetime, timedelta, timezone
-from typing import Any
+from datetime import datetime, timedelta, UTC
+from typing import Any, Self
 
 from lxml import etree  # using safe parser
 from lxml.etree import XPath, XPathSyntaxError  # our input
 import requests
 import requests.exceptions
 
-from . import Activity, CheckType, ConfigurationError, TemporaryCheckError, Wakeup
+from . import Activity, ConfigurationError, TemporaryCheckError, Wakeup
 from .util import NetworkMixin
 
 
@@ -30,10 +30,8 @@ class XPathMixin(NetworkMixin):
             raise ConfigurationError("Lacks " + str(error) + " config entry") from error
 
     @classmethod
-    def create(
-        cls: type[CheckType], name: str, config: configparser.SectionProxy
-    ) -> CheckType:
-        return cls(name, **cls.collect_init_args(config))  # type: ignore
+    def create(cls: type[Self], name: str, config: configparser.SectionProxy) -> Self:
+        return cls(name, **cls.collect_init_args(config))
 
     def __init__(self, xpath: str, **kwargs: Any) -> None:
         NetworkMixin.__init__(self, **kwargs)
@@ -79,7 +77,7 @@ class XPathWakeup(XPathMixin, Wakeup):
         result: str,
         timestamp: datetime,  # noqa: ARG002
     ) -> datetime:
-        return datetime.fromtimestamp(float(result), timezone.utc)
+        return datetime.fromtimestamp(float(result), UTC)
 
     def check(self, timestamp: datetime) -> datetime | None:
         matches = self.evaluate()
@@ -110,7 +108,7 @@ class XPathDeltaWakeup(XPathWakeup):
     )
 
     @classmethod
-    def create(cls, name: str, config: configparser.SectionProxy) -> "XPathDeltaWakeup":
+    def create(cls: type[Self], name: str, config: configparser.SectionProxy) -> Self:
         try:
             args = XPathWakeup.collect_init_args(config)
             args["unit"] = config.get("unit", fallback="minutes")

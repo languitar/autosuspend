@@ -1,6 +1,6 @@
 import configparser
 import json
-from typing import Any
+from typing import Any, Self
 
 from . import Activity, ConfigurationError, TemporaryCheckError
 from .util import NetworkMixin
@@ -25,7 +25,7 @@ class Kodi(NetworkMixin, Activity):
             raise ConfigurationError(f"Configuration error {error}") from error
 
     @classmethod
-    def create(cls, name: str, config: configparser.SectionProxy) -> "Kodi":
+    def create(cls, name: str, config: configparser.SectionProxy) -> Self:
         return cls(name, **cls.collect_init_args(config))
 
     def __init__(
@@ -74,7 +74,7 @@ class KodiIdleTime(NetworkMixin, Activity):
             raise ConfigurationError("Configuration error " + str(error)) from error
 
     @classmethod
-    def create(cls, name: str, config: configparser.SectionProxy) -> "KodiIdleTime":
+    def create(cls, name: str, config: configparser.SectionProxy) -> Self:
         return cls(name, **cls.collect_init_args(config))
 
     def __init__(self, name: str, url: str, idle_time: int, **kwargs: Any) -> None:

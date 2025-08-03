@@ -1,4 +1,4 @@
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, timedelta, UTC
 import re
 from unittest.mock import Mock
 
@@ -41,19 +41,19 @@ class TestSystemdTimer(CheckTest):
 
     def test_works_without_timers(self, next_timer_executions: Mock) -> None:
         next_timer_executions.return_value = {}
-        now = datetime.now(timezone.utc)
+        now = datetime.now(UTC)
 
         assert SystemdTimer("foo", re.compile(".*")).check(now) is None
 
     def test_ignores_non_matching_timers(self, next_timer_executions: Mock) -> None:
-        now = datetime.now(timezone.utc)
+        now = datetime.now(UTC)
         next_timer_executions.return_value = {"ignored": now}
 
         assert SystemdTimer("foo", re.compile("needle")).check(now) is None
 
     def test_finds_matching_timers(self, next_timer_executions: Mock) -> None:
         pattern = "foo"
-        now = datetime.now(timezone.utc)
+        now = datetime.now(UTC)
         next_timer_executions.return_value = {pattern: now}
 
         assert SystemdTimer("foo", re.compile(pattern)).check(now) is now
@@ -61,7 +61,7 @@ class TestSystemdTimer(CheckTest):
     def test_selects_the_closest_execution_if_multiple_match(
         self, next_timer_executions: Mock
     ) -> None:
-        now = datetime.now(timezone.utc)
+        now = datetime.now(UTC)
         next_timer_executions.return_value = {
             "later": now + timedelta(minutes=1),
             "matching": now,

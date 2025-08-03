@@ -1,5 +1,5 @@
 from collections.abc import Callable
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, timedelta, UTC
 from pathlib import Path
 from typing import Any
 
@@ -161,8 +161,8 @@ class TestXPathWakeup(CheckTest):
 
         url = "nourl"
         assert XPathWakeup("foo", xpath="/a/@value", url=url, timeout=5).check(
-            datetime.now(timezone.utc)
-        ) == datetime.fromtimestamp(42.3, timezone.utc)
+            datetime.now(UTC)
+        ) == datetime.fromtimestamp(42.3, UTC)
 
         mock_method.assert_called_once_with(url, timeout=5, headers=None)
         content_property.assert_called_once_with()
@@ -176,7 +176,7 @@ class TestXPathWakeup(CheckTest):
 
         assert (
             XPathWakeup("foo", xpath="/b", url="nourl", timeout=5).check(
-                datetime.now(timezone.utc)
+                datetime.now(UTC)
             )
             is None
         )
@@ -190,7 +190,7 @@ class TestXPathWakeup(CheckTest):
 
         with pytest.raises(TemporaryCheckError):
             XPathWakeup("foo", xpath="/a", url="nourl", timeout=5).check(
-                datetime.now(timezone.utc)
+                datetime.now(UTC)
             )
 
     def test_not_a_number(self, mocker: MockerFixture) -> None:
@@ -202,7 +202,7 @@ class TestXPathWakeup(CheckTest):
 
         with pytest.raises(TemporaryCheckError):
             XPathWakeup("foo", xpath="/a/@value", url="nourl", timeout=5).check(
-                datetime.now(timezone.utc)
+                datetime.now(UTC)
             )
 
     def test_multiple_min(self, mocker: MockerFixture) -> None:
@@ -219,8 +219,8 @@ class TestXPathWakeup(CheckTest):
         mocker.patch("requests.Session.get", return_value=mock_reply)
 
         assert XPathWakeup("foo", xpath="//a/@value", url="nourl", timeout=5).check(
-            datetime.now(timezone.utc)
-        ) == datetime.fromtimestamp(10, timezone.utc)
+            datetime.now(UTC)
+        ) == datetime.fromtimestamp(10, UTC)
 
     def test_create(self) -> None:
         check: XPathWakeup = XPathWakeup.create(
@@ -260,7 +260,7 @@ class TestXPathDeltaWakeup(CheckTest):
         mocker.patch("requests.Session.get", return_value=mock_reply)
 
         url = "nourl"
-        now = datetime.now(timezone.utc)
+        now = datetime.now(UTC)
         result = XPathDeltaWakeup(
             "foo", xpath="/a/@value", url=url, timeout=5, unit=unit
         ).check(now)
