@@ -3,7 +3,7 @@
 from collections.abc import Iterable
 import configparser
 from contextlib import suppress
-from datetime import datetime, timezone
+from datetime import datetime, UTC
 import os
 from pathlib import Path
 import re
@@ -11,6 +11,7 @@ from re import Pattern
 import socket
 import subprocess
 import time
+from typing import Self
 import warnings
 
 import psutil
@@ -29,10 +30,10 @@ class ActiveConnection(Activity):
 
     @classmethod
     def create(
-        cls,
+        cls: type[Self],
         name: str,
         config: configparser.SectionProxy,
-    ) -> "ActiveConnection":
+    ) -> Self:
         try:
             split_ports = config["ports"].split(",")
             ports = {int(p.strip()) for p in split_ports}
@@ -85,7 +86,7 @@ class ActiveConnection(Activity):
 
 class Load(Activity):
     @classmethod
-    def create(cls, name: str, config: configparser.SectionProxy) -> "Load":
+    def create(cls: type[Self], name: str, config: configparser.SectionProxy) -> Self:
         try:
             return cls(name, config.getfloat("threshold", fallback=2.5))
         except ValueError as error:
@@ -127,10 +128,10 @@ class NetworkBandwidth(Activity):
 
     @classmethod
     def create(
-        cls,
+        cls: type[Self],
         name: str,
         config: configparser.SectionProxy,
-    ) -> "NetworkBandwidth":
+    ) -> Self:
         try:
             interfaces = cls._extract_interfaces(config)
             threshold_send = config.getfloat("threshold_send", fallback=100)
@@ -222,7 +223,7 @@ class Ping(Activity):
     """Check if one or several hosts are reachable via ping."""
 
     @classmethod
-    def create(cls, name: str, config: configparser.SectionProxy) -> "Ping":
+    def create(cls: type[Self], name: str, config: configparser.SectionProxy) -> Self:
         try:
             hosts = config["hosts"].split(",")
             hosts = [h.strip() for h in hosts]
@@ -257,7 +258,7 @@ class Ping(Activity):
 
 class Processes(Activity):
     @classmethod
-    def create(cls, name: str, config: configparser.SectionProxy) -> "Processes":
+    def create(cls: type[Self], name: str, config: configparser.SectionProxy) -> Self:
         try:
             processes = config["processes"].split(",")
             processes = [p.strip() for p in processes]
@@ -280,7 +281,7 @@ class Processes(Activity):
 
 class Users(Activity):
     @classmethod
-    def create(cls, name: str, config: configparser.SectionProxy) -> "Users":
+    def create(cls: type[Self], name: str, config: configparser.SectionProxy) -> Self:
         with warnings.catch_warnings():
             warnings.simplefilter("ignore", FutureWarning)
             try:
@@ -332,7 +333,7 @@ class File(Wakeup):
     """
 
     @classmethod
-    def create(cls, name: str, config: configparser.SectionProxy) -> "File":
+    def create(cls: type[Self], name: str, config: configparser.SectionProxy) -> Self:
         try:
             path = Path(config["path"])
             return cls(name, path)
@@ -346,7 +347,7 @@ class File(Wakeup):
     def check(self, timestamp: datetime) -> datetime | None:  # noqa: ARG002
         try:
             first_line = self._path.read_text().splitlines()[0]
-            return datetime.fromtimestamp(float(first_line.strip()), timezone.utc)
+            return datetime.fromtimestamp(float(first_line.strip()), UTC)
         except FileNotFoundError:
             # this is ok
             return None

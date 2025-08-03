@@ -1,5 +1,6 @@
 import configparser
 from datetime import datetime, timedelta
+from typing import Self
 
 from . import ConfigurationError, Wakeup
 
@@ -11,7 +12,7 @@ class Periodic(Wakeup):
     """
 
     @classmethod
-    def create(cls, name: str, config: configparser.SectionProxy) -> "Periodic":
+    def create(cls: type[Self], name: str, config: configparser.SectionProxy) -> Self:
         try:
             kwargs = {config["unit"]: float(config["value"])}
             return cls(name, timedelta(**kwargs))

@@ -1,4 +1,4 @@
-from datetime import timedelta, timezone
+from datetime import timedelta, timezone, UTC
 from pathlib import Path
 import re
 from zoneinfo import ZoneInfo
@@ -21,7 +21,7 @@ class TestLastLogActivity(CheckTest):
             pattern=re.compile("^(.*)$"),
             delta=timedelta(minutes=10),
             encoding="ascii",
-            default_timezone=timezone.utc,
+            default_timezone=UTC,
         )
 
     def test_is_active(self, tmpdir: Path) -> None:
@@ -36,7 +36,7 @@ class TestLastLogActivity(CheckTest):
                     re.compile(r"^(.*)$"),
                     timedelta(minutes=10),
                     "ascii",
-                    timezone.utc,
+                    UTC,
                 ).check()
                 is not None
             )
@@ -53,7 +53,7 @@ class TestLastLogActivity(CheckTest):
                     re.compile(r"^(.*)$"),
                     timedelta(minutes=10),
                     "ascii",
-                    timezone.utc,
+                    UTC,
                 ).check()
                 is None
             )
@@ -73,7 +73,7 @@ class TestLastLogActivity(CheckTest):
                     re.compile(r"^(.*)$"),
                     timedelta(minutes=10),
                     "ascii",
-                    timezone.utc,
+                    UTC,
                 ).check()
                 is None
             )
@@ -89,7 +89,7 @@ class TestLastLogActivity(CheckTest):
                 re.compile(r"^foo(.*)$"),
                 timedelta(minutes=10),
                 "ascii",
-                timezone.utc,
+                UTC,
             ).check()
             is None
         )
@@ -106,7 +106,7 @@ class TestLastLogActivity(CheckTest):
                     re.compile(r"^foo(.*)bar$"),
                     timedelta(minutes=10),
                     "ascii",
-                    timezone.utc,
+                    UTC,
                 ).check()
                 is not None
             )
@@ -142,7 +142,7 @@ class TestLastLogActivity(CheckTest):
                     re.compile(r"^(.*)$"),
                     timedelta(minutes=10),
                     "ascii",
-                    timezone.utc,
+                    UTC,
                 ).check()
                 is not None
             )
@@ -159,7 +159,7 @@ class TestLastLogActivity(CheckTest):
                 re.compile(r"^(.*)$"),
                 timedelta(minutes=10),
                 "ascii",
-                timezone.utc,
+                UTC,
             ).check()
 
     def test_fails_if_dates_are_in_the_future(self, tmpdir: Path) -> None:
@@ -174,7 +174,7 @@ class TestLastLogActivity(CheckTest):
                 re.compile(r"^(.*)$"),
                 timedelta(minutes=10),
                 "ascii",
-                timezone.utc,
+                UTC,
             ).check()
 
     def test_fails_if_file_cannot_be_read(self, tmpdir: Path) -> None:
@@ -187,7 +187,7 @@ class TestLastLogActivity(CheckTest):
                 re.compile(r"^(.*)$"),
                 timedelta(minutes=10),
                 "ascii",
-                timezone.utc,
+                UTC,
             ).check()
 
     def test_create(self) -> None:

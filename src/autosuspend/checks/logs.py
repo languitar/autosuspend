@@ -1,9 +1,10 @@
 from collections.abc import Iterable
 import configparser
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, timedelta, timezone, UTC
 from pathlib import Path
 import re
 from re import Pattern
+from typing import Self
 from zoneinfo import ZoneInfo
 
 from dateutil.parser import parse
@@ -14,7 +15,7 @@ from . import Activity, ConfigurationError, TemporaryCheckError
 
 class LastLogActivity(Activity):
     @classmethod
-    def create(cls, name: str, config: configparser.SectionProxy) -> "LastLogActivity":
+    def create(cls: type[Self], name: str, config: configparser.SectionProxy) -> Self:
         try:
             return cls(
                 name,
@@ -89,7 +90,7 @@ class LastLogActivity(Activity):
     def check(self) -> str | None:
         lines = self._file_lines_reversed()
 
-        now = datetime.now(tz=timezone.utc)
+        now = datetime.now(UTC)
         for line in lines:
             match = self.pattern.match(line)
             if not match:

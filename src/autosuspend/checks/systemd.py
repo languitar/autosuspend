@@ -1,9 +1,9 @@
 from collections.abc import Iterable
 import configparser
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, timedelta, UTC
 import re
 from re import Pattern
-from typing import Any
+from typing import Any, Self
 
 import dbus
 
@@ -41,12 +41,10 @@ def next_timer_executions() -> dict[str, datetime]:
         if realtime is not None:
             next_time = datetime.fromtimestamp(
                 realtime / 1000000,
-                tz=timezone.utc,
+                tz=UTC,
             )
         elif monotonic is not None:
-            next_time = datetime.now(tz=timezone.utc) + timedelta(
-                seconds=monotonic / 1000000
-            )
+            next_time = datetime.now(tz=UTC) + timedelta(seconds=monotonic / 1000000)
 
         if next_time:
             result[str(timer[0])] = next_time
@@ -58,7 +56,7 @@ class SystemdTimer(Wakeup):
     """Ensures that the system is active when some selected SystemD timers will run."""
 
     @classmethod
-    def create(cls, name: str, config: configparser.SectionProxy) -> "SystemdTimer":
+    def create(cls: type[Self], name: str, config: configparser.SectionProxy) -> Self:
         try:
             return cls(name, re.compile(config["match"]))
         except (re.error, ValueError, KeyError, TypeError) as error:
@@ -87,10 +85,10 @@ class LogindSessionsIdle(Activity):
 
     @classmethod
     def create(
-        cls,
+        cls: type[Self],
         name: str,
         config: configparser.SectionProxy,
-    ) -> "LogindSessionsIdle":
+    ) -> Self:
         types = config.get("types", fallback="tty,x11,wayland").split(",")
         types = [t.strip() for t in types]
         states = config.get("states", fallback="active,online").split(",")

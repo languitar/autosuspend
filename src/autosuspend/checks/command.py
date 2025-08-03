@@ -1,11 +1,11 @@
 import configparser
-from datetime import datetime, timezone
+from datetime import datetime, UTC
 import subprocess
+from typing import Self
 
 from . import (
     Activity,
     Check,
-    CheckType,
     ConfigurationError,
     SevereCheckError,
     TemporaryCheckError,
@@ -23,9 +23,7 @@ class CommandMixin(Check):
     """Mixin for configuring checks based on external commands."""
 
     @classmethod
-    def create(
-        cls: type[CheckType], name: str, config: configparser.SectionProxy
-    ) -> CheckType:
+    def create(cls: type[Self], name: str, config: configparser.SectionProxy) -> Self:
         try:
             return cls(name, config["command"].strip())  # type: ignore
         except KeyError as error:
@@ -70,7 +68,7 @@ class CommandWakeup(CommandMixin, Wakeup):
                 "Command %s succeeded with output %s", self._command, output
             )
             if output.strip():
-                return datetime.fromtimestamp(float(output.strip()), timezone.utc)
+                return datetime.fromtimestamp(float(output.strip()), UTC)
             else:
                 return None
 

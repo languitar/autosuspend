@@ -1,4 +1,4 @@
-from datetime import datetime, timezone
+from datetime import datetime, UTC
 import subprocess
 
 import pytest
@@ -83,26 +83,22 @@ class TestCommandWakeup(CheckTest):
 
     def test_reports_the_wakup_time_received_from_the_command(self) -> None:
         check = CommandWakeup("test", "echo 1234")
-        assert check.check(datetime.now(timezone.utc)) == datetime.fromtimestamp(
-            1234, timezone.utc
-        )
+        assert check.check(datetime.now(UTC)) == datetime.fromtimestamp(1234, UTC)
 
     def test_reports_no_wakeup_without_command_output(self) -> None:
         check = CommandWakeup("test", "echo")
-        assert check.check(datetime.now(timezone.utc)) is None
+        assert check.check(datetime.now(UTC)) is None
 
     def test_raises_an_error_if_the_command_output_cannot_be_parsed(self) -> None:
         check = CommandWakeup("test", "echo asdfasdf")
         with pytest.raises(TemporaryCheckError):
-            check.check(datetime.now(timezone.utc))
+            check.check(datetime.now(UTC))
 
     def test_uses_only_the_first_output_line(self, mocker: MockerFixture) -> None:
         mock = mocker.patch("subprocess.check_output")
         mock.return_value = "1234\nignore\n"
         check = CommandWakeup("test", "echo bla")
-        assert check.check(datetime.now(timezone.utc)) == datetime.fromtimestamp(
-            1234, timezone.utc
-        )
+        assert check.check(datetime.now(UTC)) == datetime.fromtimestamp(1234, UTC)
 
     def test_uses_only_the_first_line_even_if_empty(
         self, mocker: MockerFixture
@@ -110,16 +106,16 @@ class TestCommandWakeup(CheckTest):
         mock = mocker.patch("subprocess.check_output")
         mock.return_value = "   \nignore\n"
         check = CommandWakeup("test", "echo bla")
-        assert check.check(datetime.now(timezone.utc)) is None
+        assert check.check(datetime.now(UTC)) is None
 
     def test_raises_if_the_called_command_fails(self, mocker: MockerFixture) -> None:
         mock = mocker.patch("subprocess.check_output")
         mock.side_effect = subprocess.CalledProcessError(2, "foo bar")
         check = CommandWakeup("test", "echo bla")
         with pytest.raises(TemporaryCheckError):
-            check.check(datetime.now(timezone.utc))
+            check.check(datetime.now(UTC))
 
     def test_reports_missing_executables(self) -> None:
         check = CommandWakeup("test", "reallydoesntexist bla")
         with pytest.raises(SevereCheckError):
-            check.check(datetime.now(timezone.utc))
+            check.check(datetime.now(UTC))

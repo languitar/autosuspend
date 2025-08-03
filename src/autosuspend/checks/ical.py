@@ -1,7 +1,7 @@
 from collections.abc import Iterable, Sequence
 from contextlib import suppress
 from dataclasses import dataclass
-from datetime import date, datetime, timedelta, timezone, tzinfo
+from datetime import date, datetime, timedelta, tzinfo, UTC
 from io import BytesIO
 from typing import Any, cast, IO, TypeVar
 from zoneinfo import ZoneInfo
@@ -292,7 +292,7 @@ class ActiveCalendarEvent(NetworkMixin, Activity):
 
     def check(self) -> str | None:
         response = self.request()
-        start = datetime.now(timezone.utc)
+        start = datetime.now(UTC)
         end = start + timedelta(minutes=1)
         events = list_calendar_events(BytesIO(response.content), start, end)
         self.logger.debug(

@@ -4,7 +4,7 @@ import abc
 from collections.abc import Mapping
 import configparser
 from datetime import datetime
-from typing import Any, TypeVar
+from typing import Any, Self, TypeVar
 
 from autosuspend.util import logger_by_class_instance
 
@@ -43,9 +43,7 @@ class Check(abc.ABC):
 
     @classmethod
     @abc.abstractmethod
-    def create(
-        cls: type[CheckType], name: str, config: configparser.SectionProxy
-    ) -> CheckType:
+    def create(cls: type[Self], name: str, config: configparser.SectionProxy) -> Self:
         """Create a new check instance from the provided configuration.
 
         Args:

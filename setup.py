@@ -1,7 +1,5 @@
 from pathlib import Path
-
 from setuptools import find_packages, setup
-
 
 name = "autosuspend"
 
@@ -30,10 +28,10 @@ extras_require = {
     ],
 }
 extras_require["test"].extend(
-    {dep for k, v in extras_require.items() if k != "test" for dep in v},
+    {dep for k, v in extras_require.items() if k != "test" for dep in v}
 )
 extras_require["all"] = list(
-    {dep for k, v in extras_require.items() if k != "test" for dep in v},
+    {dep for k, v in extras_require.items() if k != "test" for dep in v}
 )
 
 setup(
@@ -44,15 +42,13 @@ setup(
     author_email="languitar@semipol.de",
     license="GPL2",
     zip_safe=False,
-    python_requires=">=3.7",
+    python_requires=">=3.11",
     install_requires=[
         "psutil>=5.0",
         "portalocker",
     ],
     extras_require=extras_require,
-    package_dir={
-        "": "src",
-    },
+    package_dir={"": "src"},
     packages=find_packages("src"),
     entry_points={
         "console_scripts": [

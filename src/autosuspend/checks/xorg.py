@@ -9,6 +9,7 @@ from pathlib import Path
 import re
 from re import Pattern
 import subprocess
+from typing import Self
 import warnings
 
 import psutil
@@ -106,7 +107,7 @@ class XIdleTime(Activity):
     """Check that local X display have been idle long enough."""
 
     @classmethod
-    def create(cls, name: str, config: configparser.SectionProxy) -> "XIdleTime":
+    def create(cls: type[Self], name: str, config: configparser.SectionProxy) -> Self:
         with warnings.catch_warnings():
             warnings.simplefilter("ignore", FutureWarning)
             try:
