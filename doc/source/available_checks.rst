@@ -39,6 +39,12 @@ Options
    Optional password to use for authenticating at a server requiring authentication.
    If used, also a user name must be provided.
 
+.. option:: match
+
+   Optional string used to match the calendar summary.
+   If used, it will remove calendar events that don't _contain_ this string.
+
+
 Requirements
 ============
 
