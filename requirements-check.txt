@@ -1,6 +1,6 @@
 ruff==0.14.0
 black==25.9.0
-isort==6.1.0
+isort==7.0.0
 mypy==1.18.2
 types-tzlocal
 types-requests
