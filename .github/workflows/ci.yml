@@ -14,7 +14,7 @@ jobs:
     steps:
       - name: install cairo
         run: sudo apt-get update && sudo apt-get install -y libcairo2-dev
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v6
         with:
           fetch-depth: 0
       - uses: wagoid/commitlint-github-action@v6
@@ -24,7 +24,7 @@ jobs:
 
     steps:
       - name: Clone repo
-        uses: actions/checkout@v5
+        uses: actions/checkout@v6
       - name: Set up Python
         uses: actions/setup-python@v6
         with:
@@ -48,7 +48,7 @@ jobs:
 
     steps:
       - name: Clone repo
-        uses: actions/checkout@v5
+        uses: actions/checkout@v6
       - name: Set up Python
         uses: actions/setup-python@v6
         with:
@@ -72,7 +72,7 @@ jobs:
 
     steps:
       - name: Clone repo
-        uses: actions/checkout@v5
+        uses: actions/checkout@v6
       - name: Set up Python
         uses: actions/setup-python@v6
         with:
@@ -99,7 +99,7 @@ jobs:
 
     steps:
       - name: Clone repo
-        uses: actions/checkout@v5
+        uses: actions/checkout@v6
       - name: Set up Python ${{ matrix.python-version }}
         uses: actions/setup-python@v6
         with:
@@ -140,7 +140,7 @@ jobs:
           app_id: ${{ secrets.RELEASE_APP_ID }}
           private_key: ${{ secrets.RELEASE_PRIVATE_KEY }}
       - name: Checkout
-        uses: actions/checkout@v5
+        uses: actions/checkout@v6
         with:
           fetch-depth: 0
           token: ${{ steps.generate_token.outputs.token }}
