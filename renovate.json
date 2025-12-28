@@ -29,6 +29,11 @@
         "digest"
       ],
       "automerge": true
+    },
+    {
+      "matchPackageNames": ["sphinx", "sphinx-*"],
+      "matchManagers": ["python"],
+      "groupName": "sphinx dependencies"
     }
   ]
 }
