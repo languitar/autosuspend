@@ -37,6 +37,10 @@
         "furo",
         "recommonmark"
       ],
+      "matchManagers": [
+        "pip_requirements"
+      ],
+      "separateMajorMinor": false,
       "groupName": "sphinx dependencies"
     }
   ]
