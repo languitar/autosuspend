@@ -8,8 +8,8 @@ A collection of user-provided scripts to use with the :ref:`check-external-comma
 pyLoad
 ******
 
-`pyLoad <https://pyload.net/>`_ uses an uncommon login theme for its API and hence two separate requests are required to query for active downloads.
-Use something along the following lines to query `pyLoad`_.
+`pyLoad <https://pyload.net/>`__ uses an uncommon login theme for its API and hence two separate requests are required to query for active downloads.
+Use something along the following lines to query pyLoad.
 
 .. code-block:: bash
 
