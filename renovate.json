@@ -33,7 +33,9 @@
     {
       "matchPackageNames": [
         "sphinx",
-        "sphinx-*"
+        "sphinx-*",
+        "furo",
+        "recommonmark"
       ],
       "matchManagers": [
         "python"
