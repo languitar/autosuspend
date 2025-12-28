@@ -7,6 +7,9 @@
       "/^requirements.*\\.txt$/"
     ]
   },
+  "lockFileMaintenance":{
+    "enabled": true
+  },
   "customManagers": [
     {
       "customType": "regex",
