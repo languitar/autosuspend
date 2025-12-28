@@ -38,7 +38,7 @@
         "recommonmark"
       ],
       "matchManagers": [
-        "python"
+        "pip_requirements"
       ],
       "groupName": "sphinx dependencies"
     }
