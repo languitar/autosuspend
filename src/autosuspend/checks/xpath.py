@@ -1,12 +1,12 @@
-from collections.abc import Sequence
 import configparser
-from datetime import datetime, timedelta, UTC
+from collections.abc import Sequence
+from datetime import UTC, datetime, timedelta
 from typing import Any, Self
 
-from lxml import etree  # using safe parser
-from lxml.etree import XPath, XPathSyntaxError  # our input
 import requests
 import requests.exceptions
+from lxml import etree  # using safe parser
+from lxml.etree import XPath, XPathSyntaxError  # our input
 
 from . import Activity, ConfigurationError, TemporaryCheckError, Wakeup
 from .util import NetworkMixin

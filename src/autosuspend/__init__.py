@@ -2,24 +2,23 @@
 """A daemon to suspend a system on inactivity."""
 
 import argparse
-from collections.abc import Callable, Iterable, Sequence
 import configparser
-from contextlib import suppress
-from datetime import datetime, timedelta, UTC
 import functools
-from importlib.metadata import version
 import logging
 import logging.config
-from pathlib import Path
 import subprocess
 import time
+from collections.abc import Callable, Iterable, Sequence
+from contextlib import suppress
+from datetime import UTC, datetime, timedelta
+from importlib.metadata import version
+from pathlib import Path
 from typing import IO
 
 import portalocker
 
 from .checks import Activity, CheckType, ConfigurationError, TemporaryCheckError, Wakeup
 from .util import logger_by_class_instance
-
 
 # pylint: disable=invalid-name
 _logger = logging.getLogger("autosuspend")

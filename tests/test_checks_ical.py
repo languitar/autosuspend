@@ -2,9 +2,9 @@ from collections.abc import Callable
 from datetime import timedelta
 from pathlib import Path
 
+import tzlocal
 from dateutil import parser
 from freezegun import freeze_time
-import tzlocal
 
 from autosuspend.checks import Check
 from autosuspend.checks.ical import (

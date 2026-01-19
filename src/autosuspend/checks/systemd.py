@@ -1,15 +1,14 @@
-from collections.abc import Iterable
 import configparser
-from datetime import datetime, timedelta, UTC
 import re
+from collections.abc import Iterable
+from datetime import UTC, datetime, timedelta
 from re import Pattern
 from typing import Any, Self
 
 import dbus
 
 from . import Activity, ConfigurationError, TemporaryCheckError, Wakeup
-from ..util.systemd import list_logind_sessions, LogindDBusException
-
+from ..util.systemd import LogindDBusException, list_logind_sessions
 
 _UINT64_MAX = 18446744073709551615
 

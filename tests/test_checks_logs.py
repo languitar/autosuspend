@@ -1,10 +1,10 @@
-from datetime import timedelta, timezone, UTC
-from pathlib import Path
 import re
+from datetime import UTC, timedelta, timezone
+from pathlib import Path
 from zoneinfo import ZoneInfo
 
-from freezegun import freeze_time
 import pytest
+from freezegun import freeze_time
 
 from autosuspend.checks import ConfigurationError, TemporaryCheckError
 from autosuspend.checks.logs import LastLogActivity

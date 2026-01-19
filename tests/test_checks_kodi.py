@@ -1,8 +1,8 @@
 import json
 
 import pytest
-from pytest_mock import MockerFixture
 import requests.exceptions
+from pytest_mock import MockerFixture
 
 from autosuspend.checks import Check, ConfigurationError, TemporaryCheckError
 from autosuspend.checks.kodi import Kodi, KodiIdleTime

@@ -1,15 +1,15 @@
 from collections.abc import Iterable, Sequence
 from contextlib import suppress
 from dataclasses import dataclass
-from datetime import date, datetime, timedelta, tzinfo, UTC
+from datetime import UTC, date, datetime, timedelta, tzinfo
 from io import BytesIO
-from typing import Any, cast, IO, TypeVar
+from typing import IO, Any, TypeVar, cast
 from zoneinfo import ZoneInfo
 
-from dateutil.rrule import rrule, rruleset, rrulestr
 import icalendar
 import icalendar.cal
 import tzlocal
+from dateutil.rrule import rrule, rruleset, rrulestr
 
 from . import Activity, Wakeup
 from .util import NetworkMixin

@@ -1,6 +1,6 @@
 import configparser
-from datetime import datetime, UTC
 import subprocess
+from datetime import UTC, datetime
 from typing import Self
 
 from . import (

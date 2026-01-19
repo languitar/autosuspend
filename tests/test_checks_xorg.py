@@ -1,8 +1,8 @@
-from getpass import getuser
 import logging
-from pathlib import Path
 import re
 import subprocess
+from getpass import getuser
+from pathlib import Path
 from typing import Any
 
 import pytest
@@ -15,10 +15,10 @@ from autosuspend.checks import (
     TemporaryCheckError,
 )
 from autosuspend.checks.xorg import (
-    list_sessions_logind,
-    list_sessions_sockets,
     XIdleTime,
     XorgSession,
+    list_sessions_logind,
+    list_sessions_sockets,
 )
 from autosuspend.util.systemd import LogindDBusException
 

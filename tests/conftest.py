@@ -2,11 +2,11 @@ from collections.abc import Callable, Iterable
 from pathlib import Path
 from typing import Any
 
+import dbusmock
+import pytest
 from dbus import Bus
 from dbus.proxies import ProxyObject
-import dbusmock
-from dbusmock.pytest_fixtures import dbusmock_system, PrivateDBus  # noqa: F401
-import pytest
+from dbusmock.pytest_fixtures import PrivateDBus, dbusmock_system  # noqa: F401
 from pytest_httpserver import HTTPServer
 from werkzeug.wrappers import Request, Response
 

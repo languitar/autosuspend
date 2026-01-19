@@ -1,15 +1,14 @@
-from collections.abc import Iterable
-from datetime import datetime, timedelta, UTC
 import logging
+from collections.abc import Iterable
+from datetime import UTC, datetime, timedelta
 from pathlib import Path
 from typing import Any
 
-from freezegun import freeze_time
 import pytest
+from freezegun import freeze_time
 from pytest_mock import MockerFixture
 
 import autosuspend
-
 
 pytestmark = pytest.mark.integration
 

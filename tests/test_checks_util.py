@@ -3,9 +3,9 @@ from pathlib import Path
 from unittest.mock import ANY
 
 import pytest
+import requests
 from pytest_httpserver import HTTPServer
 from pytest_mock import MockerFixture
-import requests
 
 from autosuspend.checks import ConfigurationError, TemporaryCheckError
 from autosuspend.checks.util import NetworkMixin

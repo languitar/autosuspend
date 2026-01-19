@@ -2,8 +2,8 @@ from collections.abc import Callable
 from pathlib import Path
 from typing import Any
 
-from jsonpath_ng.ext import parse
 import pytest
+from jsonpath_ng.ext import parse
 from pytest_mock import MockerFixture
 
 from autosuspend.checks import ConfigurationError, TemporaryCheckError

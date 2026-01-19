@@ -1,9 +1,8 @@
 import configparser
 from contextlib import suppress
-from typing import Any, Self, TYPE_CHECKING
+from typing import TYPE_CHECKING, Any, Self
 
 from . import Check, ConfigurationError, SevereCheckError, TemporaryCheckError
-
 
 if TYPE_CHECKING:
     import requests

@@ -1,5 +1,5 @@
-from datetime import datetime, UTC
 import subprocess
+from datetime import UTC, datetime
 
 import pytest
 from pytest_mock import MockerFixture

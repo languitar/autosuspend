@@ -1,21 +1,21 @@
-from collections.abc import Callable
 import configparser
-from contextlib import suppress
 import copy
-from dataclasses import dataclass
 import logging
 import os
-from pathlib import Path
 import re
-from re import Pattern
 import subprocess
-from typing import Self
 import warnings
+from collections.abc import Callable
+from contextlib import suppress
+from dataclasses import dataclass
+from pathlib import Path
+from re import Pattern
+from typing import Self
 
 import psutil
 
 from . import Activity, ConfigurationError, SevereCheckError, TemporaryCheckError
-from ..util.systemd import list_logind_sessions, LogindDBusException
+from ..util.systemd import LogindDBusException, list_logind_sessions
 
 
 @dataclass
