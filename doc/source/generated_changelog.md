@@ -1,3 +1,10 @@
+## [9.0.1](https://github.com/languitar/autosuspend/compare/v9.0.0...v9.0.1) (2026-01-19)
+
+
+### Bug Fixes
+
+* support modern psutil versions ([f5e867f](https://github.com/languitar/autosuspend/commit/f5e867f966826ea976bf38c2572de0366167cdf3))
+
 # [9.0.0](https://github.com/languitar/autosuspend/compare/v8.0.0...v9.0.0) (2025-08-03)
 
 
