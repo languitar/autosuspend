@@ -1,8 +1,8 @@
 """Provides the basic types used for checks."""
 
 import abc
-from collections.abc import Mapping
 import configparser
+from collections.abc import Mapping
 from datetime import datetime
 from typing import Any, Self, TypeVar
 

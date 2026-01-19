@@ -1,18 +1,18 @@
-from collections import namedtuple
-from collections.abc import Mapping
-from datetime import datetime, UTC
-from pathlib import Path
 import re
 import socket
 import sys
+from collections import namedtuple
+from collections.abc import Mapping
+from datetime import UTC, datetime
+from pathlib import Path
 from typing import Any
 
-from freezegun import freeze_time
 import psutil
 import pytest
+import requests
+from freezegun import freeze_time
 from pytest_httpserver import HTTPServer
 from pytest_mock import MockerFixture
-import requests
 
 from autosuspend.checks import (
     Check,

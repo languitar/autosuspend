@@ -1,18 +1,18 @@
 """Contains checks directly using the Linux operating system concepts."""
 
-from collections.abc import Iterable
 import configparser
-from contextlib import suppress
-from datetime import datetime, UTC
 import os
-from pathlib import Path
 import re
-from re import Pattern
 import socket
 import subprocess
 import time
-from typing import Self
 import warnings
+from collections.abc import Iterable
+from contextlib import suppress
+from datetime import UTC, datetime
+from pathlib import Path
+from re import Pattern
+from typing import Self
 
 import psutil
 

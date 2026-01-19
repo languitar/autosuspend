@@ -1,6 +1,5 @@
 from contextlib import suppress
 
-
 # isort: off
 
 from .command import CommandActivity as ExternalCommand  # noqa

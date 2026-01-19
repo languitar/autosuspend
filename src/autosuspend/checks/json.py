@@ -3,9 +3,9 @@ import json
 from textwrap import shorten
 from typing import Any
 
-from jsonpath_ng import JSONPath
 import requests
 import requests.exceptions
+from jsonpath_ng import JSONPath
 
 from . import Activity, ConfigurationError, TemporaryCheckError
 from .util import NetworkMixin

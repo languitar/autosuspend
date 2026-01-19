@@ -1,7 +1,7 @@
-from dbus.proxies import ProxyObject
 import pytest
+from dbus.proxies import ProxyObject
 
-from autosuspend.util.systemd import list_logind_sessions, LogindDBusException
+from autosuspend.util.systemd import LogindDBusException, list_logind_sessions
 
 
 def test_list_logind_sessions_empty(logind: ProxyObject) -> None:

@@ -1,8 +1,8 @@
 import argparse
 import configparser
-from datetime import datetime, timedelta, timezone, UTC
 import logging
 import subprocess
+from datetime import UTC, datetime, timedelta, timezone
 from typing import Any
 
 import dateutil.parser
@@ -95,13 +95,11 @@ class TestSetUpChecks:
         )
 
         parser = configparser.ConfigParser()
-        parser.read_string(
-            """
+        parser.read_string("""
             [check.Foo]
             class = Mpd
             enabled = True
-            """
-        )
+            """)
 
         autosuspend.set_up_checks(
             parser, "check", "activity", autosuspend.Activity  # type: ignore
@@ -115,13 +113,11 @@ class TestSetUpChecks:
             spec=autosuspend.checks.Activity
         )
         parser = configparser.ConfigParser()
-        parser.read_string(
-            """
+        parser.read_string("""
             [check.Foo]
             class = os.path.TestCheck
             enabled = True
-            """
-        )
+            """)
 
         autosuspend.set_up_checks(
             parser, "check", "activity", autosuspend.Activity  # type: ignore
@@ -134,13 +130,11 @@ class TestSetUpChecks:
         mock_class.create.return_value = mocker.MagicMock(spec=autosuspend.Activity)
 
         parser = configparser.ConfigParser()
-        parser.read_string(
-            """
+        parser.read_string("""
             [check.Foo]
             class = Mpd
             enabled = False
-            """
-        )
+            """)
 
         assert not autosuspend.set_up_checks(
             parser,
@@ -165,16 +159,14 @@ class TestSetUpChecks:
         mock_xidletime.create.return_value = mocker.MagicMock(spec=autosuspend.Activity)
 
         parser = configparser.ConfigParser()
-        parser.read_string(
-            """
+        parser.read_string("""
             [check.Foo]
             class = Mpd
             enabled = False
             [check.Bar]
             class = XIdleTime
             enabled = True
-            """
-        )
+            """)
 
         assert (
             len(
@@ -190,13 +182,11 @@ class TestSetUpChecks:
 
     def test_no_such_class(self) -> None:
         parser = configparser.ConfigParser()
-        parser.read_string(
-            """
+        parser.read_string("""
             [check.Foo]
             class = FooBarr
             enabled = True
-            """
-        )
+            """)
         with pytest.raises(autosuspend.ConfigurationError):
             autosuspend.set_up_checks(
                 parser, "check", "activity", autosuspend.Activity  # type: ignore
@@ -207,13 +197,11 @@ class TestSetUpChecks:
         mock_class.create.return_value = mocker.MagicMock()
 
         parser = configparser.ConfigParser()
-        parser.read_string(
-            """
+        parser.read_string("""
             [check.Foo]
             class = Mpd
             enabled = True
-            """
-        )
+            """)
 
         with pytest.raises(autosuspend.ConfigurationError):
             autosuspend.set_up_checks(
@@ -229,14 +217,12 @@ class TestSetUpChecks:
         )
 
         parser = configparser.ConfigParser()
-        parser.read_string(
-            """
+        parser.read_string("""
             [check.Foo]
             class = Mpd
             enabled = True
             password = THEPASS
-            """
-        )
+            """)
 
         with caplog.at_level(logging.DEBUG):
             autosuspend.set_up_checks(
@@ -440,13 +426,11 @@ class TestNotifySuspend:
 class TestConfigureProcessor:
     def test_minimal_config(self, mocker: MockerFixture) -> None:
         parser = configparser.ConfigParser()
-        parser.read_string(
-            """
+        parser.read_string("""
             [general]
             suspend_cmd = suspend
             wakeup_cmd = wakeup
-            """
-        )
+            """)
         args = mocker.MagicMock(spec=argparse.Namespace)
         type(args).all_checks = mocker.PropertyMock(return_value=True)
         processor = autosuspend.configure_processor(args, parser, [], [])

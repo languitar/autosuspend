@@ -1,16 +1,16 @@
-from datetime import datetime, timedelta, UTC
 import re
+from datetime import UTC, datetime, timedelta
 from unittest.mock import Mock
 
-from dbus.proxies import ProxyObject
 import pytest
+from dbus.proxies import ProxyObject
 from pytest_mock import MockerFixture
 
 from autosuspend.checks import Check, ConfigurationError, TemporaryCheckError
 from autosuspend.checks.systemd import (
     LogindSessionsIdle,
-    next_timer_executions,
     SystemdTimer,
+    next_timer_executions,
 )
 
 from . import CheckTest

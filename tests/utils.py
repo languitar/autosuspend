@@ -1,5 +1,5 @@
-from collections.abc import Mapping
 import configparser
+from collections.abc import Mapping
 
 
 def config_section(
