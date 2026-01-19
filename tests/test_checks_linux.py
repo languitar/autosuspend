@@ -33,6 +33,11 @@ from autosuspend.checks.linux import (
 from . import CheckTest
 from tests.utils import config_section
 
+try:
+    from psutil._common import sconn, suser
+except ImportError:
+    from psutil._ntuples import sconn, suser
+
 
 class TestUsers(CheckTest):
     def create_instance(self, name: str) -> Check:
@@ -41,8 +46,8 @@ class TestUsers(CheckTest):
     @staticmethod
     def create_suser(
         name: str, terminal: str, host: str, started: float, pid: int
-    ) -> psutil._common.suser:
-        return psutil._common.suser(name, terminal, host, started, pid)
+    ) -> suser:
+        return suser(name, terminal, host, started, pid)
 
     def test_reports_no_activity_without_users(self, mocker: MockerFixture) -> None:
         mocker.patch("psutil.users").return_value = []
@@ -180,7 +185,7 @@ class TestActiveConnection(CheckTest):
         "connection",
         [
             # ipv4
-            psutil._common.sconn(
+            sconn(
                 -1,
                 socket.AF_INET,
                 socket.SOCK_STREAM,
@@ -190,7 +195,7 @@ class TestActiveConnection(CheckTest):
                 None,
             ),
             # ipv6
-            psutil._common.sconn(
+            sconn(
                 -1,
                 socket.AF_INET6,
                 socket.SOCK_STREAM,
@@ -200,7 +205,7 @@ class TestActiveConnection(CheckTest):
                 None,
             ),
             # ipv6 where local address has scope
-            psutil._common.sconn(
+            sconn(
                 -1,
                 socket.AF_INET6,
                 socket.SOCK_STREAM,
@@ -211,7 +216,7 @@ class TestActiveConnection(CheckTest):
             ),
             # ipv6 with mapping to ipv4
             # https://github.com/languitar/autosuspend/issues/116
-            psutil._common.sconn(
+            sconn(
                 -1,
                 socket.AF_INET6,
                 socket.SOCK_STREAM,
@@ -223,7 +228,7 @@ class TestActiveConnection(CheckTest):
         ],
     )
     def test_detect_activity_if_port_is_connected(
-        self, mocker: MockerFixture, connection: psutil._common.sconn
+        self, mocker: MockerFixture, connection: sconn
     ) -> None:
         mocker.patch("psutil.net_if_addrs").return_value = {
             "dummy": [
@@ -252,7 +257,7 @@ class TestActiveConnection(CheckTest):
         "connection",
         [
             # not my port
-            psutil._common.sconn(
+            sconn(
                 -1,
                 socket.AF_INET,
                 socket.SOCK_STREAM,
@@ -262,7 +267,7 @@ class TestActiveConnection(CheckTest):
                 None,
             ),
             # not my local address
-            psutil._common.sconn(
+            sconn(
                 -1,
                 socket.AF_INET,
                 socket.SOCK_STREAM,
@@ -272,7 +277,7 @@ class TestActiveConnection(CheckTest):
                 None,
             ),
             # not established
-            psutil._common.sconn(
+            sconn(
                 -1,
                 socket.AF_INET,
                 socket.SOCK_STREAM,
@@ -282,7 +287,7 @@ class TestActiveConnection(CheckTest):
                 None,
             ),
             # I am the client
-            psutil._common.sconn(
+            sconn(
                 -1,
                 socket.AF_INET,
                 socket.SOCK_STREAM,
@@ -294,7 +299,7 @@ class TestActiveConnection(CheckTest):
         ],
     )
     def test_detects_no_activity_if_port_is_not_connected(
-        self, mocker: MockerFixture, connection: psutil._common.sconn
+        self, mocker: MockerFixture, connection: sconn
     ) -> None:
         mocker.patch("psutil.net_if_addrs").return_value = {
             "dummy": [

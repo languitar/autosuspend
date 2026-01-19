@@ -24,6 +24,11 @@ from . import (
     Wakeup,
 )
 
+try:
+    from psutil._common import snetio
+except ImportError:
+    from psutil._ntuples import snetio
+
 
 class ActiveConnection(Activity):
     """Checks if a client connection exists on specified ports."""
@@ -167,8 +172,8 @@ class NetworkBandwidth(Activity):
     def _check_interface(
         self,
         interface: str,
-        new: psutil._common.snetio,
-        old: psutil._common.snetio,
+        new: snetio,
+        old: snetio,
         new_time: float,
         old_time: float,
     ) -> None:
