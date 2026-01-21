@@ -250,7 +250,7 @@ def _extract_events_from_component(
 
 
 def list_calendar_events(
-    data: IO[bytes], start_at: datetime, end_at: datetime
+    data: IO[bytes], start_at: datetime, end_at: datetime, match: str | None
 ) -> Sequence[CalendarEvent]:
     """List all relevant calendar events in the provided interval.
 
@@ -274,27 +274,46 @@ def list_calendar_events(
 
     events = []
     for component in calendar.walk("VEVENT"):
-        events.extend(
-            _extract_events_from_component(
-                component, recurring_changes, start_at, end_at
+        if match is None or match in component.get('summary'):
+            events.extend(
+                _extract_events_from_component(
+                    component, recurring_changes, start_at, end_at
+                )
             )
-        )
 
     return sorted(events, key=lambda e: e.start)
 
+class GeneralCalendar(NetworkMixin):
+    """
+    Superclass of calendar events """
 
-class ActiveCalendarEvent(NetworkMixin, Activity):
+    def __init__(self, name: str, match: str,  **kwargs: Any) -> None:
+        NetworkMixin.__init__(self, **kwargs)
+        self._match = match
+
+    @classmethod
+    def collect_init_args(
+            cls, config, *args,
+            **kwargs: Any
+    ) -> dict[str, Any]:
+        args = NetworkMixin.collect_init_args(config, *args, **kwargs)
+        args["match"] = config.get("match")
+        return args
+
+
+class ActiveCalendarEvent(GeneralCalendar, Activity):
     """Determines activity by checking against events in an icalendar file."""
 
-    def __init__(self, name: str, **kwargs: Any) -> None:
-        NetworkMixin.__init__(self, **kwargs)
+    def __init__(self, name: str, *args, **kwargs) -> None:
+        GeneralCalendar.__init__(self, **kwargs)
         Activity.__init__(self, name)
 
     def check(self) -> str | None:
         response = self.request()
         start = datetime.now(UTC)
         end = start + timedelta(minutes=1)
-        events = list_calendar_events(BytesIO(response.content), start, end)
+        events = list_calendar_events(
+                BytesIO(response.content), start, end, match=self._match)
         self.logger.debug(
             "Listing active events between %s and %s returned %s events",
             start,
@@ -307,18 +326,19 @@ class ActiveCalendarEvent(NetworkMixin, Activity):
             return None
 
 
-class Calendar(NetworkMixin, Wakeup):
+class Calendar(GeneralCalendar, Wakeup):
     """Uses an ical calendar to wake up on the next scheduled event."""
 
-    def __init__(self, name: str, **kwargs: Any) -> None:
-        NetworkMixin.__init__(self, **kwargs)
+    def __init__(self, name: str, *args, **kwargs) -> None:
+        GeneralCalendar.__init__(self, **kwargs)
         Wakeup.__init__(self, name)
 
     def check(self, timestamp: datetime) -> datetime | None:
         response = self.request()
 
         end = timestamp + timedelta(weeks=6 * 4)
-        events = list_calendar_events(BytesIO(response.content), timestamp, end)
+        events = list_calendar_events(
+                BytesIO(response.content), timestamp, end, match=self._match)
         # Filter out currently active events. They are not our business.
         events = [e for e in events if e.start >= timestamp]
 
