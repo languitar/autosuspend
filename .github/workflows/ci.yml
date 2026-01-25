@@ -52,7 +52,7 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v6
         with:
-          python-version: "3.13"
+          python-version: "3.14"
       - name: Install native dependencies
         run: sudo apt-get update && sudo apt-get -y install libdbus-1-dev libgirepository-2.0-dev plantuml libcairo2-dev
       - name: Cache Python packages
@@ -76,7 +76,7 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v6
         with:
-          python-version: "3.13"
+          python-version: "3.14"
       - name: Cache Python packages
         uses: actions/cache@v5
         with:
@@ -95,7 +95,7 @@ jobs:
     strategy:
       max-parallel: 4
       matrix:
-        python-version: ["3.11", "3.12", "3.13"]
+        python-version: ["3.11", "3.12", "3.13", "3.14"]
 
     steps:
       - name: Clone repo
