@@ -10,6 +10,8 @@
   "lockFileMaintenance":{
     "enabled": true
   },
+  "minimumReleaseAge": "7 days",
+  "internalChecksFilter": "strict",
   "customManagers": [
     {
       "customType": "regex",
