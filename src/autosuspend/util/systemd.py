@@ -1,13 +1,9 @@
 from collections.abc import Iterable
-from typing import TYPE_CHECKING
 
-if TYPE_CHECKING:
-    import dbus
+import dbus
 
 
-def _get_bus() -> "dbus.SystemBus":
-    import dbus
-
+def _get_bus() -> dbus.SystemBus:
     return dbus.SystemBus()
 
 
@@ -23,8 +19,6 @@ def list_logind_sessions() -> Iterable[tuple[str, dict]]:
             A list with tuples of sessions ids and their associated properties
             represented as dicts.
     """
-    import dbus
-
     try:
         bus = _get_bus()
         login1 = bus.get_object("org.freedesktop.login1", "/org/freedesktop/login1")

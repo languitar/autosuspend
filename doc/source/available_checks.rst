@@ -322,11 +322,6 @@ Options
    For instance, ``greeter`` sessions used by greeters such as lightdm might not be of interest.
    Default: ``user``
 
-Requirements
-============
-
--  `dbus-python`_
-
 .. _check-mpd:
 
 Mpd
@@ -535,11 +530,6 @@ Options
 .. option:: ignore_users
 
    Do not check sessions of users matching this regular expressions.
-
-Requirements
-============
-
-* `dbus-python`_ for the ``logind`` method
 
 .. _check-xpath:
 

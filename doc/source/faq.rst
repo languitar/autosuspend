@@ -83,7 +83,6 @@ This will end up with at least this config:
    interval = 30
    suspend_cmd = /usr/bin/systemctl suspend
    wakeup_cmd = echo {timestamp:.0f} > /sys/class/rtc/rtc0/wakealarm
-   woke_up_file = /var/run/autosuspend-just-woke-up
 
    [check.ActiveCalendarEvent]
    enabled = true
