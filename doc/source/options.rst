@@ -3,7 +3,7 @@ Command line options
 
 General syntax:
 
-    |project_bold| [*options*] **daemon|presuspend|version** [*subcommand options*]
+    |project_bold| [*options*] **daemon|version** [*subcommand options*]
 
 General options
 ***************
@@ -46,15 +46,6 @@ Starts the continuously running daemon.
    If specified, do not run endlessly.
    Instead, operate only for the specified amount of seconds, then exit.
    Useful mostly for debugging purposes.
-
-Subcommand ``presuspend``
-*************************
-
-Should be called by the system before suspending.
-
-.. program:: autosuspend presuspend
-
-No options
 
 Subcommand ``version``
 *************************

@@ -16,7 +16,8 @@ The minimal requirements are.
 
 * `Python 3`_ >= 3.11
 * `psutil`_
-* `portalocker`_
+* `dbus-python`_
+* `PyGObject`_
 
 Additionally, the some checks need further dependencies to function properly.
 Please refer to :ref:`available-checks` for individual requirements.

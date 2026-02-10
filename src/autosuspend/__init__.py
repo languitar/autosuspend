@@ -6,8 +6,8 @@ import configparser
 import functools
 import logging
 import logging.config
+import math
 import subprocess
-import time
 from collections.abc import Callable, Iterable, Sequence
 from contextlib import suppress
 from datetime import UTC, datetime, timedelta
@@ -15,7 +15,9 @@ from importlib.metadata import version
 from pathlib import Path
 from typing import IO
 
-import portalocker
+import dbus
+from dbus.mainloop.glib import DBusGMainLoop
+from gi.repository import GLib
 
 from .checks import Activity, CheckType, ConfigurationError, TemporaryCheckError, Wakeup
 from .util import logger_by_class_instance
@@ -209,9 +211,6 @@ class Processor:
         wakeup_fn:
             a callable that schedules the wakeup at the specified time in UTC
             seconds
-        notify_fn:
-            a callable that is called before suspending.
-            One argument gives the scheduled wakeup time or ``None``.
         all_activities:
             if ``True``, execute all activity checks even if a previous one
             already matched.
@@ -248,13 +247,26 @@ class Processor:
         self._idle_since = min(since, self._idle_since or since)
         return self._idle_since
 
-    def iteration(self, timestamp: datetime, just_woke_up: bool) -> None:
-        self._logger.info("Starting new check iteration")
+    def schedule_wakeup(self, timestamp: datetime) -> None:
+        """Schedule wakeup based on current wakeup checks.
 
-        # exit in case something prevents suspension
-        if just_woke_up:
-            self._reset_state("Just woke up from suspension.")
-            return
+        Called before suspension to schedule automatic wakeup if needed.
+        This should be called by the PrepareForSleep signal handler.
+        """
+        wakeup_at = execute_wakeups(self._wakeups, timestamp, self._logger)
+        if wakeup_at:
+            wakeup_at -= timedelta(seconds=self._wakeup_delta)
+            self._logger.info("Scheduling wakeup at %s", wakeup_at)
+            self._wakeup_fn(wakeup_at)
+        else:
+            self._logger.info("No wakeup scheduled")
+
+    def on_resume(self) -> None:
+        """Handle system resume from suspension."""
+        self._reset_state("Just woke up from suspension.")
+
+    def iteration(self, timestamp: datetime) -> None:
+        self._logger.info("Starting new check iteration")
 
         # determine system activity
         active = execute_checks(self._activities, self._all_activities, self._logger)
@@ -280,14 +292,14 @@ class Processor:
 
         self._logger.info("System is idle long enough.")
 
-        # determine potential wake ups
+        # determine potential wake ups to check if sleep time is sufficient
         wakeup_at = execute_wakeups(self._wakeups, timestamp, self._logger)
         if wakeup_at is None:
             self._logger.debug("No automatic wakeup required")
         else:
             self._logger.debug("System wakeup required at %s", wakeup_at)
 
-            # Apply configured wakeup delta
+            # apply configured wakeup delta
             wakeup_at -= timedelta(seconds=self._wakeup_delta)
             self._logger.debug(
                 "With delta applied, system should wake up at %s",
@@ -305,54 +317,24 @@ class Processor:
                 )
                 return
 
-            # schedule wakeup
-            self._logger.info("Scheduling wakeup at %s", wakeup_at)
-            self._wakeup_fn(wakeup_at)
-
+        # wakeup will be scheduled by PrepareForSleep signal handler
         self._reset_state("Going to suspend")
         self._sleep_fn(wakeup_at)
 
 
-def _continue_looping(run_for: int | None, start_time: datetime) -> bool:
-    return (run_for is None) or (
-        datetime.now(UTC) < (start_time + timedelta(seconds=run_for))
-    )
-
-
-def _do_loop_iteration(
-    processor: Processor,
-    woke_up_file: Path,
-    lock_file: Path,
-    lock_timeout: float,
-) -> None:
-    try:
-        _logger.debug("New iteration, trying to acquire lock")
-        with portalocker.Lock(lock_file, timeout=lock_timeout):
-            _logger.debug("Acquired lock")
-
-            just_woke_up = woke_up_file.is_file()
-            if just_woke_up:
-                _logger.debug("Removing woke up file at %s", woke_up_file)
-                try:
-                    woke_up_file.unlink()
-                except FileNotFoundError:
-                    _logger.warning("Just woke up file disappeared", exc_info=True)
-
-            processor.iteration(datetime.now(UTC), just_woke_up)
-
-    except portalocker.LockException:
-        _logger.warning("Failed to acquire lock, skipping iteration", exc_info=True)
+def _compute_max_iterations(run_for: int | None, interval: float) -> int | None:
+    if run_for is None:
+        return None
+    return max(1, math.ceil(run_for / interval))
 
 
 def loop(
     processor: Processor,
     interval: float,
-    run_for: int | None,
-    woke_up_file: Path,
-    lock_file: Path,
-    lock_timeout: float,
+    *,
+    run_for: int | None = None,
 ) -> None:
-    """Run the main loop of the daemon.
+    """Run the main loop of the daemon with DBus integration.
 
     Args:
         processor:
@@ -362,19 +344,70 @@ def loop(
         run_for:
             if specified, run the main loop for the specified amount of seconds
             before terminating (approximately)
-        woke_up_file:
-            path of a file that marks that the system was sleeping since the
-            last processing iterations
-        lock_file:
-            path of a file used for locking modifications to the `woke_up_file`
-            to ensure consistency
-        lock_timeout:
-            time in seconds to wait for acquiring the lock file
     """
-    start_time = datetime.now(UTC)
-    while _continue_looping(run_for, start_time):
-        _do_loop_iteration(processor, woke_up_file, lock_file, lock_timeout)
-        time.sleep(interval)
+    # initialize DBus main loop
+    DBusGMainLoop(set_as_default=True)
+    main_loop = GLib.MainLoop()
+
+    # set up PrepareForSleep signal handler
+    def on_prepare_for_sleep(going_to_sleep: bool) -> None:
+        _logger.info(
+            "PrepareForSleep signal received: going_to_sleep=%s", going_to_sleep
+        )
+        if going_to_sleep:
+            # before suspend: always schedule wakeup (whether autosuspend or external)
+            processor.schedule_wakeup(datetime.now(UTC))
+        else:
+            # after resume: reset processor state
+            processor.on_resume()
+
+    try:
+        bus = dbus.SystemBus()
+        bus.add_signal_receiver(
+            on_prepare_for_sleep,
+            signal_name="PrepareForSleep",
+            dbus_interface="org.freedesktop.login1.Manager",
+            bus_name="org.freedesktop.login1",
+            path="/org/freedesktop/login1",
+        )
+        _logger.debug("Subscribed to PrepareForSleep signal")
+    except dbus.exceptions.DBusException:
+        _logger.warning(
+            "Failed to subscribe to PrepareForSleep signal. Wake ups will not work.",
+            exc_info=True,
+        )
+
+    # set up interval timer
+    # list for mutable closure variable
+    iteration_count = [0]
+    max_iterations = _compute_max_iterations(run_for, interval)
+
+    def timer_callback() -> bool:
+        if max_iterations is not None:
+            if iteration_count[0] >= max_iterations:
+                _logger.info("Max iterations reached, stopping main loop")
+                main_loop.quit()
+                return False
+            iteration_count[0] += 1
+
+        processor.iteration(datetime.now(UTC))
+        return True
+
+    def timer_callback_once() -> bool:
+        timer_callback()
+        return False
+
+    GLib.timeout_add_seconds(int(interval), timer_callback)
+    # run first iteration immediately
+    GLib.idle_add(timer_callback_once)
+
+    _logger.info("Starting main loop")
+    try:
+        main_loop.run()
+    except KeyboardInterrupt:
+        _logger.info("Interrupted, stopping")
+    finally:
+        main_loop.quit()
 
 
 def config_section_string(section: configparser.SectionProxy) -> str:
@@ -418,8 +451,7 @@ def _set_up_single_check(
         class_name, internal_module
     )
     _logger.info(
-        "Configuring check %s with class %s from module %s "
-        "using config parameters %s",
+        "Configuring check %s with class %s from module %s using config parameters %s",
         name,
         import_class,
         import_module,
@@ -583,11 +615,6 @@ def parse_arguments(args: Sequence[str] | None) -> argparse.Namespace:
         "instead of endless execution.",
     )
 
-    parser_hook = subparsers.add_parser(
-        "presuspend", help="Hook method to be called before suspending"
-    )
-    parser_hook.set_defaults(func=main_hook)
-
     result = parser.parse_args(args)
 
     _logger.debug("Parsed command line arguments %s", result)
@@ -651,24 +678,6 @@ def get_schedule_wakeup_func(
     return functools.partial(schedule_wakeup, config.get("general", "wakeup_cmd"))
 
 
-def get_woke_up_file(config: configparser.ConfigParser) -> Path:
-    return Path(
-        config.get(
-            "general", "woke_up_file", fallback="/var/run/autosuspend-just-woke-up"
-        )
-    )
-
-
-def get_lock_file(config: configparser.ConfigParser) -> Path:
-    return Path(
-        config.get("general", "lock_file", fallback="/var/lock/autosuspend.lock")
-    )
-
-
-def get_lock_timeout(config: configparser.ConfigParser) -> float:
-    return config.getfloat("general", "lock_timeout", fallback=30.0)
-
-
 def get_wakeup_delta(config: configparser.ConfigParser) -> float:
     return config.getfloat("general", "wakeup_delta", fallback=30)
 
@@ -691,79 +700,11 @@ def configure_processor(
     )
 
 
-def hook(
-    wakeups: list[Wakeup],
-    wakeup_delta: float,
-    wakeup_fn: Callable[[datetime], None],
-    woke_up_file: Path,
-    lock_file: Path,
-    lock_timeout: float,
-) -> None:
-    """Installs wake ups and notifies the daemon before suspending.
-
-    Args:
-        wakeups:
-            set of wakeup checks to use for determining the wake up time
-        wakeup_delta:
-            The amount of time in seconds to wake up before an event
-        wakeup_fn:
-            function to call with the next wake up time
-        woke_up_file:
-            location of the file that instructs the daemon that the system just
-            woke up
-        lock_file:
-            path of a file used for locking modifications to the `woke_up_file`
-            to ensure consistency
-        lock_timeout:
-            time in seconds to wait for acquiring the lock file
-    """
-    _logger.info("Pre-suspend hook starting, trying to acquire lock")
-    try:
-        with portalocker.Lock(lock_file, timeout=lock_timeout):
-            _logger.debug("Hook acquired lock")
-
-            _logger.debug("Hook executing with configured wake ups: %s", wakeups)
-            wakeup_at = execute_wakeups(wakeups, datetime.now(UTC), _logger)
-            _logger.debug("Hook next wake up at %s", wakeup_at)
-
-            if wakeup_at:
-                wakeup_at -= timedelta(seconds=wakeup_delta)
-                _logger.info("Scheduling next wake up at %s", wakeup_at)
-                wakeup_fn(wakeup_at)
-            else:
-                _logger.info("No wake up required. Terminating")
-
-            # create the just woke up file
-            woke_up_file.touch()
-    except portalocker.LockException:
-        _logger.warning(
-            "Hook unable to acquire lock. Not informing daemon.", exc_info=True
-        )
-
-
 def main_version(
-    args: argparse.Namespace, config: configparser.ConfigParser  # noqa: ARG001
+    _: argparse.Namespace,
+    config: configparser.ConfigParser,  # noqa: ARG001
 ) -> None:
     print(version("autosuspend"))  # noqa: T201
-
-
-def main_hook(
-    args: argparse.Namespace, config: configparser.ConfigParser  # noqa: ARG001
-) -> None:
-    wakeups = set_up_checks(
-        config,
-        "wakeup",
-        "wakeup",
-        Wakeup,  # type: ignore # python/mypy#5374
-    )
-    hook(
-        wakeups,
-        get_wakeup_delta(config),
-        get_schedule_wakeup_func(config),
-        get_woke_up_file(config),
-        get_lock_file(config),
-        get_lock_timeout(config),
-    )
 
 
 def main_daemon(args: argparse.Namespace, config: configparser.ConfigParser) -> None:
@@ -782,14 +723,26 @@ def main_daemon(args: argparse.Namespace, config: configparser.ConfigParser) -> 
         Wakeup,  # type: ignore
     )
 
-    processor = configure_processor(args, config, checks, wakeups)
+    # get the sleep and wakeup functions
+    sleep_fn = get_notify_and_suspend_func(config)
+    wakeup_fn = get_schedule_wakeup_func(config)
+
+    # create processor
+    processor = Processor(
+        checks,
+        wakeups,
+        config.getfloat("general", "idle_time", fallback=300),
+        config.getfloat("general", "min_sleep_time", fallback=1200),
+        get_wakeup_delta(config),
+        sleep_fn,
+        wakeup_fn,
+        all_activities=args.all_checks,
+    )
+
     loop(
         processor,
         config.getfloat("general", "interval", fallback=60),
         run_for=args.run_for,
-        woke_up_file=get_woke_up_file(config),
-        lock_file=get_lock_file(config),
-        lock_timeout=get_lock_timeout(config),
     )
 
 

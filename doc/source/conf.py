@@ -48,6 +48,7 @@ rst_epilog = '''
 .. _setuptools: https://setuptools.readthedocs.io
 .. _configparser: https://docs.python.org/3/library/configparser.html
 .. _psutil: https://github.com/giampaolo/psutil
+.. _PyGObject: https://pygobject.readthedocs.io
 .. _lxml: http://lxml.de/
 .. _MPD: http://www.musicpd.org/
 .. _python-mpd2: https://pypi.python.org/pypi/python-mpd2
@@ -66,7 +67,6 @@ rst_epilog = '''
 .. _tzlocal: https://pypi.org/project/tzlocal/
 .. _requests-file: https://github.com/dashea/requests-file
 .. _Plex: https://www.plex.tv/
-.. _portalocker: https://portalocker.readthedocs.io
 .. _jsonpath-ng: https://github.com/h2non/jsonpath-ng
 .. _JSONPath: https://goessner.net/articles/JsonPath/
 .. _tzdata: https://pypi.org/project/tzdata/:w

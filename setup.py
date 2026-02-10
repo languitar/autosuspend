@@ -45,7 +45,8 @@ setup(
     python_requires=">=3.11",
     install_requires=[
         "psutil>=5.0",
-        "portalocker",
+        "dbus-python",
+        "PyGObject",
     ],
     extras_require=extras_require,
     package_dir={"": "src"},
@@ -59,7 +60,7 @@ setup(
         ("etc", ["data/autosuspend.conf", "data/autosuspend-logging.conf"]),
         (
             "lib/systemd/system",
-            ["data/autosuspend.service", "data/autosuspend-detect-suspend.service"],
+            ["data/autosuspend.service"],
         ),
     ],
 )

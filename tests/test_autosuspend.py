@@ -509,26 +509,26 @@ class TestProcessor:
         )
         # should init the timestamp initially
         start = datetime.now(UTC)
-        processor.iteration(start, False)
+        processor.iteration(start)
         assert not sleep_fn.called
         # not yet reached
-        processor.iteration(start + timedelta(seconds=1), False)
+        processor.iteration(start + timedelta(seconds=1))
         assert not sleep_fn.called
         # time must be greater, not equal
-        processor.iteration(start + timedelta(seconds=2), False)
+        processor.iteration(start + timedelta(seconds=2))
         assert not sleep_fn.called
         # go to sleep
-        processor.iteration(start + timedelta(seconds=3), False)
+        processor.iteration(start + timedelta(seconds=3))
         assert sleep_fn.called
         assert sleep_fn.call_arg is None
 
         sleep_fn.reset()
 
         # second iteration to check that the idle time got reset
-        processor.iteration(start + timedelta(seconds=4), False)
+        processor.iteration(start + timedelta(seconds=4))
         assert not sleep_fn.called
         # go to sleep again
-        processor.iteration(start + timedelta(seconds=6, milliseconds=2), False)
+        processor.iteration(start + timedelta(seconds=6, milliseconds=2))
         assert sleep_fn.called
 
         assert wakeup_fn.call_arg is None
@@ -542,19 +542,19 @@ class TestProcessor:
 
         # should init the timestamp initially
         start = datetime.now(UTC)
-        processor.iteration(start, False)
+        processor.iteration(start)
         assert not sleep_fn.called
         # should go to sleep but we just woke up
-        processor.iteration(start + timedelta(seconds=3), True)
+        processor.on_resume()
         assert not sleep_fn.called
         # start over again
-        processor.iteration(start + timedelta(seconds=4), False)
+        processor.iteration(start + timedelta(seconds=4))
         assert not sleep_fn.called
         # not yet sleeping
-        processor.iteration(start + timedelta(seconds=6), False)
+        processor.iteration(start + timedelta(seconds=6))
         assert not sleep_fn.called
         # now go to sleep
-        processor.iteration(start + timedelta(seconds=7), False)
+        processor.iteration(start + timedelta(seconds=7))
         assert sleep_fn.called
 
         assert wakeup_fn.call_arg is None
@@ -570,9 +570,9 @@ class TestProcessor:
         )
 
         # init iteration
-        processor.iteration(start, False)
+        processor.iteration(start)
         # no activity and enough time passed to start sleeping
-        processor.iteration(start + timedelta(seconds=3), False)
+        processor.iteration(start + timedelta(seconds=3))
         assert not sleep_fn.called
         assert wakeup_fn.call_arg is None
 
@@ -590,10 +590,13 @@ class TestProcessor:
         )
 
         # init iteration
-        processor.iteration(start, False)
+        processor.iteration(start)
         # no activity and enough time passed to start sleeping
-        processor.iteration(start + timedelta(seconds=3), False)
+        processor.iteration(start + timedelta(seconds=3))
         assert sleep_fn.called
+
+        # simulate PrepareForSleep signal scheduling the wakeup
+        processor.schedule_wakeup(start + timedelta(seconds=3))
         assert wakeup_fn.call_arg is not None
 
     def test_wakeup_scheduled(
@@ -607,18 +610,22 @@ class TestProcessor:
         )
 
         # init iteration
-        processor.iteration(start, False)
+        processor.iteration(start)
         # no activity and enough time passed to start sleeping
-        processor.iteration(start + timedelta(seconds=3), False)
+        processor.iteration(start + timedelta(seconds=3))
         assert sleep_fn.called
         assert sleep_fn.call_arg == start + timedelta(seconds=25)
+
+        # simulate PrepareForSleep signal scheduling the wakeup
+        processor.schedule_wakeup(start + timedelta(seconds=3))
         assert wakeup_fn.call_arg == start + timedelta(seconds=25)
 
         sleep_fn.reset()
         wakeup_fn.reset()
 
         # ensure that wake up is not scheduled again
-        processor.iteration(start + timedelta(seconds=25), False)
+        processor.iteration(start + timedelta(seconds=25))
+        processor.schedule_wakeup(start + timedelta(seconds=25))
         assert wakeup_fn.call_arg is None
 
     def test_wakeup_delta_blocks(
@@ -632,9 +639,9 @@ class TestProcessor:
         )
 
         # init iteration
-        processor.iteration(start, False)
+        processor.iteration(start)
         # no activity and enough time passed to start sleeping
-        processor.iteration(start + timedelta(seconds=3), False)
+        processor.iteration(start + timedelta(seconds=3))
         assert not sleep_fn.called
 
     def test_wakeup_delta_applied(
@@ -648,8 +655,11 @@ class TestProcessor:
         )
 
         # init iteration
-        processor.iteration(start, False)
+        processor.iteration(start)
         # no activity and enough time passed to start sleeping
-        processor.iteration(start + timedelta(seconds=3), False)
+        processor.iteration(start + timedelta(seconds=3))
         assert sleep_fn.called
+
+        # simulate PrepareForSleep signal scheduling the wakeup
+        processor.schedule_wakeup(start + timedelta(seconds=3))
         assert wakeup_fn.call_arg == start + timedelta(seconds=21)

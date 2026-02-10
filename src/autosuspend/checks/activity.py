@@ -12,6 +12,7 @@ from .linux import (  # noqa
     Users,
 )
 from .smb import Smb  # noqa
+from .systemd import LogindSessionsIdle, SystemdTimer  # noqa
 from .xorg import XIdleTime  # noqa
 
 with suppress(ModuleNotFoundError):
@@ -22,8 +23,6 @@ with suppress(ModuleNotFoundError):
     from .logs import LastLogActivity  # noqa
 with suppress(ModuleNotFoundError):
     from .xpath import XPathActivity as XPath  # noqa
-with suppress(ModuleNotFoundError):
-    from .systemd import LogindSessionsIdle  # noqa
 with suppress(ModuleNotFoundError):
     from .mpd import Mpd  # noqa
 
