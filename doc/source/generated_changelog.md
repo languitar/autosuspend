@@ -1,3 +1,13 @@
+# [10.0.0](https://github.com/languitar/autosuspend/compare/v9.0.1...v10.0.0) (2026-02-10)
+
+
+* feat!: replace presuspend systemd unit with dbus integration ([5c2a080](https://github.com/languitar/autosuspend/commit/5c2a08049248c20dd1e4323feb12d11f82c6f130))
+
+
+### BREAKING CHANGES
+
+* dbus and pygobject are now a mandatory dependencies
+
 ## [9.0.1](https://github.com/languitar/autosuspend/compare/v9.0.0...v9.0.1) (2026-01-19)
 
 
