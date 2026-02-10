@@ -9,11 +9,9 @@ import logging.config
 import math
 import subprocess
 from collections.abc import Callable, Iterable, Sequence
-from contextlib import suppress
 from datetime import UTC, datetime, timedelta
 from importlib.metadata import version
 from pathlib import Path
-from typing import IO
 
 import dbus
 from dbus.mainloop.glib import DBusGMainLoop
@@ -519,18 +517,19 @@ def set_up_checks(
     return configured_checks
 
 
-def parse_config(config_file: Iterable[str]) -> configparser.ConfigParser:
+def parse_config(config_file: Path) -> configparser.ConfigParser:
     """Parse the configuration file.
 
     Args:
         config_file:
-            The file to parse
+            Path to the file to parse
     """
     _logger.debug("Reading config file %s", config_file)
     config = configparser.ConfigParser(
         interpolation=configparser.ExtendedInterpolation()
     )
-    config.read_file(config_file)
+    with config_file.open("r") as f:
+        config.read_file(f)
     _logger.debug("Parsed config file: %s", config)
     return config
 
@@ -548,16 +547,15 @@ def parse_arguments(args: Sequence[str] | None) -> argparse.Namespace:
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
     )
 
-    default_config: IO[str] | None = None
-    with suppress(FileNotFoundError, IsADirectoryError, PermissionError):
-        # The open file is required after this function finishes inside the argparse
-        # result. Therefore, a context manager is not easily usable here.
-        default_config = Path("/etc/autosuspend.conf").open("r")  # noqa: SIM115
+    default_config_path = Path("/etc/autosuspend.conf")
+    default_config: Path | None = None
+    if default_config_path.exists():
+        default_config = default_config_path
     parser.add_argument(
         "-c",
         "--config",
         dest="config_file",
-        type=argparse.FileType("r"),
+        type=Path,
         default=default_config,
         required=default_config is None,
         metavar="FILE",
@@ -568,7 +566,7 @@ def parse_arguments(args: Sequence[str] | None) -> argparse.Namespace:
     logging_group.add_argument(
         "-l",
         "--logging",
-        type=argparse.FileType("r"),
+        type=Path,
         default=None,
         metavar="FILE",
         help="Configures the python logging system from the specified "
@@ -622,7 +620,7 @@ def parse_arguments(args: Sequence[str] | None) -> argparse.Namespace:
     return result
 
 
-def configure_logging(config_file: IO | None, debug: bool) -> None:
+def configure_logging(config_file: Path | None, debug: bool) -> None:
     """Configure the python :mod:`logging` system.
 
     Assumes that either a config file is provided, or debugging is enabled.
@@ -630,14 +628,14 @@ def configure_logging(config_file: IO | None, debug: bool) -> None:
 
     Args:
         config_file:
-            a configuration file pointed by a :ref:`file object
-            <python:bltin-file-objects>`
+            path to a logging configuration file
         debug:
             if ``True``, enable debug logging
     """
     if config_file:
         try:
-            logging.config.fileConfig(config_file)
+            with config_file.open("r") as f:
+                logging.config.fileConfig(f)
         except Exception:  # probably ok for main-like function
             # at least configure warnings
             logging.basicConfig(level=logging.WARNING)

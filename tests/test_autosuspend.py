@@ -3,6 +3,7 @@ import configparser
 import logging
 import subprocess
 from datetime import UTC, datetime, timedelta, timezone
+from pathlib import Path
 from typing import Any
 
 import dateutil.parser
@@ -68,22 +69,26 @@ class TestConfigureLogging:
 
         mock.assert_called_once_with(level=logging.WARNING)
 
-    def test_file(self, mocker: MockerFixture) -> None:
+    def test_file(self, mocker: MockerFixture, tmp_path: Path) -> None:
         mock = mocker.patch("logging.config.fileConfig")
 
-        # anything that is not a boolean is treated like a file
-        autosuspend.configure_logging(42, False)  # type: ignore
+        test_file = tmp_path / "test.conf"
+        test_file.write_text("[loggers]\n")
 
-        mock.assert_called_once_with(42)
+        autosuspend.configure_logging(test_file, False)
 
-    def test_file_fallback(self, mocker: MockerFixture) -> None:
+        mock.assert_called_once()
+
+    def test_file_fallback(self, mocker: MockerFixture, tmp_path: Path) -> None:
         mock = mocker.patch("logging.config.fileConfig", side_effect=RuntimeError())
         mock_basic = mocker.patch("logging.basicConfig")
 
-        # anything that is not a boolean is treated like a file
-        autosuspend.configure_logging(42, False)  # type: ignore
+        test_file = tmp_path / "test.conf"
+        test_file.write_text("[loggers]\n")
 
-        mock.assert_called_once_with(42)
+        autosuspend.configure_logging(test_file, False)
+
+        mock.assert_called_once()
         mock_basic.assert_called_once_with(level=logging.WARNING)
 
 
