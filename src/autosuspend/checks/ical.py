@@ -131,7 +131,7 @@ ChangeMapping = dict[str, list[icalendar.cal.Event]]
 
 def _collect_recurrence_changes(calendar: icalendar.Calendar) -> ChangeMapping:
     recurring_changes: ChangeMapping = {}
-    for component in calendar.walk("VEVENT"):
+    for component in cast("list[icalendar.Event]", calendar.walk("VEVENT")):
         if component.get("recurrence-id"):
             if component.get("uid") not in recurring_changes:
                 recurring_changes[component.get("uid")] = []
@@ -273,7 +273,7 @@ def list_calendar_events(
     recurring_changes = _collect_recurrence_changes(calendar)
 
     events = []
-    for component in calendar.walk("VEVENT"):
+    for component in cast("list[icalendar.Event]", calendar.walk("VEVENT")):
         events.extend(
             _extract_events_from_component(
                 component, recurring_changes, start_at, end_at
