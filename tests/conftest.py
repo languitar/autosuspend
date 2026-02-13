@@ -1,3 +1,4 @@
+import textwrap
 from collections.abc import Callable, Iterable
 from pathlib import Path
 from typing import Any
@@ -80,12 +81,62 @@ def logind(
 
         monkeypatch.setattr(util_systemd, "_get_bus", get_bus)
 
+        # Add inhibitor support to the logind mock
+        server.obj.AddMethods(
+            "org.freedesktop.login1.Manager",
+            [
+                (
+                    "ListInhibitors",
+                    "",
+                    "a(ssssuu)",
+                    textwrap.dedent(
+                        """
+                        if not hasattr(self, '_inhibitors'):
+                            self._inhibitors = []
+                        ret = self._inhibitors
+                        """,
+                    ),
+                ),
+                (
+                    "AddInhibitor",
+                    "ssssuu",
+                    "",
+                    textwrap.dedent(
+                        """
+                        if not hasattr(self, '_inhibitors'):
+                            self._inhibitors = []
+                        self._inhibitors.append((args[0], args[1], args[2], args[3], args[4], args[5]))
+                        """,
+                    ),
+                ),
+                (
+                    "RemoveInhibitor",
+                    "uu",
+                    "",
+                    textwrap.dedent(
+                        """
+                        if not hasattr(self, '_inhibitors'):
+                            self._inhibitors = []
+                        uid_arg = args[0]
+                        pid_arg = args[1]
+                        new_inhibitors = []
+                        for w, who, why, m, uid, pid in self._inhibitors:
+                            if not (uid == uid_arg and pid == pid_arg):
+                                new_inhibitors.append((w, who, why, m, uid, pid))
+                        self._inhibitors = new_inhibitors
+                        """,
+                    ),
+                ),
+            ],
+        )
+
         yield server.obj
 
 
 @pytest.fixture
 def _logind_dbus_error(
-    monkeypatch: Any, dbusmock_system: PrivateDBus  # noqa
+    monkeypatch: Any,
+    dbusmock_system: PrivateDBus,  # noqa
 ) -> Iterable[None]:
     pytest.importorskip("dbus")
     pytest.importorskip("gi")
