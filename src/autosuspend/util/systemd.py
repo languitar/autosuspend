@@ -37,3 +37,33 @@ def list_logind_sessions() -> Iterable[tuple[str, dict]]:
         raise LogindDBusException(error) from error
 
     return results
+
+
+def has_inhibit_lock() -> bool:
+    """Check if there are any blocking inhibit locks that prevent sleep.
+
+    Returns:
+        True if there are inhibit locks blocking sleep/shutdown/idle, False otherwise.
+
+    Raises:
+        LogindDBusException: If communication with logind fails.
+    """
+    try:
+        bus = _get_bus()
+        login1 = bus.get_object("org.freedesktop.login1", "/org/freedesktop/login1")
+
+        inhibitors = login1.ListInhibitors(
+            dbus_interface="org.freedesktop.login1.Manager"
+        )
+
+        # Check for blocking inhibit locks on sleep, shutdown, or idle
+        for inhibitor in inhibitors:
+            what, _who, _why, mode, _uid, _pid = inhibitor
+            if mode == "block" and any(
+                lock in what for lock in ["sleep", "shutdown", "idle"]
+            ):
+                return True
+
+        return False
+    except dbus.exceptions.DBusException as error:
+        raise LogindDBusException(error) from error

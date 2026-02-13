@@ -8,9 +8,11 @@ from typing import Any
 
 import dateutil.parser
 import pytest
+from dbus.proxies import ProxyObject
 from pytest_mock import MockerFixture
 
 import autosuspend
+from autosuspend.util.systemd import LogindDBusException
 
 
 class TestExecuteSuspend:
@@ -668,3 +670,82 @@ class TestProcessor:
         # simulate PrepareForSleep signal scheduling the wakeup
         processor.schedule_wakeup(start + timedelta(seconds=3))
         assert wakeup_fn.call_arg == start + timedelta(seconds=21)
+
+    def test_inhibit_lock_blocks_suspend(
+        self,
+        sleep_fn: SleepFn,
+        wakeup_fn: WakeupFn,
+        logind: ProxyObject,
+    ) -> None:
+        start = datetime.now(UTC)
+        processor = autosuspend.Processor(
+            [_StubCheck("stub", None)], [], 2, 0, 0, sleep_fn, wakeup_fn, False
+        )
+
+        # init iteration
+        processor.iteration(start)
+        assert not sleep_fn.called
+
+        # add inhibit lock
+        logind.AddInhibitor("sleep", "TestApp", "Testing", "block", 1000, 12345)
+
+        # enough time passed but inhibit lock should prevent suspension
+        processor.iteration(start + timedelta(seconds=3))
+        assert not sleep_fn.called
+        # idle state should be preserved (idle_since should not be reset)
+        assert processor._idle_since == start
+
+    def test_suspend_immediately_after_inhibit_lock_released(
+        self,
+        sleep_fn: SleepFn,
+        wakeup_fn: WakeupFn,
+        logind: ProxyObject,
+    ) -> None:
+        start = datetime.now(UTC)
+        processor = autosuspend.Processor(
+            [_StubCheck("stub", None)], [], 2, 0, 0, sleep_fn, wakeup_fn, False
+        )
+
+        # init iteration
+        processor.iteration(start)
+        assert not sleep_fn.called
+
+        # Add inhibit lock
+        logind.AddInhibitor("sleep", "TestApp", "Testing", "block", 1000, 12345)
+
+        # enough time passed but inhibit lock prevents suspension
+        processor.iteration(start + timedelta(seconds=3))
+        assert not sleep_fn.called
+
+        # remove inhibit lock
+        logind.RemoveInhibitor(1000, 12345)
+
+        # next iteration should suspend immediately (idle time already met)
+        processor.iteration(start + timedelta(seconds=4))
+        assert sleep_fn.called
+
+    def test_inhibit_lock_dbus_error_does_not_prevent_suspend(
+        self,
+        mocker: MockerFixture,
+        sleep_fn: SleepFn,
+        wakeup_fn: WakeupFn,
+    ) -> None:
+        start = datetime.now(UTC)
+        processor = autosuspend.Processor(
+            [_StubCheck("stub", None)], [], 2, 0, 0, sleep_fn, wakeup_fn, False
+        )
+
+        # Mock has_inhibit_lock to raise an exception
+        mock_inhibit = mocker.patch(
+            "autosuspend.has_inhibit_lock",
+            side_effect=LogindDBusException("Test error"),
+        )
+
+        # init iteration
+        processor.iteration(start)
+        assert not sleep_fn.called
+
+        # should suspend despite DBus error
+        processor.iteration(start + timedelta(seconds=3))
+        assert sleep_fn.called
+        mock_inhibit.assert_called()
