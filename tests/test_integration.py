@@ -1,3 +1,4 @@
+import json
 import logging
 import subprocess
 from collections.abc import Iterable
@@ -292,3 +293,20 @@ def test_version(tmp_path: Path, datadir: Path) -> None:
             "version",
         ]
     )
+
+
+def test_schema(
+    tmp_path: Path, datadir: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    autosuspend.main(
+        [
+            "-c",
+            str(configure_config("would_schedule.conf", datadir, tmp_path)),
+            "schema",
+        ]
+    )
+
+    stdout = capsys.readouterr().out
+    assert stdout.strip() != ""
+    # should be valid
+    json.loads(stdout)
