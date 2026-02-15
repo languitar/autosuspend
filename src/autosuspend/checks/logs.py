@@ -45,6 +45,23 @@ from ..config import ParameterType, config_param
     default="UTC",
 )
 class LastLogActivity(Activity):
+    """Check for recent log file entries.
+
+    Parses a log file and uses the most recent time contained in the file to determine activity.
+    For this purpose, the log file lines are iterated from the back until a line matching a configurable regular expression is found.
+    This expression is used to extract the contained timestamp in that log line, which is then compared to the current time with an allowed delta.
+    The check only looks at the first line from the back that contains a timestamp.
+    Further lines are ignored.
+    A typical use case for this check would be a web server access log file.
+
+    This check supports all date formats that are supported by the `dateutil parser <https://dateutil.readthedocs.io/en/stable/parser.html#dateutil.parser.parse>`_.
+
+    **Requirements**
+
+    * `dateutil`_
+    * `tzdata`_
+    """
+
     @classmethod
     def create(cls: type[Self], name: str, config: configparser.SectionProxy) -> Self:
         try:

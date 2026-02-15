@@ -28,9 +28,10 @@ from ..config import ParameterType, config_param
     required=True,
 )
 class Periodic(Wakeup):
-    """Always indicates a wake up after a specified delta of time from now on.
+    """Schedule periodic wake ups.
 
-    Use this to periodically wake up a system.
+    Always schedules a wake up at a specified delta from now on.
+    Can be used to let the system wake up every once in a while, for instance, to refresh the calendar used in the :ref:`wakeup-calendar` check.
     """
 
     @classmethod

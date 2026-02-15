@@ -130,7 +130,23 @@ def list_sessions_logind() -> list[XorgSession]:
     default="a^",
 )
 class XIdleTime(Activity):
-    """Check that local X display have been idle long enough."""
+    """Check for X11 idle time.
+
+    Checks whether all active local X displays have been idle for a sufficiently long time.
+    Determining which X11 sessions currently exist on a running system is a harder problem than one might expect.
+    Sometimes, the server runs as root, sometimes under the real user, and many other configuration variants exist.
+    Thus, multiple sources for active X serer instances are implemented for this check, each of them having different requirements and limitations.
+    They can be changed using the provided configuration option.
+
+    The method to use for acquiring running X sessions can be configured:
+
+    ``sockets``
+      Uses the X server sockets files found in :file:`/tmp/.X11-unix`.
+      This method requires that all X server instances run with user permissions and not as root.
+    ``logind``
+      Uses `logind`_ to obtain the running X server instances.
+      This does not support manually started servers.
+    """
 
     @classmethod
     def create(cls: type[Self], name: str, config: configparser.SectionProxy) -> Self:

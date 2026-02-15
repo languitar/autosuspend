@@ -284,7 +284,20 @@ def list_calendar_events(
 
 
 class ActiveCalendarEvent(NetworkMixin, Activity):
-    """Determines activity by checking against events in an icalendar file."""
+    """Check for active calendar events.
+
+    Checks an online `iCalendar`_ file for events that are currently running.
+    If so, this indicates activity and prevents suspending the system.
+    Thus, a calendar can be provided with times at which the system should not go to sleep.
+    If this calendar resides on an online service like a groupware it might even be possible to invite the system.
+
+    **Requirements**
+
+    * `requests`_
+    * `icalendar <python-icalendar_>`_
+    * `dateutil`_
+    * `tzlocal`_
+    """
 
     def __init__(self, name: str, **kwargs: Any) -> None:
         NetworkMixin.__init__(self, **kwargs)
@@ -308,7 +321,21 @@ class ActiveCalendarEvent(NetworkMixin, Activity):
 
 
 class Calendar(NetworkMixin, Wakeup):
-    """Uses an ical calendar to wake up on the next scheduled event."""
+    """Determine wake up times from calendar events.
+
+    Determines next wake up time from an `iCalendar`_ file.
+    The next event that starts after the current time is chosen as the next wake up time.
+
+    Remember that updates to the calendar can only be reflected in case the system currently running.
+    Changes to the calendar made while the system is sleeping will obviously not trigger an earlier wake up.
+
+    **Requirements**
+
+    * `requests`_
+    * `icalendar <python-icalendar_>`_
+    * `dateutil`_
+    * `tzlocal`_
+    """
 
     def __init__(self, name: str, **kwargs: Any) -> None:
         NetworkMixin.__init__(self, **kwargs)

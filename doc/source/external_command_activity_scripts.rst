@@ -3,7 +3,7 @@
 External command scripts for activity detection
 ###############################################
 
-A collection of user-provided scripts to use with the :ref:`check-external-command` check for activity detection.
+A collection of user-provided scripts to use with the :ref:`check-command-activity` check for activity detection.
 
 pyLoad
 ******

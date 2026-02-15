@@ -13,6 +13,11 @@ from ..config import ParameterType, config_param
     default="smbstatus",
 )
 class Smb(Activity):
+    """Check for active Samba connections.
+
+    Any active Samba connection will block suspend.
+    """
+
     @classmethod
     def create(
         cls: type[Self],
