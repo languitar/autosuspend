@@ -493,7 +493,7 @@ def _set_up_single_check(
 
 def discover_available_checks(
     internal_module: str, check_type: type[CheckType]
-) -> list[type[CheckType]]:
+) -> dict[str, type[CheckType]]:
     """Find all concrete subclasses of Check in the given module.
 
     Args:
@@ -501,20 +501,22 @@ def discover_available_checks(
         check_type: the base check type class (Activity or Wakeup) to find subclasses of
 
     Returns:
-        List of concrete check classes found in the specified module
+        Dictionary mapping user-facing check names (aliases) to check classes
     """
     module_name = f"autosuspend.checks.{internal_module}"
     module = importlib.import_module(module_name)
 
-    available_checks = []
-    for _, obj in inspect.getmembers(module, inspect.isclass):
+    available_checks = {}
+    for name, obj in inspect.getmembers(module, inspect.isclass):
         if (
             issubclass(obj, check_type)
             # exclude the base class itself
             and obj is not check_type
             and not inspect.isabstract(obj)
+            and not name.startswith("_")
         ):
-            available_checks.append(obj)
+            # Use the exported name (alias) as the key
+            available_checks[name] = obj
 
     return available_checks
 
@@ -765,10 +767,10 @@ def main_schema(
     schema = ConfigSchema(
         general_parameters=GENERAL_PARAMETERS,
         activity_checks={
-            check.__name__: check.config_parameters for check in activity_checks
+            name: check.config_parameters for name, check in activity_checks.items()
         },
         wakeup_checks={
-            check.__name__: check.config_parameters for check in wakeup_checks
+            name: check.config_parameters for name, check in wakeup_checks.items()
         },
     )
 

@@ -116,10 +116,10 @@ New wakeup checks
 -----------------
 
 * :ref:`wakeup-calendar`: Wake up the system at the next event in an `iCalendar`_ file (requested via network, :issue:`30`).
-* :ref:`wakeup-command-wakeup`: Call an external command to determine the next wake up time (:issue:`26`).
+* :ref:`wakeup-command`: Call an external command to determine the next wake up time (:issue:`26`).
 * :ref:`wakeup-file`: Read the next wake up time from a file (:issue:`9`).
 * :ref:`wakeup-periodic`: Wake up at a defined interval, for instance, to refresh calendars for the :ref:`wakeup-calendar` check (:issue:`34`).
-* :ref:`wakeup-x-path-wakeup` and :ref:`wakeup-x-path-delta-wakeup`: Request an XML document and use `XPath`_ to extract the next wakeup time.
+* :ref:`wakeup-x-path` and :ref:`wakeup-x-path-delta`: Request an XML document and use `XPath`_ to extract the next wakeup time.
 
 Fixed bugs
 ==========

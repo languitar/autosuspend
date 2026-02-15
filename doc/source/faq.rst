@@ -11,7 +11,7 @@ How to check unsupported software?
 
 In case you want to detect if some piece of software running on your system that is not officially supported is performing relevant activity you have two options:
 
-* Use a script with the :ref:`check-command-activity` check.
+* Use a script with the :ref:`check-external-command` check.
 
 * Implement a Python module with you check being a subclass of
   :class:`autosuspend.checks.Activity` or

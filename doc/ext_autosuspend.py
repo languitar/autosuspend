@@ -81,8 +81,8 @@ class AutosuspendChecksDirective(Directive):
         else:
             raise ValueError(f"Unknown check type: {check_type}")
 
-        # Sort checks by name
-        checks = sorted(checks, key=lambda x: x.__name__)
+        # Sort checks by name (keys are already the effective names/aliases)
+        sorted_checks = sorted(checks.items(), key=lambda x: x[0])
 
         # Generate RST content
         rst = ViewList()
@@ -100,9 +100,7 @@ class AutosuspendChecksDirective(Directive):
         rst.append("", "<autosuspend>")
 
         # Add each check
-        for check_class in checks:
-            class_name = check_class.__name__
-            
+        for class_name, check_class in sorted_checks:
             # Create reference label
             label_name = self._to_kebab_case(class_name)
             rst.append(f".. _{check_prefix}-{label_name}:", "<autosuspend>")
