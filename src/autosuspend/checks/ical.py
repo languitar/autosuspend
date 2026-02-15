@@ -13,6 +13,7 @@ from dateutil.rrule import rrule, rruleset, rrulestr
 
 from . import Activity, Wakeup
 from .util import NetworkMixin
+from ..config import ParameterType, config_param
 from ..util.datetime import is_aware, to_tz_unaware
 
 
@@ -283,6 +284,28 @@ def list_calendar_events(
     return sorted(events, key=lambda e: e.start)
 
 
+@config_param(
+    "url",
+    ParameterType.STRING,
+    "The URL to query for the iCalendar file",
+    required=True,
+)
+@config_param(
+    "timeout",
+    ParameterType.INTEGER,
+    "Timeout for executed requests in seconds.",
+    default=5,
+)
+@config_param(
+    "username",
+    ParameterType.STRING,
+    "Optional user name to use for authenticating at a server requiring authentication. If used, also a password must be provided.",
+)
+@config_param(
+    "password",
+    ParameterType.STRING,
+    "Optional password to use for authenticating at a server requiring authentication. If used, also a user name must be provided.",
+)
 class ActiveCalendarEvent(NetworkMixin, Activity):
     """Determines activity by checking against events in an icalendar file."""
 
@@ -307,6 +330,28 @@ class ActiveCalendarEvent(NetworkMixin, Activity):
             return None
 
 
+@config_param(
+    "url",
+    ParameterType.STRING,
+    "The URL to query for the XML reply.",
+    required=True,
+)
+@config_param(
+    "timeout",
+    ParameterType.INTEGER,
+    "Timeout for executed requests in seconds.",
+    default=5,
+)
+@config_param(
+    "username",
+    ParameterType.STRING,
+    "Optional user name to use for authenticating at a server requiring authentication. If used, also a password must be provided.",
+)
+@config_param(
+    "password",
+    ParameterType.STRING,
+    "Optional password to use for authenticating at a server requiring authentication. If used, also a user name must be provided.",
+)
 class Calendar(NetworkMixin, Wakeup):
     """Uses an ical calendar to wake up on the next scheduled event."""
 

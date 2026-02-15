@@ -3,8 +3,15 @@ import subprocess
 from typing import Self
 
 from . import Activity, SevereCheckError, TemporaryCheckError
+from ..config import ParameterType, config_param
 
 
+@config_param(
+    "smbstatus",
+    ParameterType.STRING,
+    "executable needs to be present.",
+    default="smbstatus",
+)
 class Smb(Activity):
     @classmethod
     def create(

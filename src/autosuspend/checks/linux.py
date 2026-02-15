@@ -23,6 +23,7 @@ from . import (
     TemporaryCheckError,
     Wakeup,
 )
+from ..config import ParameterType, config_param
 
 try:
     from psutil._common import snetio
@@ -30,6 +31,12 @@ except ImportError:
     from psutil._ntuples import snetio
 
 
+@config_param(
+    "ports",
+    ParameterType.STRING,
+    "list of comma-separated port numbers",
+    required=True,
+)
 class ActiveConnection(Activity):
     """Checks if a client connection exists on specified ports."""
 
@@ -89,6 +96,12 @@ class ActiveConnection(Activity):
             return None
 
 
+@config_param(
+    "threshold",
+    ParameterType.FLOAT,
+    "a float for the maximum allowed load value",
+    default=2.5,
+)
 class Load(Activity):
     @classmethod
     def create(cls: type[Self], name: str, config: configparser.SectionProxy) -> Self:
@@ -112,6 +125,24 @@ class Load(Activity):
             return None
 
 
+@config_param(
+    "interfaces",
+    ParameterType.STRING,
+    "Comma-separated list of network interfaces to check",
+    required=True,
+)
+@config_param(
+    "threshold_send",
+    ParameterType.INTEGER,
+    "If the average sending bandwidth of one of the specified interfaces is above this threshold, then activity is detected. Specified in bytes/s",
+    default=100,
+)
+@config_param(
+    "threshold_receive",
+    ParameterType.INTEGER,
+    "If the average receive bandwidth of one of the specified interfaces is above this threshold, then activity is detected. Specified in bytes/s",
+    default=100,
+)
 class NetworkBandwidth(Activity):
     @classmethod
     def _ensure_interfaces_exist(cls, interfaces: Iterable[str]) -> None:
@@ -224,6 +255,12 @@ class NetworkBandwidth(Activity):
         return None
 
 
+@config_param(
+    "hosts",
+    ParameterType.STRING,
+    "Comma-separated list of host names or IPs.",
+    required=True,
+)
 class Ping(Activity):
     """Check if one or several hosts are reachable via ping."""
 
@@ -261,6 +298,12 @@ class Ping(Activity):
             raise SevereCheckError("Binary ping cannot be found") from error
 
 
+@config_param(
+    "processes",
+    ParameterType.STRING,
+    "list of comma-separated process names to check for",
+    required=True,
+)
 class Processes(Activity):
     @classmethod
     def create(cls: type[Self], name: str, config: configparser.SectionProxy) -> Self:
@@ -284,6 +327,24 @@ class Processes(Activity):
         return None
 
 
+@config_param(
+    "name",
+    ParameterType.STRING,
+    "A regular expression specifying which users to capture",
+    default=".*",
+)
+@config_param(
+    "terminal",
+    ParameterType.STRING,
+    "A regular expression specifying the terminal on which the user needs to be logged in",
+    default=".*",
+)
+@config_param(
+    "host",
+    ParameterType.STRING,
+    "A regular expression specifying the host from which a user needs to be logged in. Users logged in locally on the machine are usually reported with an empty string as the host value. In case this check should only match local users, use ``^$`` as the value for this option.",
+    default=".*",
+)
 class Users(Activity):
     @classmethod
     def create(cls: type[Self], name: str, config: configparser.SectionProxy) -> Self:
@@ -331,6 +392,12 @@ class Users(Activity):
         return None
 
 
+@config_param(
+    "path",
+    ParameterType.STRING,
+    "path of the file to read in case it is present",
+    required=True,
+)
 class File(Wakeup):
     """Determines scheduled wake ups from the contents of a file on disk.
 

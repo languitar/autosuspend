@@ -11,8 +11,39 @@ from dateutil.parser import parse
 from dateutil.utils import default_tzinfo
 
 from . import Activity, ConfigurationError, TemporaryCheckError
+from ..config import ParameterType, config_param
 
 
+@config_param(
+    "log_file",
+    ParameterType.STRING,
+    "path to the log file that should be analyzed",
+    required=True,
+)
+@config_param(
+    "pattern",
+    ParameterType.STRING,
+    "A regular expression used to determine whether a line of the log file contains a timestamp to look at. The expression must contain exactly one matching group. For instance, ``^\\[(.*)]\\] .*$`` might be used to find dates in square brackets at line beginnings.",
+    required=True,
+)
+@config_param(
+    "minutes",
+    ParameterType.INTEGER,
+    "The number of minutes to allow log file timestamps to be in the past for detecting activity. If a timestamp is older than ``<now> - <minutes>`` no activity is detected.",
+    default=10,
+)
+@config_param(
+    "encoding",
+    ParameterType.STRING,
+    "The encoding with which to parse the log file.",
+    default="ascii",
+)
+@config_param(
+    "timezone",
+    ParameterType.STRING,
+    "The timezone to assume in case a timestamp extracted from the log file has not associated timezone information. Timezones are expressed using the names from the Olson timezone database (e.g. ``Europe/Berlin``).",
+    default="UTC",
+)
 class LastLogActivity(Activity):
     @classmethod
     def create(cls: type[Self], name: str, config: configparser.SectionProxy) -> Self:

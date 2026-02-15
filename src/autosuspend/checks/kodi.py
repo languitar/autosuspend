@@ -4,6 +4,7 @@ from typing import Any, Self
 
 from . import Activity, ConfigurationError, TemporaryCheckError
 from .util import NetworkMixin
+from ..config import ParameterType, config_param
 
 
 def _add_default_kodi_url(config: configparser.SectionProxy) -> None:
@@ -11,6 +12,34 @@ def _add_default_kodi_url(config: configparser.SectionProxy) -> None:
         config["url"] = "http://localhost:8080/jsonrpc"
 
 
+@config_param(
+    "url",
+    ParameterType.STRING,
+    "Base URL of the JSON RPC API of the Kodi instance",
+    default="http://localhost:8080/jsonrpc",
+)
+@config_param(
+    "timeout",
+    ParameterType.INTEGER,
+    "Request timeout in seconds",
+    default=5,
+)
+@config_param(
+    "username",
+    ParameterType.STRING,
+    "Optional user name to use for authenticating at a server requiring authentication. If used, also a password must be provided.",
+)
+@config_param(
+    "password",
+    ParameterType.STRING,
+    "Optional password to use for authenticating at a server requiring authentication. If used, also a user name must be provided.",
+)
+@config_param(
+    "suspend_while_paused",
+    ParameterType.BOOLEAN,
+    "Also suspend the system when media playback is paused instead of only suspending when playback is stopped.",
+    default=False,
+)
 class Kodi(NetworkMixin, Activity):
     @classmethod
     def collect_init_args(cls, config: configparser.SectionProxy) -> dict[str, Any]:
@@ -62,6 +91,34 @@ class Kodi(NetworkMixin, Activity):
             return "Kodi currently playing" if reply else None
 
 
+@config_param(
+    "idle_time",
+    ParameterType.INTEGER,
+    "Marks the system active in case a user interaction has appeared within the this amount of seconds until now.",
+    default=120,
+)
+@config_param(
+    "url",
+    ParameterType.STRING,
+    "Base URL of the JSON RPC API of the Kodi instance",
+    default="http://localhost:8080/jsonrpc",
+)
+@config_param(
+    "timeout",
+    ParameterType.INTEGER,
+    "Request timeout in seconds",
+    default=5,
+)
+@config_param(
+    "username",
+    ParameterType.STRING,
+    "Optional user name to use for authenticating at a server requiring authentication. If used, also a password must be provided.",
+)
+@config_param(
+    "password",
+    ParameterType.STRING,
+    "Optional password to use for authenticating at a server requiring authentication. If used, also a user name must be provided.",
+)
 class KodiIdleTime(NetworkMixin, Activity):
     @classmethod
     def collect_init_args(cls, config: configparser.SectionProxy) -> dict[str, Any]:
