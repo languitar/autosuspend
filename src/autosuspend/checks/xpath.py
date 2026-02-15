@@ -170,7 +170,7 @@ class XPathWakeup(XPathMixin, Wakeup):
 class XPathDeltaWakeup(XPathWakeup):
     """Determine wake up times from XPath delta expressions.
 
-    Comparable to :ref:`wakeup-x-path-wakeup`, but expects that the returned results represent the wake up time as a delta to the current time in a configurable unit.
+    Comparable to :ref:`wakeup-x-path`, but expects that the returned results represent the wake up time as a delta to the current time in a configurable unit.
 
     This check can for instance be used for `tvheadend`_ with the following expression::
 
