@@ -39,12 +39,11 @@ class ParameterSchemaAware:
         # for every subclass of a mixin etc.
         inherited_params: list[ParameterSchema] = []
         for base in cls.__mro__[1:]:  # Skip self, start from first parent
-            if hasattr(base, "config_parameters") and base.config_parameters:
-                # add parameters from this base class that aren't already present. This
-                # allows overriding them if required.
-                for param in base.config_parameters:
-                    if not any(p.name == param.name for p in inherited_params):
-                        inherited_params.append(param)
+            # add parameters from this base class that aren't already present. This
+            # allows overriding them if required.
+            for param in getattr(base, "config_parameters", []):
+                if not any(p.name == param.name for p in inherited_params):
+                    inherited_params.append(param)
         cls.config_parameters = inherited_params.copy()
 
 
