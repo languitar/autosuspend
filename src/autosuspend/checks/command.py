@@ -41,6 +41,19 @@ class CommandMixin(Check):
 
 
 class CommandActivity(CommandMixin, Activity):
+    """Execute an external command to determine activity.
+
+    Executes an arbitrary command.
+    In case this command returns 0, the system is assumed to be active.
+
+    The command is executed as is using shell execution.
+    Beware of malicious commands in obtained configuration files.
+
+    .. seealso::
+
+       * :ref:`external-command-activity-scripts` for a collection of user-provided scripts for some common use cases.
+    """
+
     def __init__(self, name: str, command: str) -> None:
         CommandMixin.__init__(self, command)
         Activity.__init__(self, name)
@@ -55,10 +68,16 @@ class CommandActivity(CommandMixin, Activity):
 
 
 class CommandWakeup(CommandMixin, Wakeup):
-    """Determine wake up times based on an external command.
+    """Determine wake up times from an external command.
 
     The called command must return a timestamp in UTC or nothing in case no
     wake up is planned.
+
+    The command always has to succeed.
+    If something is printed on stdout by the command, this has to be the next wake up time in UTC seconds.
+
+    The command is executed as is using shell execution.
+    Beware of malicious commands in obtained configuration files.
     """
 
     def __init__(self, name: str, command: str) -> None:

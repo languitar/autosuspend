@@ -27,6 +27,15 @@ from ..config import ParameterType, config_param
     default=5,
 )
 class Mpd(Activity):
+    """Check for MPD music player activity.
+
+    Checks whether an instance of `MPD`_ is currently playing music.
+
+    **Requirements**
+
+    * `python-mpd2`_
+    """
+
     @classmethod
     def create(cls: type[Self], name: str, config: configparser.SectionProxy) -> Self:
         try:

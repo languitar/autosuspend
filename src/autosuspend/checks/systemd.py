@@ -59,7 +59,10 @@ def next_timer_executions() -> dict[str, datetime]:
     required=True,
 )
 class SystemdTimer(Wakeup):
-    """Ensures that the system is active when some selected SystemD timers will run."""
+    """Check for systemd timer schedules.
+
+    Ensures that the system is active when a `systemd`_ timer is scheduled to run next.
+    """
 
     @classmethod
     def create(cls: type[Self], name: str, config: configparser.SectionProxy) -> Self:
@@ -102,9 +105,11 @@ class SystemdTimer(Wakeup):
     default="user",
 )
 class LogindSessionsIdle(Activity):
-    """Prevents suspending in case a logind session is marked not idle.
+    """Check for logind session idle hints.
 
-    The decision is based on the ``IdleHint`` property of logind sessions.
+    Prevents suspending in case ``IdleHint`` for one of the running sessions `logind`_ sessions is set to ``no``.
+    Support for setting this hint currently varies greatly across display managers, screen lockers etc.
+    Thus, check exactly whether the hint is set on your system via ``loginctl show-session``.
     """
 
     @classmethod

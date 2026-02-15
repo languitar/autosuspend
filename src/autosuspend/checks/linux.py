@@ -38,7 +38,11 @@ except ImportError:
     required=True,
 )
 class ActiveConnection(Activity):
-    """Checks if a client connection exists on specified ports."""
+    """Check for active network connections on specific ports.
+
+    Checks whether there is currently a client connected to a TCP server at certain ports.
+    Can be used to e.g. block suspending the system in case SSH users are connected or a web server is used by clients.
+    """
 
     @classmethod
     def create(
@@ -103,6 +107,11 @@ class ActiveConnection(Activity):
     default=2.5,
 )
 class Load(Activity):
+    """Check for system load.
+
+    Checks whether the `system load 5 <https://en.wikipedia.org/wiki/Load_(computing)>`__ is below a certain value.
+    """
+
     @classmethod
     def create(cls: type[Self], name: str, config: configparser.SectionProxy) -> Self:
         try:
@@ -144,6 +153,19 @@ class Load(Activity):
     default=100,
 )
 class NetworkBandwidth(Activity):
+    """Check for network bandwidth usage.
+
+    Checks whether more network bandwidth is currently being used than specified.
+    A set of specified interfaces is checked in this regard, each of the individually, based on the average bandwidth on that interface.
+    This average is based on the global checking interval specified in the configuration file via the :option:`interval <config-general interval>` option.
+
+    .. note::
+
+       This check assumes stable network interface names.
+       If this is not the case for your system, consider adding the required udev rules to ensure persistent device names.
+       The `Archlinux Wiki page on network configuration <https://wiki.archlinux.org/title/Network_configuration#Change_interface_name>`__ explains the necessary configuration steps.
+    """
+
     @classmethod
     def _ensure_interfaces_exist(cls, interfaces: Iterable[str]) -> None:
         host_interfaces = psutil.net_if_addrs().keys()
@@ -262,7 +284,10 @@ class NetworkBandwidth(Activity):
     required=True,
 )
 class Ping(Activity):
-    """Check if one or several hosts are reachable via ping."""
+    """Check if hosts respond to ping.
+
+    Checks whether one or more hosts answer to ICMP requests.
+    """
 
     @classmethod
     def create(cls: type[Self], name: str, config: configparser.SectionProxy) -> Self:
@@ -305,6 +330,12 @@ class Ping(Activity):
     required=True,
 )
 class Processes(Activity):
+    """Check for running processes.
+
+    If currently running processes match an expression, the suspend will be blocked.
+    You might use this to hinder the system from suspending when for example your rsync runs.
+    """
+
     @classmethod
     def create(cls: type[Self], name: str, config: configparser.SectionProxy) -> Self:
         try:
@@ -346,6 +377,22 @@ class Processes(Activity):
     default=".*",
 )
 class Users(Activity):
+    """Check for logged in users.
+
+    Checks whether a user currently logged in at the system matches several criteria.
+    All provided criteria must match to indicate activity on the host.
+
+    To find the applicable values for a given scenario on a system, use the following command:
+
+    .. code-block:: console
+
+       $ python3 -c "import psutil; print(psutil.users())"
+       [suser(name='someone', terminal='tty7', host='', started=1670269568.0, pid=77179)]
+
+    All regular expressions are applied against the full string.
+    Capturing substrings needs to be explicitly enabled using wildcard matching.
+    """
+
     @classmethod
     def create(cls: type[Self], name: str, config: configparser.SectionProxy) -> Self:
         with warnings.catch_warnings():
@@ -399,9 +446,10 @@ class Users(Activity):
     required=True,
 )
 class File(Wakeup):
-    """Determines scheduled wake ups from the contents of a file on disk.
+    """Scheduled wake up from file contents.
 
-    File contents are interpreted as a Unix timestamp in seconds UTC.
+    Determines the wake up time by reading a file from a configured location.
+    The file has to contains the planned wake up time as an int or float in seconds UTC.
     """
 
     @classmethod

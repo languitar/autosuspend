@@ -6,6 +6,15 @@ from . import Activity, SevereCheckError, TemporaryCheckError
 
 
 class Smb(Activity):
+    """Check for active Samba connections.
+
+    Any active Samba connection will block suspend.
+
+    **Requirements**
+
+    The ``smbstatus`` binary must be installed and executable.
+    """
+
     @classmethod
     def create(
         cls: type[Self],
