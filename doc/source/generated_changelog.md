@@ -1,3 +1,10 @@
+# [10.1.0](https://github.com/languitar/autosuspend/compare/v10.0.0...v10.1.0) (2026-02-15)
+
+
+### Features
+
+* respect systemd inhibit locks ([d5fb833](https://github.com/languitar/autosuspend/commit/d5fb833342d96c2ce596f3d98c12c6eac6b52321)), closes [#408](https://github.com/languitar/autosuspend/issues/408)
+
 # [10.0.0](https://github.com/languitar/autosuspend/compare/v9.0.1...v10.0.0) (2026-02-10)
 
 
