@@ -35,7 +35,17 @@ class ParameterSchemaAware:
 
     def __init_subclass__(cls, **kwargs: Any) -> None:
         super().__init_subclass__(**kwargs)
-        cls.config_parameters = []
+        # inherit config parameters from parent classes to avoid having to repeat them
+        # for every subclass of a mixin etc.
+        inherited_params: list[ParameterSchema] = []
+        for base in cls.__mro__[1:]:  # Skip self, start from first parent
+            if hasattr(base, "config_parameters") and base.config_parameters:
+                # add parameters from this base class that aren't already present. This
+                # allows overriding them if required.
+                for param in base.config_parameters:
+                    if not any(p.name == param.name for p in inherited_params):
+                        inherited_params.append(param)
+        cls.config_parameters = inherited_params.copy()
 
 
 def config_param(
@@ -52,6 +62,9 @@ def config_param(
     """Decorates a check class with the description of a single configuration parameter."""
 
     def decorator(cls: type[ParameterSchemaAware]) -> type[ParameterSchemaAware]:
+        # Check if parameter with this name already exists and remove it
+        cls.config_parameters = [p for p in cls.config_parameters if p.name != name]
+        # Add the new parameter
         cls.config_parameters.append(
             ParameterSchema(
                 name,
