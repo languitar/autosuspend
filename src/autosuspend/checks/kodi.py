@@ -19,22 +19,6 @@ def _add_default_kodi_url(config: configparser.SectionProxy) -> None:
     default="http://localhost:8080/jsonrpc",
 )
 @config_param(
-    "timeout",
-    ParameterType.INTEGER,
-    "Request timeout in seconds",
-    default=5,
-)
-@config_param(
-    "username",
-    ParameterType.STRING,
-    "Optional user name to use for authenticating at a server requiring authentication. If used, also a password must be provided.",
-)
-@config_param(
-    "password",
-    ParameterType.STRING,
-    "Optional password to use for authenticating at a server requiring authentication. If used, also a user name must be provided.",
-)
-@config_param(
     "suspend_while_paused",
     ParameterType.BOOLEAN,
     "Also suspend the system when media playback is paused instead of only suspending when playback is stopped.",
@@ -92,32 +76,16 @@ class Kodi(NetworkMixin, Activity):
 
 
 @config_param(
-    "idle_time",
-    ParameterType.INTEGER,
-    "Marks the system active in case a user interaction has appeared within the this amount of seconds until now.",
-    default=120,
-)
-@config_param(
     "url",
     ParameterType.STRING,
     "Base URL of the JSON RPC API of the Kodi instance",
     default="http://localhost:8080/jsonrpc",
 )
 @config_param(
-    "timeout",
+    "idle_time",
     ParameterType.INTEGER,
-    "Request timeout in seconds",
-    default=5,
-)
-@config_param(
-    "username",
-    ParameterType.STRING,
-    "Optional user name to use for authenticating at a server requiring authentication. If used, also a password must be provided.",
-)
-@config_param(
-    "password",
-    ParameterType.STRING,
-    "Optional password to use for authenticating at a server requiring authentication. If used, also a user name must be provided.",
+    "Marks the system active in case a user interaction has appeared within the this amount of seconds until now.",
+    default=120,
 )
 class KodiIdleTime(NetworkMixin, Activity):
     @classmethod
