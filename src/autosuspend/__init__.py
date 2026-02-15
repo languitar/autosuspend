@@ -19,6 +19,7 @@ from gi.repository import GLib
 
 from .checks import Activity, CheckType, ConfigurationError, TemporaryCheckError, Wakeup
 from .util import logger_by_class_instance
+from .util.systemd import LogindDBusException, has_inhibit_lock
 
 # pylint: disable=invalid-name
 _logger = logging.getLogger("autosuspend")
@@ -289,6 +290,19 @@ class Processor:
             return
 
         self._logger.info("System is idle long enough.")
+
+        # Don't suspend if a systemd inhibit lock exists
+        try:
+            if has_inhibit_lock():
+                self._logger.info(
+                    "Systemd inhibit lock detected. Not suspending but keeping idle state."
+                )
+                return
+        except LogindDBusException:
+            self._logger.warning(
+                "Failed to check systemd inhibit locks. Proceeding with suspension.",
+                exc_info=True,
+            )
 
         # determine potential wake ups to check if sleep time is sufficient
         wakeup_at = execute_wakeups(self._wakeups, timestamp, self._logger)
