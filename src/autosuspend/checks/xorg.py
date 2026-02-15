@@ -15,6 +15,7 @@ from typing import Self
 import psutil
 
 from . import Activity, ConfigurationError, SevereCheckError, TemporaryCheckError
+from ..config import ParameterType, config_param
 from ..util.systemd import LogindDBusException, list_logind_sessions
 
 
@@ -103,6 +104,31 @@ def list_sessions_logind() -> list[XorgSession]:
     return results
 
 
+@config_param(
+    "timeout",
+    ParameterType.INTEGER,
+    "required idle time in seconds",
+    default=600,
+)
+@config_param(
+    "method",
+    ParameterType.STRING,
+    "The method to use for acquiring running X sessions. Valid options are ``sockets`` and ``logind``.",
+    default="sockets",
+    enum_values=["sockets", "logind"],
+)
+@config_param(
+    "ignore_if_process",
+    ParameterType.STRING,
+    "A regular expression to match against the process names executed by each X session owner. In case the use has a running process that matches this expression, the X idle time is ignored and the check continues as if there was no activity. This can be useful in case of processes which inevitably tinker with the idle time.",
+    default="a^",
+)
+@config_param(
+    "ignore_users",
+    ParameterType.STRING,
+    "Do not check sessions of users matching this regular expressions.",
+    default="a^",
+)
 class XIdleTime(Activity):
     """Check that local X display have been idle long enough."""
 

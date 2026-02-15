@@ -10,6 +10,7 @@ from lxml.etree import XPath, XPathSyntaxError  # our input
 
 from . import Activity, ConfigurationError, TemporaryCheckError, Wakeup
 from .util import NetworkMixin
+from ..config import ParameterType, config_param
 
 
 class XPathMixin(NetworkMixin):
@@ -50,6 +51,34 @@ class XPathMixin(NetworkMixin):
             raise TemporaryCheckError(error) from error
 
 
+@config_param(
+    "url",
+    ParameterType.STRING,
+    "The URL to query for the XML reply.",
+    required=True,
+)
+@config_param(
+    "xpath",
+    ParameterType.STRING,
+    "The XPath query to execute. In case it returns a result, the system is assumed to be active.",
+    required=True,
+)
+@config_param(
+    "timeout",
+    ParameterType.INTEGER,
+    "Timeout for executed requests in seconds.",
+    default=5,
+)
+@config_param(
+    "username",
+    ParameterType.STRING,
+    "Optional user name to use for authenticating at a server requiring authentication. If used, also a password must be provided.",
+)
+@config_param(
+    "password",
+    ParameterType.STRING,
+    "Optional password to use for authenticating at a server requiring authentication. If used, also a user name must be provided.",
+)
 class XPathActivity(XPathMixin, Activity):
     def __init__(self, name: str, **kwargs: Any) -> None:
         Activity.__init__(self, name)
@@ -62,6 +91,34 @@ class XPathActivity(XPathMixin, Activity):
             return None
 
 
+@config_param(
+    "url",
+    ParameterType.STRING,
+    "The URL to query for the XML reply.",
+    required=True,
+)
+@config_param(
+    "xpath",
+    ParameterType.STRING,
+    "The XPath query to execute. Must always return number strings or nothing.",
+    required=True,
+)
+@config_param(
+    "timeout",
+    ParameterType.INTEGER,
+    "Timeout for executed requests in seconds.",
+    default=5,
+)
+@config_param(
+    "username",
+    ParameterType.STRING,
+    "Optional user name to use for authenticating at a server requiring authentication. If used, also a password must be provided.",
+)
+@config_param(
+    "password",
+    ParameterType.STRING,
+    "Optional password to use for authenticating at a server requiring authentication. If used, also a user name must be provided.",
+)
 class XPathWakeup(XPathMixin, Wakeup):
     """Determine wake up times from a network resource using XPath expressions.
 
@@ -96,6 +153,49 @@ class XPathWakeup(XPathMixin, Wakeup):
             ) from error
 
 
+@config_param(
+    "url",
+    ParameterType.STRING,
+    "The URL to query for the XML reply.",
+    required=True,
+)
+@config_param(
+    "xpath",
+    ParameterType.STRING,
+    "The XPath query to execute. Must always return number strings or nothing.",
+    required=True,
+)
+@config_param(
+    "timeout",
+    ParameterType.INTEGER,
+    "Timeout for executed requests in seconds.",
+    default=5,
+)
+@config_param(
+    "username",
+    ParameterType.STRING,
+    "Optional user name to use for authenticating at a server requiring authentication. If used, also a password must be provided.",
+)
+@config_param(
+    "password",
+    ParameterType.STRING,
+    "Optional password to use for authenticating at a server requiring authentication. If used, also a user name must be provided.",
+)
+@config_param(
+    "unit",
+    ParameterType.STRING,
+    "A string indicating in which unit the delta is specified. Valid options are: ``microseconds``, ``milliseconds``, ``seconds``, ``minutes``, ``hours``, ``days``, ``weeks``.",
+    default="minutes",
+    enum_values=[
+        "microseconds",
+        "milliseconds",
+        "seconds",
+        "minutes",
+        "hours",
+        "days",
+        "weeks",
+    ],
+)
 class XPathDeltaWakeup(XPathWakeup):
     UNITS = (
         "days",

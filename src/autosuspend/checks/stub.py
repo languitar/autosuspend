@@ -3,8 +3,30 @@ from datetime import datetime, timedelta
 from typing import Self
 
 from . import ConfigurationError, Wakeup
+from ..config import ParameterType, config_param
 
 
+@config_param(
+    "unit",
+    ParameterType.STRING,
+    "A string indicating in which unit the delta is specified. Valid options are: ``microseconds``, ``milliseconds``, ``seconds``, ``minutes``, ``hours``, ``days``, ``weeks``.",
+    required=True,
+    enum_values=[
+        "microseconds",
+        "milliseconds",
+        "seconds",
+        "minutes",
+        "hours",
+        "days",
+        "weeks",
+    ],
+)
+@config_param(
+    "value",
+    ParameterType.FLOAT,
+    "The value of the delta as an int.",
+    required=True,
+)
 class Periodic(Wakeup):
     """Always indicates a wake up after a specified delta of time from now on.
 

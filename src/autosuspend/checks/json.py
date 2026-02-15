@@ -9,8 +9,37 @@ from jsonpath_ng import JSONPath
 
 from . import Activity, ConfigurationError, TemporaryCheckError
 from .util import NetworkMixin
+from ..config import ParameterType, config_param
 
 
+@config_param(
+    "url",
+    ParameterType.STRING,
+    "The URL to query for the XML reply.",
+    required=True,
+)
+@config_param(
+    "jsonpath",
+    ParameterType.STRING,
+    "The JSONPath query to execute. In case it returns a result, the system is assumed to be active.",
+    required=True,
+)
+@config_param(
+    "timeout",
+    ParameterType.INTEGER,
+    "Timeout for executed requests in seconds.",
+    default=5,
+)
+@config_param(
+    "username",
+    ParameterType.STRING,
+    "Optional user name to use for authenticating at a server requiring authentication. If used, also a password must be provided.",
+)
+@config_param(
+    "password",
+    ParameterType.STRING,
+    "Optional password to use for authenticating at a server requiring authentication. If used, also a user name must be provided.",
+)
 class JsonPath(NetworkMixin, Activity):
     """Requests a URL and evaluates whether a JSONPath expression matches."""
 

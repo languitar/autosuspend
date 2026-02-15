@@ -11,6 +11,7 @@ from . import (
     TemporaryCheckError,
     Wakeup,
 )
+from ..config import ParameterType, config_param
 
 
 def raise_severe_if_command_not_found(error: subprocess.CalledProcessError) -> None:
@@ -33,6 +34,12 @@ class CommandMixin(Check):
         self._command = command
 
 
+@config_param(
+    "command",
+    ParameterType.STRING,
+    "The command to execute including all arguments",
+    required=True,
+)
 class CommandActivity(CommandMixin, Activity):
     def __init__(self, name: str, command: str) -> None:
         CommandMixin.__init__(self, command)
@@ -47,6 +54,12 @@ class CommandActivity(CommandMixin, Activity):
             return None
 
 
+@config_param(
+    "command",
+    ParameterType.STRING,
+    "The command to execute including all arguments",
+    required=True,
+)
 class CommandWakeup(CommandMixin, Wakeup):
     """Determine wake up times based on an external command.
 
