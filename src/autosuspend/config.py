@@ -83,6 +83,15 @@ def config_param(
     return decorator
 
 
+def _remove_none_values(data: Any) -> Any:
+    """Recursively remove None values from dictionaries."""
+    if isinstance(data, dict):
+        return {k: _remove_none_values(v) for k, v in data.items() if v is not None}
+    elif isinstance(data, list):
+        return [_remove_none_values(item) for item in data]
+    return data
+
+
 class ConfigEncoder(json.JSONEncoder):
     """Custom JSON encoder that can handle ParameterType enums."""
 
@@ -107,7 +116,9 @@ class ConfigSchema:
     wakeup_checks: dict[str, list[ParameterSchema]] = field(default_factory=dict)
 
     def to_json(self) -> str:
-        return json.dumps(asdict(self), indent=2, cls=ConfigEncoder)
+        data = asdict(self)
+        data = _remove_none_values(data)
+        return json.dumps(data, indent=2, cls=ConfigEncoder)
 
 
 GENERAL_PARAMETERS = [

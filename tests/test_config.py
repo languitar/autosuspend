@@ -98,12 +98,7 @@ class TestConfigSchema:
                         "name": "global_param",
                         "type": "string",
                         "description": "A global parameter.",
-                        "default": None,
                         "required": False,
-                        "minimum": None,
-                        "maximum": None,
-                        "pattern": None,
-                        "enum_values": None,
                     }
                 ],
                 "activity_checks": {
@@ -112,12 +107,7 @@ class TestConfigSchema:
                             "name": "check1_param",
                             "type": "integer",
                             "description": "A parameter for check1.",
-                            "default": None,
                             "required": False,
-                            "minimum": None,
-                            "maximum": None,
-                            "pattern": None,
-                            "enum_values": None,
                         }
                     ]
                 },
@@ -129,10 +119,6 @@ class TestConfigSchema:
                             "description": "A parameter for check2.",
                             "default": False,
                             "required": False,
-                            "minimum": None,
-                            "maximum": None,
-                            "pattern": None,
-                            "enum_values": None,
                         }
                     ]
                 },
