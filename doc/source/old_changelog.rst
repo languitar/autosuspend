@@ -7,7 +7,7 @@ New features
 New activity checks
 -------------------
 
-* :ref:`check-jsonpath`: Similar to the existing :ref`check-xpath`, the new checks requests a JSON URL and evaluates it against a `JSONPath`_ expression to determine activity (:issue:`81`, :issue:`103`).
+* :ref:`check-json-path`: Similar to the existing :ref`check-xpath`, the new checks requests a JSON URL and evaluates it against a `JSONPath`_ expression to determine activity (:issue:`81`, :issue:`103`).
 * :ref:`check-last-log-activity`: Check log files for most recent contained timestamps (:issue:`98`, :issue:`99`).
 
 Fixed bugs
@@ -41,7 +41,7 @@ Fixed bugs
 ==========
 
 * Documented default URL for the ``Kodi*`` checks did not actually exist in code, which has been fixed now (:issue:`58`, :issue:`61`).
-* A bug in :ref:`check-logind-session-idle` has been fixed (:issue:`71`, :issue:`72`).
+* A bug in :ref:`check-logind-sessions-idle` has been fixed (:issue:`71`, :issue:`72`).
 
 Notable changes
 ===============
@@ -119,7 +119,7 @@ New wakeup checks
 * :ref:`wakeup-command`: Call an external command to determine the next wake up time (:issue:`26`).
 * :ref:`wakeup-file`: Read the next wake up time from a file (:issue:`9`).
 * :ref:`wakeup-periodic`: Wake up at a defined interval, for instance, to refresh calendars for the :ref:`wakeup-calendar` check (:issue:`34`).
-* :ref:`wakeup-xpath` and :ref:`wakeup-xpath-delta`: Request an XML document and use `XPath`_ to extract the next wakeup time.
+* :ref:`wakeup-x-path` and :ref:`wakeup-x-path-delta`: Request an XML document and use `XPath`_ to extract the next wakeup time.
 
 Fixed bugs
 ==========

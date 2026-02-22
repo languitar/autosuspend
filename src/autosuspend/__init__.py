@@ -4,6 +4,8 @@
 import argparse
 import configparser
 import functools
+import importlib
+import inspect
 import logging
 import logging.config
 import math
@@ -18,6 +20,7 @@ from dbus.mainloop.glib import DBusGMainLoop
 from gi.repository import GLib
 
 from .checks import Activity, CheckType, ConfigurationError, TemporaryCheckError, Wakeup
+from .config import GENERAL_PARAMETERS, ConfigSchema
 from .util import logger_by_class_instance
 from .util.systemd import LogindDBusException, has_inhibit_lock
 
@@ -488,6 +491,36 @@ def _set_up_single_check(
     return check
 
 
+def discover_available_checks(
+    internal_module: str, check_type: type[CheckType]
+) -> dict[str, type[CheckType]]:
+    """Find all concrete subclasses of Check in the given module.
+
+    Args:
+        internal_module: either "activity" or "wakeup" to specify which module to search
+        check_type: the base check type class (Activity or Wakeup) to find subclasses of
+
+    Returns:
+        Dictionary mapping user-facing check names (aliases) to check classes
+    """
+    module_name = f"autosuspend.checks.{internal_module}"
+    module = importlib.import_module(module_name)
+
+    available_checks = {}
+    for name, obj in inspect.getmembers(module, inspect.isclass):
+        if (
+            issubclass(obj, check_type)
+            # exclude the base class itself
+            and obj is not check_type
+            and not inspect.isabstract(obj)
+            and not name.startswith("_")
+        ):
+            # Use the exported name (alias) as the key
+            available_checks[name] = obj
+
+    return available_checks
+
+
 def set_up_checks(
     config: configparser.ConfigParser,
     prefix: str,
@@ -627,6 +660,12 @@ def parse_arguments(args: Sequence[str] | None) -> argparse.Namespace:
         "instead of endless execution.",
     )
 
+    parser_schema = subparsers.add_parser(
+        "schema",
+        help="Prints a schema of the available configruation sections and options",
+    )
+    parser_schema.set_defaults(func=main_schema)
+
     result = parser.parse_args(args)
 
     _logger.debug("Parsed command line arguments %s", result)
@@ -717,6 +756,25 @@ def main_version(
     config: configparser.ConfigParser,  # noqa: ARG001
 ) -> None:
     print(version("autosuspend"))  # noqa: T201
+
+
+def main_schema(
+    _: argparse.Namespace,
+    config: configparser.ConfigParser,  # noqa: ARG001
+) -> None:
+    activity_checks = discover_available_checks("activity", Activity)  # type: ignore
+    wakeup_checks = discover_available_checks("wakeup", Wakeup)  # type: ignore
+    schema = ConfigSchema(
+        general_parameters=GENERAL_PARAMETERS,
+        activity_checks={
+            name: check.config_parameters for name, check in activity_checks.items()
+        },
+        wakeup_checks={
+            name: check.config_parameters for name, check in wakeup_checks.items()
+        },
+    )
+
+    print(schema.to_json())  # noqa: T201
 
 
 def main_daemon(args: argparse.Namespace, config: configparser.ConfigParser) -> None:

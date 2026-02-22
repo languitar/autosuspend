@@ -5,9 +5,37 @@ from typing import Self
 from mpd import MPDClient, MPDError
 
 from . import Activity, Check, ConfigurationError, TemporaryCheckError
+from ..config import ParameterType, config_param
 
 
+@config_param(
+    "host",
+    ParameterType.STRING,
+    "Host containing the MPD daemon",
+    default="localhost",
+)
+@config_param(
+    "port",
+    ParameterType.INTEGER,
+    "Port to connect to the MPD daemon",
+    default=6600,
+)
+@config_param(
+    "timeout",
+    ParameterType.INTEGER,
+    "Request timeout in seconds",
+    default=5,
+)
 class Mpd(Activity):
+    """Check for MPD music player activity.
+
+    Checks whether an instance of `MPD`_ is currently playing music.
+
+    **Requirements**
+
+    * `python-mpd2`_
+    """
+
     @classmethod
     def create(cls: type[Self], name: str, config: configparser.SectionProxy) -> Self:
         try:

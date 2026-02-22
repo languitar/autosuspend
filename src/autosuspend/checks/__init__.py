@@ -6,6 +6,7 @@ from collections.abc import Mapping
 from datetime import datetime
 from typing import Any, Self, TypeVar
 
+from autosuspend.config import ParameterSchemaAware
 from autosuspend.util import logger_by_class_instance
 
 
@@ -31,7 +32,7 @@ class SevereCheckError(RuntimeError):
 CheckType = TypeVar("CheckType", bound="Check")
 
 
-class Check(abc.ABC):
+class Check(abc.ABC, ParameterSchemaAware):
     """Base class for all kinds of checks.
 
     Subclasses must call this class' ``__init__`` method.

@@ -3,9 +3,21 @@ import subprocess
 from typing import Self
 
 from . import Activity, SevereCheckError, TemporaryCheckError
+from ..config import ParameterType, config_param
 
 
+@config_param(
+    "smbstatus",
+    ParameterType.STRING,
+    "executable needs to be present.",
+    default="smbstatus",
+)
 class Smb(Activity):
+    """Check for active Samba connections.
+
+    Any active Samba connection will block suspend.
+    """
+
     @classmethod
     def create(
         cls: type[Self],
