@@ -8,6 +8,7 @@ from typing import Any, Self
 import dbus
 
 from . import Activity, ConfigurationError, TemporaryCheckError, Wakeup
+from ..config import ParameterType, config_param
 from ..util.systemd import LogindDBusException, list_logind_sessions
 
 _UINT64_MAX = 18446744073709551615
@@ -51,8 +52,17 @@ def next_timer_executions() -> dict[str, datetime]:
     return result
 
 
+@config_param(
+    "match",
+    ParameterType.STRING,
+    "A regular expression selecting the systemd timers to check. This expression matches against the names of the timer units, for instance ``logrotate.timer``. Use ``systemctl list-timers`` to find out which timers exists.",
+    required=True,
+)
 class SystemdTimer(Wakeup):
-    """Ensures that the system is active when some selected SystemD timers will run."""
+    """Check for systemd timer schedules.
+
+    Ensures that the system is active when a `systemd`_ timer is scheduled to run next.
+    """
 
     @classmethod
     def create(cls: type[Self], name: str, config: configparser.SectionProxy) -> Self:
@@ -76,10 +86,30 @@ class SystemdTimer(Wakeup):
             return None
 
 
+@config_param(
+    "types",
+    ParameterType.STRING,
+    "A comma-separated list of sessions types to inspect for activity. The check ignores sessions of other types.",
+    default="tty,x11,wayland",
+)
+@config_param(
+    "states",
+    ParameterType.STRING,
+    "A comma-separated list of session states to inspect. For instance, ``lingering`` sessions used for background programs might not be of interest.",
+    default="active,online",
+)
+@config_param(
+    "classes",
+    ParameterType.STRING,
+    "A comma-separated list of session classes to inspect. For instance, ``greeter`` sessions used by greeters such as lightdm might not be of interest.",
+    default="user",
+)
 class LogindSessionsIdle(Activity):
-    """Prevents suspending in case a logind session is marked not idle.
+    """Check for logind session idle hints.
 
-    The decision is based on the ``IdleHint`` property of logind sessions.
+    Prevents suspending in case ``IdleHint`` for one of the running sessions `logind`_ sessions is set to ``no``.
+    Support for setting this hint currently varies greatly across display managers, screen lockers etc.
+    Thus, check exactly whether the hint is set on your system via ``loginctl show-session``.
     """
 
     @classmethod
