@@ -11,9 +11,57 @@ from dateutil.parser import parse
 from dateutil.utils import default_tzinfo
 
 from . import Activity, ConfigurationError, TemporaryCheckError
+from ..config import ParameterType, config_param
 
 
+@config_param(
+    "log_file",
+    ParameterType.STRING,
+    "path to the log file that should be analyzed",
+    required=True,
+)
+@config_param(
+    "pattern",
+    ParameterType.STRING,
+    "A regular expression used to determine whether a line of the log file contains a timestamp to look at. The expression must contain exactly one matching group. For instance, ``^\\[(.*)]\\] .*$`` might be used to find dates in square brackets at line beginnings.",
+    required=True,
+)
+@config_param(
+    "minutes",
+    ParameterType.INTEGER,
+    "The number of minutes to allow log file timestamps to be in the past for detecting activity. If a timestamp is older than ``<now> - <minutes>`` no activity is detected.",
+    default=10,
+)
+@config_param(
+    "encoding",
+    ParameterType.STRING,
+    "The encoding with which to parse the log file.",
+    default="ascii",
+)
+@config_param(
+    "timezone",
+    ParameterType.STRING,
+    "The timezone to assume in case a timestamp extracted from the log file has not associated timezone information. Timezones are expressed using the names from the Olson timezone database (e.g. ``Europe/Berlin``).",
+    default="UTC",
+)
 class LastLogActivity(Activity):
+    """Check for recent log file entries.
+
+    Parses a log file and uses the most recent time contained in the file to determine activity.
+    For this purpose, the log file lines are iterated from the back until a line matching a configurable regular expression is found.
+    This expression is used to extract the contained timestamp in that log line, which is then compared to the current time with an allowed delta.
+    The check only looks at the first line from the back that contains a timestamp.
+    Further lines are ignored.
+    A typical use case for this check would be a web server access log file.
+
+    This check supports all date formats that are supported by the `dateutil parser <https://dateutil.readthedocs.io/en/stable/parser.html#dateutil.parser.parse>`_.
+
+    **Requirements**
+
+    * `dateutil`_
+    * `tzdata`_
+    """
+
     @classmethod
     def create(cls: type[Self], name: str, config: configparser.SectionProxy) -> Self:
         try:

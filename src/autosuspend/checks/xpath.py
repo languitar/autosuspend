@@ -10,8 +10,15 @@ from lxml.etree import XPath, XPathSyntaxError  # our input
 
 from . import Activity, ConfigurationError, TemporaryCheckError, Wakeup
 from .util import NetworkMixin
+from ..config import ParameterType, config_param
 
 
+@config_param(
+    "xpath",
+    ParameterType.STRING,
+    "The XPath query to execute. In case it returns a result, the system is assumed to be active.",
+    required=True,
+)
 class XPathMixin(NetworkMixin):
     @classmethod
     def collect_init_args(cls, config: configparser.SectionProxy) -> dict[str, Any]:
@@ -51,6 +58,41 @@ class XPathMixin(NetworkMixin):
 
 
 class XPathActivity(XPathMixin, Activity):
+    """Check for activity using XPath expressions.
+
+    A generic check which queries a configured URL and expects the reply to contain XML data.
+    The returned XML document is checked against a configured `XPath`_ expression and in case the expression matches, the system is assumed to be active.
+
+    Some common applications and their respective configuration are:
+
+    `tvheadend`_
+        The required URL for `tvheadend`_ is (if running on the same host)::
+
+            http://127.0.0.1:9981/status.xml
+
+        In case you want to prevent suspending in case there are active subscriptions or recordings, use the following XPath::
+
+            /currentload/subscriptions[number(.) > 0] | /currentload/recordings/recording/start
+
+        If you have a permantently running subscriber like `Kodi`_, increase the ``0`` to ``1``.
+
+    `Plex`_
+        For `Plex`_, use the following URL (if running on the same host)::
+
+            http://127.0.0.1:32400/status/sessions/?X-Plex-Token={TOKEN}
+
+        Where acquiring the token is `documented here <https://support.plex.tv/articles/204059436-finding-an-authentication-token-x-plex-token/>`_.
+
+        If suspending should be prevented in case of any activity, this simple `XPath`_ expression will suffice::
+
+            /MediaContainer[@size > 2]
+
+    **Requirements**
+
+    * `requests`_
+    * `lxml`_
+    """
+
     def __init__(self, name: str, **kwargs: Any) -> None:
         Activity.__init__(self, name)
         XPathMixin.__init__(self, **kwargs)
@@ -62,10 +104,24 @@ class XPathActivity(XPathMixin, Activity):
             return None
 
 
+@config_param(
+    "xpath",
+    ParameterType.STRING,
+    "The XPath query to execute. Must always return number strings or nothing.",
+    required=True,
+)
 class XPathWakeup(XPathMixin, Wakeup):
-    """Determine wake up times from a network resource using XPath expressions.
+    """Determine wake up times from XPath expressions.
 
-    The matched results are expected to represent timestamps in seconds UTC.
+    A generic check which queries a configured URL and expects the reply to contain XML data.
+    The returned XML document is parsed using a configured `XPath`_ expression that has to return timestamps UTC (as strings, not elements).
+    These are interpreted as the wake up times.
+    In case multiple entries exist, the soonest one is used.
+
+    **Requirements**
+
+    * `requests`_
+    * `lxml`_
     """
 
     def __init__(self, name: str, **kwargs: Any) -> None:
@@ -96,7 +152,36 @@ class XPathWakeup(XPathMixin, Wakeup):
             ) from error
 
 
+@config_param(
+    "unit",
+    ParameterType.STRING,
+    "A string indicating in which unit the delta is specified. Valid options are: ``microseconds``, ``milliseconds``, ``seconds``, ``minutes``, ``hours``, ``days``, ``weeks``.",
+    default="minutes",
+    enum_values=[
+        "microseconds",
+        "milliseconds",
+        "seconds",
+        "minutes",
+        "hours",
+        "days",
+        "weeks",
+    ],
+)
 class XPathDeltaWakeup(XPathWakeup):
+    """Determine wake up times from XPath delta expressions.
+
+    Comparable to :ref:`wakeup-x-path`, but expects that the returned results represent the wake up time as a delta to the current time in a configurable unit.
+
+    This check can for instance be used for `tvheadend`_ with the following expression::
+
+        //recording/next/text()
+
+    **Requirements**
+
+    * `requests`_
+    * `lxml`_
+    """
+
     UNITS = (
         "days",
         "seconds",
