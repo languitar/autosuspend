@@ -1,7 +1,7 @@
 ruff==0.15.10
 black==26.3.1
 isort==8.0.1
-mypy==1.20.0
+mypy==1.20.1
 types-tzlocal
 types-requests
 types-freezegun
