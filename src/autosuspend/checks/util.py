@@ -3,12 +3,35 @@ from contextlib import suppress
 from typing import TYPE_CHECKING, Any, Self
 
 from . import Check, ConfigurationError, SevereCheckError, TemporaryCheckError
+from ..config import ParameterType, config_param
 
 if TYPE_CHECKING:
     import requests
     import requests.models
 
 
+@config_param(
+    "url",
+    ParameterType.STRING,
+    "The URL to query",
+    required=True,
+)
+@config_param(
+    "timeout",
+    ParameterType.INTEGER,
+    "Timeout for executed requests in seconds",
+    default=5,
+)
+@config_param(
+    "username",
+    ParameterType.STRING,
+    "Optional user name to use for authenticating at a server requiring authentication. If used, also a password must be provided.",
+)
+@config_param(
+    "password",
+    ParameterType.STRING,
+    "Optional password to use for authenticating at a server requiring authentication. If used, also a user name must be provided.",
+)
 class NetworkMixin(Check):
     @staticmethod
     def _ensure_credentials_consistent(args: dict[str, Any]) -> None:
