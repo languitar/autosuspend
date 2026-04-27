@@ -63,8 +63,9 @@ def config_param(
     def decorator(cls: type[ParameterSchemaAware]) -> type[ParameterSchemaAware]:
         # Check if parameter with this name already exists and remove it
         cls.config_parameters = [p for p in cls.config_parameters if p.name != name]
-        # Add the new parameter
-        cls.config_parameters.append(
+        # Insert at the front so that the topmost (first-written) decorator ends up first
+        cls.config_parameters.insert(
+            0,
             ParameterSchema(
                 name,
                 param_type,
@@ -75,7 +76,7 @@ def config_param(
                 maximum,
                 pattern,
                 enum_values,
-            )
+            ),
         )
         return cls
 

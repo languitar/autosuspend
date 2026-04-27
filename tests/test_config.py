@@ -35,7 +35,13 @@ class TestConfigParam:
             )
         ]
 
-    def test_supports_multiple_params(self) -> None:
+    def test_multiple_params_order_matches_source(self) -> None:
+        """Parameters must appear in the same order they are written in source.
+
+        Decorators are applied bottom-up, so the implementation uses insert(0, …)
+        to counteract that, ensuring the topmost decorator ends up first.
+        """
+
         @config_param(
             name="param1",
             param_type=ParameterType.STRING,
@@ -50,7 +56,7 @@ class TestConfigParam:
         class TestCheck(ParameterSchemaAware):
             pass
 
-        assert len(TestCheck.config_parameters) == 2
+        assert [p.name for p in TestCheck.config_parameters] == ["param1", "param2"]
 
 
 class TestConfigSchema:
