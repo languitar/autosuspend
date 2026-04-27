@@ -51,11 +51,26 @@ def generate_option_rst(param: ParameterSchema, program_name: str) -> list[str]:
             if not description.endswith("."):
                 description += "."
             description = f"{description} Default: {default_str}."
-    
+
     # Indent description properly
     for line in description.split("\n"):
         lines.append(f"   {line}")
     lines.append("")
+
+    if param.enum_values is not None:
+        formatted = ", ".join(f"``{v}``" for v in param.enum_values)
+        lines.append(f"   Allowed values: {formatted}.")
+        lines.append("")
+
+    if param.minimum is not None and param.maximum is not None:
+        lines.append(f"   Value must be between ``{param.minimum}`` and ``{param.maximum}``.")
+        lines.append("")
+    elif param.minimum is not None:
+        lines.append(f"   Value must be at least ``{param.minimum}``.")
+        lines.append("")
+    elif param.maximum is not None:
+        lines.append(f"   Value must be at most ``{param.maximum}``.")
+        lines.append("")
 
     return lines
 
