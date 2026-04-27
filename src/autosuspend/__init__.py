@@ -594,21 +594,6 @@ def parse_arguments(args: Sequence[str] | None) -> argparse.Namespace:
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
     )
 
-    default_config_path = Path("/etc/autosuspend.conf")
-    default_config: Path | None = None
-    if default_config_path.exists():
-        default_config = default_config_path
-    parser.add_argument(
-        "-c",
-        "--config",
-        dest="config_file",
-        type=Path,
-        default=default_config,
-        required=default_config is None,
-        metavar="FILE",
-        help="The config file to use",
-    )
-
     logging_group = parser.add_mutually_exclusive_group()
     logging_group.add_argument(
         "-l",
@@ -639,6 +624,22 @@ def parse_arguments(args: Sequence[str] | None) -> argparse.Namespace:
         "daemon", help="Execute the continuously operating daemon"
     )
     parser_daemon.set_defaults(func=main_daemon)
+
+    default_config_path = Path("/etc/autosuspend.conf")
+    default_config: Path | None = None
+    if default_config_path.exists():
+        default_config = default_config_path
+    parser_daemon.add_argument(
+        "-c",
+        "--config",
+        dest="config_file",
+        type=Path,
+        default=default_config,
+        required=default_config is None,
+        metavar="FILE",
+        help="The config file to use",
+    )
+
     parser_daemon.add_argument(
         "-a",
         "--allchecks",
@@ -751,17 +752,11 @@ def configure_processor(
     )
 
 
-def main_version(
-    _: argparse.Namespace,
-    config: configparser.ConfigParser,  # noqa: ARG001
-) -> None:
+def main_version(_: argparse.Namespace) -> None:
     print(version("autosuspend"))  # noqa: T201
 
 
-def main_schema(
-    _: argparse.Namespace,
-    config: configparser.ConfigParser,  # noqa: ARG001
-) -> None:
+def main_schema(_: argparse.Namespace) -> None:
     activity_checks = discover_available_checks("activity", Activity)  # type: ignore
     wakeup_checks = discover_available_checks("wakeup", Wakeup)  # type: ignore
     schema = ConfigSchema(
@@ -777,8 +772,9 @@ def main_schema(
     print(schema.to_json())  # noqa: T201
 
 
-def main_daemon(args: argparse.Namespace, config: configparser.ConfigParser) -> None:
+def main_daemon(args: argparse.Namespace) -> None:
     """Run the daemon."""
+    config = parse_config(args.config_file)
     checks = set_up_checks(
         config,
         "check",
@@ -822,9 +818,7 @@ def main(argv: Sequence[str] | None = None) -> None:
 
     configure_logging(args.logging, args.debug)
 
-    config = parse_config(args.config_file)
-
-    args.func(args, config)
+    args.func(args)
 
 
 if __name__ == "__main__":
