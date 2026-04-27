@@ -514,8 +514,10 @@ def discover_available_checks(
             and obj is not check_type
             and not inspect.isabstract(obj)
             and not name.startswith("_")
+            # only include classes defined within the autosuspend package,
+            # excluding anything imported from third-party or stdlib modules
+            and obj.__module__.startswith("autosuspend.")
         ):
-            # Use the exported name (alias) as the key
             available_checks[name] = obj
 
     return available_checks
