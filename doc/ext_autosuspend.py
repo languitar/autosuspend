@@ -5,6 +5,7 @@ by discovering check classes and extracting their docstrings and config_params.
 """
 
 import inspect
+import re
 import sys
 from pathlib import Path
 from typing import Any
@@ -156,7 +157,6 @@ class AutosuspendChecksDirective(Directive):
 
     def _to_kebab_case(self, name: str) -> str:
         """Convert PascalCase to kebab-case."""
-        import re
         s1 = re.sub("(.)([A-Z][a-z]+)", r"\1-\2", name)
         return re.sub("([a-z0-9])([A-Z])", r"\1-\2", s1).lower()
 
