@@ -23,7 +23,7 @@ from ..config import ParameterType, config_param
 @config_param(
     "pattern",
     ParameterType.STRING,
-    "A regular expression used to determine whether a line of the log file contains a timestamp to look at. The expression must contain exactly one matching group. For instance, ``^\\[(.*)]\\] .*$`` might be used to find dates in square brackets at line beginnings.",
+    "A regular expression used to determine whether a line of the log file contains a timestamp to look at. The expression must contain exactly one matching group. For instance, ``^\\[(.*?)\\] .*$`` might be used to find dates in square brackets at line beginnings.",
     required=True,
 )
 @config_param(
@@ -56,7 +56,7 @@ class LastLogActivity(Activity):
 
     This check supports all date formats that are supported by the `dateutil parser <https://dateutil.readthedocs.io/en/stable/parser.html#dateutil.parser.parse>`_.
 
-    **Requirements**
+    Requires:
 
     * `dateutil`_
     * `tzdata`_

@@ -87,7 +87,7 @@ class XPathActivity(XPathMixin, Activity):
 
             /MediaContainer[@size > 2]
 
-    **Requirements**
+    Requires:
 
     * `requests`_
     * `lxml`_
@@ -118,7 +118,7 @@ class XPathWakeup(XPathMixin, Wakeup):
     These are interpreted as the wake up times.
     In case multiple entries exist, the soonest one is used.
 
-    **Requirements**
+    Requires:
 
     * `requests`_
     * `lxml`_
@@ -176,7 +176,7 @@ class XPathDeltaWakeup(XPathWakeup):
 
         //recording/next/text()
 
-    **Requirements**
+    Requires:
 
     * `requests`_
     * `lxml`_

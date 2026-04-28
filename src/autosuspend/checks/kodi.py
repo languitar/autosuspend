@@ -29,7 +29,7 @@ class Kodi(NetworkMixin, Activity):
 
     Checks whether an instance of `Kodi`_ is currently playing.
 
-    **Requirements**
+    Requires:
 
     * `requests`_
     """
@@ -104,7 +104,7 @@ class KodiIdleTime(NetworkMixin, Activity):
     This check is redundant to :ref:`check-x-idle-time` on systems using an X server, but might be necessary in case Kodi is used standalone.
     It does not replace the :ref:`check-kodi` check, as the idle time is not updated when media is playing.
 
-    **Requirements**
+    Requires:
 
     * `requests`_
     """

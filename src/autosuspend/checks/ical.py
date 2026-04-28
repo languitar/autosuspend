@@ -293,7 +293,7 @@ class ActiveCalendarEvent(NetworkMixin, Activity):
     Thus, a calendar can be provided with times at which the system should not go to sleep.
     If this calendar resides on an online service like a groupware it might even be possible to invite the system.
 
-    **Requirements**
+    Requires:
 
     * `requests`_
     * `icalendar <python-icalendar_>`_
@@ -331,7 +331,7 @@ class Calendar(NetworkMixin, Wakeup):
     Remember that updates to the calendar can only be reflected in case the system currently running.
     Changes to the calendar made while the system is sleeping will obviously not trigger an earlier wake up.
 
-    **Requirements**
+    Requires:
 
     * `requests`_
     * `icalendar <python-icalendar_>`_

@@ -10,7 +10,7 @@ class Smb(Activity):
 
     Any active Samba connection will block suspend.
 
-    **Requirements**
+    Requires:
 
     The ``smbstatus`` binary must be installed and executable.
     """

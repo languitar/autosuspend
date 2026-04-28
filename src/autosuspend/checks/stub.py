@@ -24,7 +24,7 @@ from ..config import ParameterType, config_param
 @config_param(
     "value",
     ParameterType.FLOAT,
-    "The value of the delta as an int.",
+    "The value of the delta as a float.",
     required=True,
 )
 class Periodic(Wakeup):

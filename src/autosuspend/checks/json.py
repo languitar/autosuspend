@@ -24,7 +24,7 @@ class JsonPath(NetworkMixin, Activity):
     A generic check which queries a configured URL and expects the reply to contain JSON data.
     The returned JSON document is checked against a configured `JSONPath`_ expression and in case the expression matches, the system is assumed to be active.
 
-    **Requirements**
+    Requires:
 
     * `requests`_
     * `jsonpath-ng`_

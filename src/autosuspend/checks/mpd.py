@@ -31,7 +31,7 @@ class Mpd(Activity):
 
     Checks whether an instance of `MPD`_ is currently playing music.
 
-    **Requirements**
+    Requires:
 
     * `python-mpd2`_
     """

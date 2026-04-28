@@ -23,6 +23,46 @@ from autosuspend import discover_available_checks
 from autosuspend.checks import Activity, Wakeup
 from autosuspend.config import ParameterSchema
 
+_GOOGLE_SECTION_RE = re.compile(r"^[A-Z][A-Za-z ]*:$")
+
+
+def render_google_docstring(doc: str) -> list[str]:
+    """Convert a Google-style docstring to RST lines for use in generated docs.
+
+    Handles the ``Requires:`` custom section by emitting a ``.. rubric::``
+    directive followed by the section body indented under it.  All other
+    content is passed through verbatim.
+
+    After ``inspect.cleandoc`` all indentation is stripped, so section body
+    lines cannot be detected by indentation.  Instead the body is consumed
+    until the next Google-style section header (a line matching
+    ``^[A-Z][A-Za-z ]*:$``) or end of string.
+    """
+    lines = doc.split("\n")
+    out: list[str] = []
+    i = 0
+    while i < len(lines):
+        line = lines[i]
+        if line.strip() == "Requires:":
+            out.append(".. rubric:: Requires")
+            out.append("")
+            i += 1
+            # Consume optional blank line after section header
+            if i < len(lines) and lines[i].strip() == "":
+                i += 1
+            # Consume body until the next Google-style section header or EOF
+            while i < len(lines):
+                body_line = lines[i]
+                if _GOOGLE_SECTION_RE.match(body_line.strip()):
+                    break
+                out.append(body_line.strip() if body_line.strip() else "")
+                i += 1
+            out.append("")
+        else:
+            out.append(line)
+            i += 1
+    return out
+
 
 def format_default_value(param: ParameterSchema) -> str:
     """Format the default value for display."""
@@ -64,7 +104,9 @@ def generate_option_rst(param: ParameterSchema, program_name: str) -> list[str]:
         lines.append("")
 
     if param.minimum is not None and param.maximum is not None:
-        lines.append(f"   Value must be between ``{param.minimum}`` and ``{param.maximum}``.")
+        lines.append(
+            f"   Value must be between ``{param.minimum}`` and ``{param.maximum}``."
+        )
         lines.append("")
     elif param.minimum is not None:
         lines.append(f"   Value must be at least ``{param.minimum}``.")
@@ -102,17 +144,26 @@ class AutosuspendChecksDirective(Directive):
 
         # Generate RST content
         rst = ViewList()
-        
+
         # Add header - don't duplicate the label since it's already in the RST file
         rst.append(title, "<autosuspend>")
         rst.append("#" * len(title), "<autosuspend>")
         rst.append("", "<autosuspend>")
-        
+
         if check_type == "activity":
-            rst.append("The following checks for activity are currently implemented.", "<autosuspend>")
+            rst.append(
+                "The following checks for activity are currently implemented.",
+                "<autosuspend>",
+            )
         else:
-            rst.append("The following checks for wake up times are currently implemented.", "<autosuspend>")
-        rst.append("Each of them is described with its available configuration options and required optional dependencies.", "<autosuspend>")
+            rst.append(
+                "The following checks for wake up times are currently implemented.",
+                "<autosuspend>",
+            )
+        rst.append(
+            "Each of them is described with its available configuration options and required optional dependencies.",
+            "<autosuspend>",
+        )
         rst.append("", "<autosuspend>")
 
         # Add each check
@@ -121,31 +172,33 @@ class AutosuspendChecksDirective(Directive):
             label_name = self._to_kebab_case(class_name)
             rst.append(f".. _{check_prefix}-{label_name}:", "<autosuspend>")
             rst.append("", "<autosuspend>")
-            
+
             # Add title
             rst.append(class_name, "<autosuspend>")
             rst.append("*" * len(class_name), "<autosuspend>")
             rst.append("", "<autosuspend>")
-            
+
             # Add program directive for option linking
             rst.append(f".. program:: {check_prefix}-{label_name}", "<autosuspend>")
             rst.append("", "<autosuspend>")
-            
+
             # Add docstring
             if check_class.__doc__:
                 doc = inspect.cleandoc(check_class.__doc__)
-                for line in doc.split("\n"):
+                for line in render_google_docstring(doc):
                     rst.append(line, "<autosuspend>")
                 rst.append("", "<autosuspend>")
-            
+
             # Add Options section if there are config parameters
             if check_class.config_parameters:
                 rst.append("Options", "<autosuspend>")
                 rst.append("=======", "<autosuspend>")
                 rst.append("", "<autosuspend>")
-                
+
                 for param in check_class.config_parameters:
-                    for line in generate_option_rst(param, f"{check_prefix}-{label_name}"):
+                    for line in generate_option_rst(
+                        param, f"{check_prefix}-{label_name}"
+                    ):
                         rst.append(line, "<autosuspend>")
 
         # Parse the RST
@@ -164,7 +217,7 @@ class AutosuspendChecksDirective(Directive):
 def setup(app: Sphinx) -> dict[str, Any]:
     """Set up the Sphinx extension."""
     app.add_directive("autosuspend-checks", AutosuspendChecksDirective)
-    
+
     return {
         "version": "0.1",
         "parallel_read_safe": True,
