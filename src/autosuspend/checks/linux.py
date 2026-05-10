@@ -156,7 +156,7 @@ class NetworkBandwidth(Activity):
     """Check for network bandwidth usage.
 
     Checks whether more network bandwidth is currently being used than specified.
-    A set of specified interfaces is checked in this regard, each of the individually, based on the average bandwidth on that interface.
+    A set of specified interfaces is checked in this regard, each of them individually, based on the average bandwidth on that interface.
     This average is based on the global checking interval specified in the configuration file via the :option:`interval <config-general interval>` option.
 
     .. note::
@@ -449,7 +449,7 @@ class File(Wakeup):
     """Scheduled wake up from file contents.
 
     Determines the wake up time by reading a file from a configured location.
-    The file has to contains the planned wake up time as an int or float in seconds UTC.
+    The file has to contain the planned wake up time as an int or float in seconds UTC.
     """
 
     @classmethod

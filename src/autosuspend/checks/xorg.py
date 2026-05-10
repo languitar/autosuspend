@@ -120,7 +120,7 @@ def list_sessions_logind() -> list[XorgSession]:
 @config_param(
     "ignore_if_process",
     ParameterType.STRING,
-    "A regular expression to match against the process names executed by each X session owner. In case the use has a running process that matches this expression, the X idle time is ignored and the check continues as if there was no activity. This can be useful in case of processes which inevitably tinker with the idle time.",
+    "A regular expression to match against the process names executed by each X session owner. In case the user has a running process that matches this expression, the X idle time is ignored and the check continues as if there was no activity. This can be useful in case of processes which inevitably tinker with the idle time.",
     default="a^",
 )
 @config_param(
@@ -135,7 +135,7 @@ class XIdleTime(Activity):
     Checks whether all active local X displays have been idle for a sufficiently long time.
     Determining which X11 sessions currently exist on a running system is a harder problem than one might expect.
     Sometimes, the server runs as root, sometimes under the real user, and many other configuration variants exist.
-    Thus, multiple sources for active X serer instances are implemented for this check, each of them having different requirements and limitations.
+    Thus, multiple sources for active X server instances are implemented for this check, each of them having different requirements and limitations.
     They can be changed using the provided configuration option.
 
     The method to use for acquiring running X sessions can be configured:

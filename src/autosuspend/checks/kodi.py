@@ -93,7 +93,7 @@ class Kodi(NetworkMixin, Activity):
 @config_param(
     "idle_time",
     ParameterType.INTEGER,
-    "Marks the system active in case a user interaction has appeared within the this amount of seconds until now.",
+    "Marks the system active in case a user interaction has appeared within this amount of seconds until now.",
     default=120,
 )
 class KodiIdleTime(NetworkMixin, Activity):

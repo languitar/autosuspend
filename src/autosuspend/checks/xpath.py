@@ -74,7 +74,7 @@ class XPathActivity(XPathMixin, Activity):
 
             /currentload/subscriptions[number(.) > 0] | /currentload/recordings/recording/start
 
-        If you have a permantently running subscriber like `Kodi`_, increase the ``0`` to ``1``.
+        If you have a permanently running subscriber like `Kodi`_, increase the ``0`` to ``1``.
 
     `Plex`_
         For `Plex`_, use the following URL (if running on the same host)::

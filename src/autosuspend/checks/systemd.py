@@ -55,7 +55,7 @@ def next_timer_executions() -> dict[str, datetime]:
 @config_param(
     "match",
     ParameterType.STRING,
-    "A regular expression selecting the systemd timers to check. This expression matches against the names of the timer units, for instance ``logrotate.timer``. Use ``systemctl list-timers`` to find out which timers exists.",
+    "A regular expression selecting the systemd timers to check. This expression matches against the names of the timer units, for instance ``logrotate.timer``. Use ``systemctl list-timers`` to find out which timers exist.",
     required=True,
 )
 class SystemdTimer(Wakeup):

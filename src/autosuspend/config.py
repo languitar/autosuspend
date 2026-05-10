@@ -146,7 +146,7 @@ GENERAL_PARAMETERS = [
     ParameterSchema(
         name="wakeup_delta",
         type=ParameterType.INTEGER,
-        description="Wake up the system this amount of seconds earlier than the time that was determined for an event that requires the system to be up. This value adds a safety margin for the time a the wake up effectively takes.",
+        description="Wake up the system this amount of seconds earlier than the time that was determined for an event that requires the system to be up. This value adds a safety margin for the time that the wake up effectively takes.",
         default=30,
         minimum=0,
     ),
