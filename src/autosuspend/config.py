@@ -159,7 +159,7 @@ GENERAL_PARAMETERS = [
     ParameterSchema(
         name="wakeup_cmd",
         type=ParameterType.STRING,
-        description="The command to execute for scheduling a wake up of the system. The given string is processed using Python's str.format and a format argument called 'timestamp' encodes the UTC timestamp of the planned wake up time (float). Additionally 'iso' can be used to acquire the timestamp in ISO 8601 format.",
+        description="The command to execute for scheduling a wake up of the system. The given string is processed using Python's str.format and a format argument called 'timestamp' encodes the UTC timestamp of the planned wake up time (float). Additionally 'iso' can be used to acquire the timestamp in ISO 8601 format. Required when any wakeup check is enabled.",
     ),
     ParameterSchema(
         name="notify_cmd_wakeup",
