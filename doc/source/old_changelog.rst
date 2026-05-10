@@ -7,7 +7,7 @@ New features
 New activity checks
 -------------------
 
-* :ref:`check-json-path`: Similar to the existing :ref`check-xpath`, the new checks requests a JSON URL and evaluates it against a `JSONPath`_ expression to determine activity (:issue:`81`, :issue:`103`).
+* :ref:`check-json-path`: Similar to the existing :ref:`check-x-path`, the new checks requests a JSON URL and evaluates it against a `JSONPath`_ expression to determine activity (:issue:`81`, :issue:`103`).
 * :ref:`check-last-log-activity`: Check log files for most recent contained timestamps (:issue:`98`, :issue:`99`).
 
 Fixed bugs
