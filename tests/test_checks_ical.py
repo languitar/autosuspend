@@ -401,6 +401,37 @@ class TestListCalendarEvents:
             assert expected_start_times == [e.start for e in events]
 
 
+class TestListCalendarEventsMatch:
+    def test_default_matches_all(self, datadir: Path) -> None:
+        start = parser.parse("20040401T090000Z")
+        end = parser.parse("20040701T090000Z")
+        with (datadir / "multiple.ics").open("rb") as f:
+            events = list_calendar_events(f, start, end)
+        assert len(events) == 2
+
+    def test_matching_regex_includes_event(self, datadir: Path) -> None:
+        start = parser.parse("20040401T090000Z")
+        end = parser.parse("20040701T090000Z")
+        with (datadir / "multiple.ics").open("rb") as f:
+            events = list_calendar_events(f, start, end, match="early")
+        assert len(events) == 1
+        assert events[0].summary == "early-event"
+
+    def test_non_matching_regex_excludes_all(self, datadir: Path) -> None:
+        start = parser.parse("20040401T090000Z")
+        end = parser.parse("20040701T090000Z")
+        with (datadir / "multiple.ics").open("rb") as f:
+            events = list_calendar_events(f, start, end, match="no-such-event")
+        assert len(events) == 0
+
+    def test_regex_is_search_not_fullmatch(self, datadir: Path) -> None:
+        start = parser.parse("20040401T090000Z")
+        end = parser.parse("20040701T090000Z")
+        with (datadir / "multiple.ics").open("rb") as f:
+            events = list_calendar_events(f, start, end, match="event")
+        assert len(events) == 2
+
+
 class TestActiveCalendarEvent(CheckTest):
     def create_instance(self, name: str) -> Check:
         return ActiveCalendarEvent(name, url="asdfasdf", timeout=5)
@@ -463,6 +494,25 @@ class TestActiveCalendarEvent(CheckTest):
         assert check._username == "user"
         assert check._password == "pass"
         assert check._timeout == 3
+        assert check._match == ".*"
+
+    def test_create_with_match(self) -> None:
+        check: ActiveCalendarEvent = ActiveCalendarEvent.create(
+            "name",
+            config_section({"url": "foobar", "match": "important"}),
+        )
+        assert check._match == "important"
+
+    def test_match_filters_events(
+        self, datadir: Path, serve_file: Callable[[Path], str]
+    ) -> None:
+        result = ActiveCalendarEvent(
+            "test",
+            url=serve_file(datadir / "long-event.ics"),
+            timeout=3,
+            match="no-such-event",
+        ).check()
+        assert result is None
 
 
 class TestCalendar(CheckTest):
@@ -486,6 +536,28 @@ class TestCalendar(CheckTest):
         assert check._username == "user"
         assert check._password == "pass"
         assert check._timeout == 42
+        assert check._match == ".*"
+
+    def test_create_with_match(self) -> None:
+        check: Calendar = Calendar.create(
+            "name",
+            config_section({"url": "url", "match": "important"}),
+        )
+        assert check._match == "important"
+
+    def test_match_filters_events(
+        self, datadir: Path, serve_file: Callable[[Path], str]
+    ) -> None:
+        timestamp = parser.parse("20040605T090000Z")
+        assert (
+            Calendar(
+                "test",
+                url=serve_file(datadir / "old-event.ics"),
+                timeout=3,
+                match="no-such-event",
+            ).check(timestamp)
+            is None
+        )
 
     def test_empty(self, datadir: Path, serve_file: Callable[[Path], str]) -> None:
         timestamp = parser.parse("20050605T130000Z")
