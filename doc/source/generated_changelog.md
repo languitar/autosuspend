@@ -1,3 +1,31 @@
+# [11.0.0](https://github.com/languitar/autosuspend/compare/v10.1.1...v11.0.0) (2026-05-10)
+
+
+* fix!: move --config to daemon subcommand ([a235aa3](https://github.com/languitar/autosuspend/commit/a235aa3a647d1bfed71cc2eaf4c53af5ef4ebce1))
+
+
+### Bug Fixes
+
+* config_param decorators apply in source-code order ([4a567d3](https://github.com/languitar/autosuspend/commit/4a567d37908d9a2c4a43b7a862184fe6b08a3cb7))
+* exclude non-autosuspend classes from check discovery ([5799602](https://github.com/languitar/autosuspend/commit/5799602326eec71906302513a85faa6b35fb54ed))
+* use well-known check names ([fe6cd9a](https://github.com/languitar/autosuspend/commit/fe6cd9ac0002853b3ab24f6a070c5456b2e29604))
+
+
+### Features
+
+* add a subcommand for printing a config schema ([002b110](https://github.com/languitar/autosuspend/commit/002b110f021629aaf1b8df8a41b7530db000fb94))
+* declare parameter schemas for all checks ([08db0f0](https://github.com/languitar/autosuspend/commit/08db0f02ccc28b1566c0754f94c914f8ecba9526))
+
+
+### BREAKING CHANGES
+
+* --config must now be passed after the daemon subcommand
+(autosuspend daemon -c file.conf) rather than before it
+(autosuspend -c file.conf daemon). Invocations that relied on the old
+position will fail with an argument error. The systemd unit file is
+unaffected because it relies on the /etc/autosuspend.conf default path
+and does not pass -c explicitly.
+
 ## [10.1.1](https://github.com/languitar/autosuspend/compare/v10.1.0...v10.1.1) (2026-05-10)
 
 
