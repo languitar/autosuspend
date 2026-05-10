@@ -116,7 +116,6 @@ issues_github_path = "languitar/autosuspend"
 napoleon_google_docstring = True
 napoleon_numpye_docstring = False
 napoleon_include_init_with_doc = True
-napoleon_custom_sections = [("Requires", "note")]
 
 typehints_fully_qualified = True
 
