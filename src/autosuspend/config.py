@@ -126,7 +126,7 @@ GENERAL_PARAMETERS = [
         name="interval",
         type=ParameterType.INTEGER,
         description="The time to wait after executing all checks in seconds.",
-        required=True,
+        default=60,
         minimum=1,
     ),
     ParameterSchema(
