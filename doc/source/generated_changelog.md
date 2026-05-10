@@ -1,3 +1,10 @@
+# [11.1.0](https://github.com/languitar/autosuspend/compare/v11.0.0...v11.1.0) (2026-05-10)
+
+
+### Features
+
+* filter calendar events by summary regex ([a3bd4dc](https://github.com/languitar/autosuspend/commit/a3bd4dc908b5e1e670dee1b4e08df37e5832e0d5)), closes [#340](https://github.com/languitar/autosuspend/issues/340)
+
 # [11.0.0](https://github.com/languitar/autosuspend/compare/v10.1.1...v11.0.0) (2026-05-10)
 
 
