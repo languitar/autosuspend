@@ -55,7 +55,7 @@ def render_google_docstring(doc: str) -> list[str]:
                 body_line = lines[i]
                 if _GOOGLE_SECTION_RE.match(body_line.strip()):
                     break
-                out.append(body_line.strip() if body_line.strip() else "")
+                out.append(body_line if body_line.strip() else "")
                 i += 1
             out.append("")
         else:

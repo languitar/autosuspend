@@ -25,6 +25,8 @@ extras_require = {
         "PyGObject",
         "pytest-datadir",
         "pytest-httpserver",
+        "sphinx",
+        "docutils",
     ],
 }
 extras_require["test"].extend(
