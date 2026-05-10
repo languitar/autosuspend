@@ -142,13 +142,13 @@ class Load(Activity):
 )
 @config_param(
     "threshold_send",
-    ParameterType.INTEGER,
+    ParameterType.FLOAT,
     "If the average sending bandwidth of one of the specified interfaces is above this threshold, then activity is detected. Specified in bytes/s",
     default=100,
 )
 @config_param(
     "threshold_receive",
-    ParameterType.INTEGER,
+    ParameterType.FLOAT,
     "If the average receive bandwidth of one of the specified interfaces is above this threshold, then activity is detected. Specified in bytes/s",
     default=100,
 )
