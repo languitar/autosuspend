@@ -1,3 +1,10 @@
+## [10.1.1](https://github.com/languitar/autosuspend/compare/v10.1.0...v10.1.1) (2026-05-10)
+
+
+### Bug Fixes
+
+* Remove forgotten reference to autosuspend-detect-suspend service ([38dba97](https://github.com/languitar/autosuspend/commit/38dba9704f5dfb947eb4f99b283816e6ceab531f))
+
 # [10.1.0](https://github.com/languitar/autosuspend/compare/v10.0.0...v10.1.0) (2026-02-15)
 
 
