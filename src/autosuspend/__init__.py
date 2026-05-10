@@ -4,6 +4,8 @@
 import argparse
 import configparser
 import functools
+import importlib
+import inspect
 import logging
 import logging.config
 import math
@@ -18,6 +20,7 @@ from dbus.mainloop.glib import DBusGMainLoop
 from gi.repository import GLib
 
 from .checks import Activity, CheckType, ConfigurationError, TemporaryCheckError, Wakeup
+from .config import GENERAL_PARAMETERS, ConfigSchema
 from .util import logger_by_class_instance
 from .util.systemd import LogindDBusException, has_inhibit_lock
 
@@ -488,6 +491,38 @@ def _set_up_single_check(
     return check
 
 
+def discover_available_checks(
+    internal_module: str, check_type: type[CheckType]
+) -> dict[str, type[CheckType]]:
+    """Find all concrete subclasses of Check in the given module.
+
+    Args:
+        internal_module: either "activity" or "wakeup" to specify which module to search
+        check_type: the base check type class (Activity or Wakeup) to find subclasses of
+
+    Returns:
+        Dictionary mapping user-facing check names (aliases) to check classes
+    """
+    module_name = f"autosuspend.checks.{internal_module}"
+    module = importlib.import_module(module_name)
+
+    available_checks = {}
+    for name, obj in inspect.getmembers(module, inspect.isclass):
+        if (
+            issubclass(obj, check_type)
+            # exclude the base class itself
+            and obj is not check_type
+            and not inspect.isabstract(obj)
+            and not name.startswith("_")
+            # only include classes defined within the autosuspend package,
+            # excluding anything imported from third-party or stdlib modules
+            and obj.__module__.startswith("autosuspend.")
+        ):
+            available_checks[name] = obj
+
+    return available_checks
+
+
 def set_up_checks(
     config: configparser.ConfigParser,
     prefix: str,
@@ -561,21 +596,6 @@ def parse_arguments(args: Sequence[str] | None) -> argparse.Namespace:
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
     )
 
-    default_config_path = Path("/etc/autosuspend.conf")
-    default_config: Path | None = None
-    if default_config_path.exists():
-        default_config = default_config_path
-    parser.add_argument(
-        "-c",
-        "--config",
-        dest="config_file",
-        type=Path,
-        default=default_config,
-        required=default_config is None,
-        metavar="FILE",
-        help="The config file to use",
-    )
-
     logging_group = parser.add_mutually_exclusive_group()
     logging_group.add_argument(
         "-l",
@@ -606,6 +626,22 @@ def parse_arguments(args: Sequence[str] | None) -> argparse.Namespace:
         "daemon", help="Execute the continuously operating daemon"
     )
     parser_daemon.set_defaults(func=main_daemon)
+
+    default_config_path = Path("/etc/autosuspend.conf")
+    default_config: Path | None = None
+    if default_config_path.exists():
+        default_config = default_config_path
+    parser_daemon.add_argument(
+        "-c",
+        "--config",
+        dest="config_file",
+        type=Path,
+        default=default_config,
+        required=default_config is None,
+        metavar="FILE",
+        help="The config file to use",
+    )
+
     parser_daemon.add_argument(
         "-a",
         "--allchecks",
@@ -626,6 +662,12 @@ def parse_arguments(args: Sequence[str] | None) -> argparse.Namespace:
         help="If set, run for the specified amount of seconds before exiting "
         "instead of endless execution.",
     )
+
+    parser_schema = subparsers.add_parser(
+        "schema",
+        help="Prints a schema of the available configuration sections and options",
+    )
+    parser_schema.set_defaults(func=main_schema)
 
     result = parser.parse_args(args)
 
@@ -712,15 +754,29 @@ def configure_processor(
     )
 
 
-def main_version(
-    _: argparse.Namespace,
-    config: configparser.ConfigParser,  # noqa: ARG001
-) -> None:
+def main_version(_: argparse.Namespace) -> None:
     print(version("autosuspend"))  # noqa: T201
 
 
-def main_daemon(args: argparse.Namespace, config: configparser.ConfigParser) -> None:
+def main_schema(_: argparse.Namespace) -> None:
+    activity_checks = discover_available_checks("activity", Activity)  # type: ignore
+    wakeup_checks = discover_available_checks("wakeup", Wakeup)  # type: ignore
+    schema = ConfigSchema(
+        general_parameters=GENERAL_PARAMETERS,
+        activity_checks={
+            name: check.config_parameters for name, check in activity_checks.items()
+        },
+        wakeup_checks={
+            name: check.config_parameters for name, check in wakeup_checks.items()
+        },
+    )
+
+    print(schema.to_json())  # noqa: T201
+
+
+def main_daemon(args: argparse.Namespace) -> None:
     """Run the daemon."""
+    config = parse_config(args.config_file)
     checks = set_up_checks(
         config,
         "check",
@@ -764,9 +820,7 @@ def main(argv: Sequence[str] | None = None) -> None:
 
     configure_logging(args.logging, args.debug)
 
-    config = parse_config(args.config_file)
-
-    args.func(args, config)
+    args.func(args)
 
 
 if __name__ == "__main__":

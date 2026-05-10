@@ -3,6 +3,10 @@
 
 import os
 import os.path
+import sys
+
+# Add extension directory to path
+sys.path.insert(0, os.path.abspath(".."))
 
 # needs_sphinx = '1.0'
 
@@ -15,20 +19,23 @@ extensions = [
     "sphinxcontrib.plantuml",
     "sphinx_issues",
     "recommonmark",
+    "ext_autosuspend",
 ]
-templates_path = ['_templates']
-source_suffix = '.rst'
+templates_path = ["_templates"]
+source_suffix = ".rst"
 
-master_doc = 'index'
+master_doc = "index"
 
-project = 'autosuspend'
-copyright = '2017, Johannes Wienke'
-author = 'Johannes Wienke'
+project = "autosuspend"
+copyright = "2017, Johannes Wienke"
+author = "Johannes Wienke"
 
-with open(os.path.join(
-        os.path.abspath(os.path.dirname(os.path.realpath(__file__))),
-        '../..',
-        'VERSION'), 'r') as version_file:
+with open(
+    os.path.join(
+        os.path.abspath(os.path.dirname(os.path.realpath(__file__))), "../..", "VERSION"
+    ),
+    "r",
+) as version_file:
     lines = version_file.readlines()
 version = lines[0].strip()
 release = lines[1].strip()
@@ -37,11 +44,11 @@ language = "en"
 
 exclude_patterns = []
 
-pygments_style = 'sphinx'
+pygments_style = "sphinx"
 
 todo_include_todos = False
 
-rst_epilog = '''
+rst_epilog = """
 .. _autosuspend: https://github.com/languitar/autosuspend
 .. _Python 3: https://docs.python.org/3/
 .. _Python: https://docs.python.org/3/
@@ -73,40 +80,37 @@ rst_epilog = '''
 
 .. |project| replace:: {project}
 .. |project_bold| replace:: **{project}**
-.. |project_program| replace:: :program:`{project}`'''.format(project=project)
+.. |project_program| replace:: :program:`{project}`""".format(project=project)
 
 # Intersphinx
 
-intersphinx_mapping = {'python': ('https://docs.python.org/3.7', None)}
+intersphinx_mapping = {"python": ("https://docs.python.org/3.7", None)}
 
 # HTML options
 
-html_theme = 'furo'
+html_theme = "furo"
 # html_theme_options = {}
 
 # html_static_path = ['_static']
 
-html_sidebars = {
-}
+html_sidebars = {}
 
 # MANPAGE options
 
 man_pages = [
-    ('man_command',
-     'autosuspend',
-     'autosuspend Documentation',
-     [author],
-     1),
-    ('man_config',
-     'autosuspend.conf',
-     'autosuspend config file Documentation',
-     [author],
-     5),
+    ("man_command", "autosuspend", "autosuspend Documentation", [author], 1),
+    (
+        "man_config",
+        "autosuspend.conf",
+        "autosuspend config file Documentation",
+        [author],
+        5,
+    ),
 ]
 man_show_urls = True
 
 # issues
-issues_github_path = 'languitar/autosuspend'
+issues_github_path = "languitar/autosuspend"
 
 # napoleon
 napoleon_google_docstring = True
@@ -118,7 +122,7 @@ typehints_fully_qualified = True
 
 def setup(app):
     app.add_config_value(
-        'is_preview',
-        os.environ.get('READTHEDOCS_VERSION', '') == 'latest',
-        'env',
+        "is_preview",
+        os.environ.get("READTHEDOCS_VERSION", "") == "latest",
+        "env",
     )

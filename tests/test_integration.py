@@ -1,3 +1,4 @@
+import json
 import logging
 import subprocess
 from collections.abc import Iterable
@@ -132,10 +133,10 @@ def daemon_environment(
 def test_no_suspend_if_matching(datadir: Path, tmp_path: Path) -> None:
     autosuspend.main(
         [
-            "-c",
-            str(configure_config("dont_suspend.conf", datadir, tmp_path)),
             "-d",
             "daemon",
+            "-c",
+            str(configure_config("dont_suspend.conf", datadir, tmp_path)),
             "-r",
             "10",
         ]
@@ -148,10 +149,10 @@ def test_no_suspend_if_matching(datadir: Path, tmp_path: Path) -> None:
 def test_suspend(tmp_path: Path, datadir: Path) -> None:
     autosuspend.main(
         [
-            "-c",
-            str(configure_config("would_suspend.conf", datadir, tmp_path)),
             "-d",
             "daemon",
+            "-c",
+            str(configure_config("would_suspend.conf", datadir, tmp_path)),
             "-r",
             "10",
         ]
@@ -169,10 +170,10 @@ def test_wakeup_scheduled(tmp_path: Path, datadir: Path) -> None:
 
     autosuspend.main(
         [
-            "-c",
-            str(configure_config("would_schedule.conf", datadir, tmp_path)),
             "-d",
             "daemon",
+            "-c",
+            str(configure_config("would_schedule.conf", datadir, tmp_path)),
             "-r",
             "10",
         ]
@@ -189,10 +190,10 @@ def test_wakeup_scheduled(tmp_path: Path, datadir: Path) -> None:
 def test_notify_call(tmp_path: Path, datadir: Path) -> None:
     autosuspend.main(
         [
-            "-c",
-            str(configure_config("notify.conf", datadir, tmp_path)),
             "-d",
             "daemon",
+            "-c",
+            str(configure_config("notify.conf", datadir, tmp_path)),
             "-r",
             "10",
         ]
@@ -212,10 +213,10 @@ def test_notify_call_wakeup(tmp_path: Path, datadir: Path) -> None:
 
     autosuspend.main(
         [
-            "-c",
-            str(configure_config("notify_wakeup.conf", datadir, tmp_path)),
             "-d",
             "daemon",
+            "-c",
+            str(configure_config("notify_wakeup.conf", datadir, tmp_path)),
             "-r",
             "10",
         ]
@@ -232,10 +233,10 @@ def test_error_no_checks_configured(tmp_path: Path, datadir: Path) -> None:
     with pytest.raises(autosuspend.ConfigurationError):
         autosuspend.main(
             [
-                "-c",
-                str(configure_config("no_checks.conf", datadir, tmp_path)),
                 "-d",
                 "daemon",
+                "-c",
+                str(configure_config("no_checks.conf", datadir, tmp_path)),
                 "-r",
                 "10",
             ]
@@ -246,10 +247,10 @@ def test_error_no_checks_configured(tmp_path: Path, datadir: Path) -> None:
 def test_temporary_errors_logged(tmp_path: Path, datadir: Path, caplog: Any) -> None:
     autosuspend.main(
         [
-            "-c",
-            str(configure_config("temporary_error.conf", datadir, tmp_path)),
             "-d",
             "daemon",
+            "-c",
+            str(configure_config("temporary_error.conf", datadir, tmp_path)),
             "-r",
             "10",
         ]
@@ -270,10 +271,10 @@ def test_loop_defaults(tmp_path: Path, datadir: Path, mocker: MockerFixture) -> 
     with pytest.raises(StopIteration):
         autosuspend.main(
             [
-                "-c",
-                str(configure_config("minimal.conf", datadir, tmp_path)),
                 "-d",
                 "daemon",
+                "-c",
+                str(configure_config("minimal.conf", datadir, tmp_path)),
                 "-r",
                 "10",
             ]
@@ -284,11 +285,22 @@ def test_loop_defaults(tmp_path: Path, datadir: Path, mocker: MockerFixture) -> 
     assert kwargs["run_for"] == 10
 
 
-def test_version(tmp_path: Path, datadir: Path) -> None:
+def test_version() -> None:
     autosuspend.main(
         [
-            "-c",
-            str(configure_config("would_schedule.conf", datadir, tmp_path)),
             "version",
         ]
     )
+
+
+def test_schema(capsys: pytest.CaptureFixture[str]) -> None:
+    autosuspend.main(
+        [
+            "schema",
+        ]
+    )
+
+    stdout = capsys.readouterr().out
+    assert stdout.strip() != ""
+    # should be valid
+    json.loads(stdout)
