@@ -137,7 +137,9 @@ class AutosuspendChecksDirective(Directive):
             title = "Available wake up checks"
             check_prefix = "wakeup"
         else:
-            raise ValueError(f"Unknown check type: {check_type}")
+            raise self.error(
+                f"Unknown check type: {check_type!r}. Expected 'activity' or 'wakeup'."
+            )
 
         # Sort checks by name (keys are already the effective names/aliases)
         sorted_checks = sorted(checks.items(), key=lambda x: x[0])
