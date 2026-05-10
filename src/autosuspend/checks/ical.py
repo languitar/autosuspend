@@ -266,7 +266,9 @@ def list_calendar_events(
     # * end times and dates are non-inclusive for ical events
     # * start and end are dates for all-day events
 
-    calendar: icalendar.Calendar = icalendar.Calendar.from_ical(data.read())
+    calendar: icalendar.Calendar = cast(
+        "icalendar.Calendar", icalendar.Calendar.from_ical(data.read())
+    )
 
     # Do a first pass through the calendar to collect all exclusions to
     # recurring events so that they can be handled when expanding recurrences.
