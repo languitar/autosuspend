@@ -5,7 +5,7 @@ from contextlib import suppress
 from .command import CommandWakeup as Command  # noqa
 from .linux import File  # noqa
 from .stub import Periodic  # noqa
-from .systemd import SystemdTimer  # noqa
+from .systemd import SystemdScheduledShutdown, SystemdTimer  # noqa
 
 with suppress(ModuleNotFoundError):
     from .ical import Calendar  # noqa

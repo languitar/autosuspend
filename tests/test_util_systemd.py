@@ -1,8 +1,10 @@
+import dbus
 import pytest
 from dbus.proxies import ProxyObject
 
 from autosuspend.util.systemd import (
     LogindDBusException,
+    get_scheduled_shutdown,
     has_inhibit_lock,
     list_logind_sessions,
 )
@@ -64,3 +66,29 @@ class TestHasInhibitLock:
     def test_dbus_error(self) -> None:
         with pytest.raises(LogindDBusException):
             has_inhibit_lock()
+
+
+class TestGetScheduledShutdown:
+    def test_nothing_scheduled(self, logind: ProxyObject) -> None:
+        logind.AddProperty(
+            "org.freedesktop.login1.Manager",
+            "ScheduledShutdown",
+            dbus.Struct((dbus.String(""), dbus.UInt64(0)), signature="st"),
+        )
+        assert get_scheduled_shutdown() == ("", 0)
+
+    def test_reboot_scheduled(self, logind: ProxyObject) -> None:
+        logind.AddProperty(
+            "org.freedesktop.login1.Manager",
+            "ScheduledShutdown",
+            dbus.Struct(
+                (dbus.String("reboot"), dbus.UInt64(1735689600000000)),
+                signature="st",
+            ),
+        )
+        assert get_scheduled_shutdown() == ("reboot", 1735689600000000)
+
+    @pytest.mark.usefixtures("_logind_dbus_error")
+    def test_dbus_error(self) -> None:
+        with pytest.raises(LogindDBusException):
+            get_scheduled_shutdown()

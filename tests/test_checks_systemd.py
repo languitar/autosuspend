@@ -9,9 +9,11 @@ from pytest_mock import MockerFixture
 from autosuspend.checks import Check, ConfigurationError, TemporaryCheckError
 from autosuspend.checks.systemd import (
     LogindSessionsIdle,
+    SystemdScheduledShutdown,
     SystemdTimer,
     next_timer_executions,
 )
+from autosuspend.util.systemd import LogindDBusException
 
 from . import CheckTest
 from .utils import config_section
@@ -68,6 +70,65 @@ class TestSystemdTimer(CheckTest):
         }
 
         assert SystemdTimer("foo", re.compile(".*")).check(now) is now
+
+
+class TestSystemdScheduledShutdown(CheckTest):
+    def create_instance(self, name: str) -> Check:
+        return SystemdScheduledShutdown(name, 180)
+
+    def test_create_default(self) -> None:
+        check = SystemdScheduledShutdown.create("name", config_section())
+        assert check._delta == 180
+
+    def test_create_custom_delta(self) -> None:
+        check = SystemdScheduledShutdown.create(
+            "name", config_section({"delta": "300"})
+        )
+        assert check._delta == 300
+
+    def test_create_invalid_delta(self) -> None:
+        with pytest.raises(ConfigurationError):
+            SystemdScheduledShutdown.create(
+                "name", config_section({"delta": "not-a-number"})
+            )
+
+    def test_nothing_scheduled(self, mocker: MockerFixture) -> None:
+        mocker.patch(
+            "autosuspend.checks.systemd.get_scheduled_shutdown",
+            return_value=("", 0),
+        )
+        assert SystemdScheduledShutdown("name", 180).check(datetime.now(UTC)) is None
+
+    @pytest.mark.parametrize("shutdown_type", ["reboot", "poweroff", "halt", "kexec"])
+    def test_shutdown_scheduled(
+        self, mocker: MockerFixture, shutdown_type: str
+    ) -> None:
+        scheduled = datetime(2026, 1, 1, 12, 0, 0, tzinfo=UTC)
+        mocker.patch(
+            "autosuspend.checks.systemd.get_scheduled_shutdown",
+            return_value=(shutdown_type, int(scheduled.timestamp() * 1_000_000)),
+        )
+        result = SystemdScheduledShutdown("name", 180).check(datetime.now(UTC))
+        assert result == scheduled - timedelta(seconds=180)
+
+    @pytest.mark.parametrize("shutdown_type", ["dry-reboot", "dry-poweroff"])
+    def test_dry_run_ignored(self, mocker: MockerFixture, shutdown_type: str) -> None:
+        scheduled = datetime(2026, 1, 1, 12, 0, 0, tzinfo=UTC)
+        mocker.patch(
+            "autosuspend.checks.systemd.get_scheduled_shutdown",
+            return_value=(shutdown_type, int(scheduled.timestamp() * 1_000_000)),
+        )
+        assert SystemdScheduledShutdown("name", 180).check(datetime.now(UTC)) is None
+
+    def test_dbus_error_becomes_temporary_check_error(
+        self, mocker: MockerFixture
+    ) -> None:
+        mocker.patch(
+            "autosuspend.checks.systemd.get_scheduled_shutdown",
+            side_effect=LogindDBusException("test"),
+        )
+        with pytest.raises(TemporaryCheckError):
+            SystemdScheduledShutdown("name", 180).check(datetime.now(UTC))
 
 
 class TestLogindSessionsIdle(CheckTest):

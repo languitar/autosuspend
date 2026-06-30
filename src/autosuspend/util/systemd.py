@@ -39,6 +39,36 @@ def list_logind_sessions() -> Iterable[tuple[str, dict]]:
     return results
 
 
+def get_scheduled_shutdown() -> tuple[str, int]:
+    """Get the currently scheduled systemd shutdown/reboot, if any.
+
+    Reads the ``ScheduledShutdown`` property of the `logind`_ manager, which is
+    set e.g. by ``shutdown -r +10`` or ``systemctl poweroff --when=...``. Despite
+    its name, this property also covers reboots, halts and kexecs.
+
+    Returns:
+        tuple of (type, when): ``type`` is the shutdown type such as
+        ``reboot``, ``poweroff``, ``dry-reboot``, ``dry-poweroff``, ``halt`` or
+        ``kexec``, or the empty string if nothing is scheduled. ``when`` is the
+        scheduled time in microseconds since the epoch, or 0 if nothing is
+        scheduled.
+
+    Raises:
+        LogindDBusException: If communication with logind fails.
+    """
+    try:
+        bus = _get_bus()
+        login1 = bus.get_object("org.freedesktop.login1", "/org/freedesktop/login1")
+        properties_interface = dbus.Interface(login1, "org.freedesktop.DBus.Properties")
+        shutdown_type, when = properties_interface.Get(
+            "org.freedesktop.login1.Manager", "ScheduledShutdown"
+        )
+    except dbus.exceptions.DBusException as error:
+        raise LogindDBusException(error) from error
+
+    return str(shutdown_type), int(when)
+
+
 def has_inhibit_lock() -> bool:
     """Check if there are any blocking inhibit locks that prevent sleep.
 
