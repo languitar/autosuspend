@@ -9,7 +9,11 @@ import dbus
 
 from . import Activity, ConfigurationError, TemporaryCheckError, Wakeup
 from ..config import ParameterType, config_param
-from ..util.systemd import LogindDBusException, list_logind_sessions
+from ..util.systemd import (
+    LogindDBusException,
+    get_scheduled_shutdown,
+    list_logind_sessions,
+)
 
 _UINT64_MAX = 18446744073709551615
 
@@ -84,6 +88,57 @@ class SystemdTimer(Wakeup):
             return min(matching_executions)
         except ValueError:
             return None
+
+
+@config_param(
+    "delta",
+    ParameterType.FLOAT,
+    "Number of seconds before the scheduled shutdown/reboot at which the "
+    "system should already be running so that the scheduled action can "
+    "actually execute.",
+    default=180,
+    minimum=0,
+)
+class SystemdScheduledShutdown(Wakeup):
+    """Check for a pending systemd scheduled shutdown, reboot, halt or kexec.
+
+    Ensures that the system is active shortly before an action scheduled via
+    ``shutdown -r +10``, ``systemctl poweroff --when=...`` or similar is due,
+    as reported by the ``ScheduledShutdown`` property of `logind`_. Despite the
+    property's name, this also covers reboots, halts and kexecs. Scheduled
+    actions of type ``dry-reboot`` or ``dry-poweroff`` (created via
+    ``--dry-run``), which never actually execute, are ignored.
+    """
+
+    @classmethod
+    def create(cls: type[Self], name: str, config: configparser.SectionProxy) -> Self:
+        try:
+            return cls(name, config.getfloat("delta", fallback=180))
+        except ValueError as error:
+            raise ConfigurationError(str(error)) from error
+
+    def __init__(self, name: str, delta: float) -> None:
+        Wakeup.__init__(self, name)
+        self._delta = delta
+
+    def check(self, timestamp: datetime) -> datetime | None:  # noqa: ARG002
+        shutdown_type, when = self._get_scheduled_shutdown()
+
+        if not shutdown_type or when == 0 or shutdown_type.startswith("dry-"):
+            return None
+
+        scheduled_at = datetime.fromtimestamp(when / 1000000, tz=UTC)
+        self.logger.info(
+            "Scheduling wakeup for upcoming %s at %s", shutdown_type, scheduled_at
+        )
+        return scheduled_at - timedelta(seconds=self._delta)
+
+    @staticmethod
+    def _get_scheduled_shutdown() -> tuple[str, int]:
+        try:
+            return get_scheduled_shutdown()
+        except LogindDBusException as error:
+            raise TemporaryCheckError(error) from error
 
 
 @config_param(
