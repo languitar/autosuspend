@@ -4,6 +4,7 @@ import abc
 import configparser
 from collections.abc import Mapping
 from datetime import datetime
+from enum import Enum
 from typing import Any, Self, TypeVar
 
 from autosuspend.config import ParameterSchemaAware
@@ -27,6 +28,13 @@ class SevereCheckError(RuntimeError):
 
     There is no hope this situation recovers.
     """
+
+
+class ErrorBehavior(Enum):
+    """Configures how a :class:`TemporaryCheckError` is handled for a check."""
+
+    ACTIVE = "active"
+    IGNORE = "ignore"
 
 
 CheckType = TypeVar("CheckType", bound="Check")
@@ -84,6 +92,10 @@ class Activity(Check):
 
     Subclasses must call this class' __init__ method.
     """
+
+    def __init__(self, name: str | None = None) -> None:
+        super().__init__(name)
+        self.error_behavior = ErrorBehavior.ACTIVE
 
     @abc.abstractmethod
     def check(self) -> str | None:
