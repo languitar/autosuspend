@@ -1,3 +1,10 @@
+# [11.2.0](https://github.com/languitar/autosuspend/compare/v11.1.0...v11.2.0) (2026-06-30)
+
+
+### Features
+
+* allow configure behavior on temporary check errors ([9edf05e](https://github.com/languitar/autosuspend/commit/9edf05e36ae17be52f5b0ff30f0bd334906389ce)), closes [#814](https://github.com/languitar/autosuspend/issues/814)
+
 # [11.1.0](https://github.com/languitar/autosuspend/compare/v11.0.0...v11.1.0) (2026-05-10)
 
 
