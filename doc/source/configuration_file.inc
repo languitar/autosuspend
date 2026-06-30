@@ -130,3 +130,4 @@ Wake up check configuration
 
 Wake up checks uses the same configuration logic as the previously described activity checks.
 However, the configuration file sections start with ``wakeup.`` instead of ``check.``.
+The :option:`error_behavior` option is not available for wake up checks, since temporary errors always cause a wake up check to be skipped for the current iteration.
