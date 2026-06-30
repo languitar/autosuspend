@@ -111,6 +111,18 @@ For each check, these generic options can be specified:
    Needs to be ``true`` for a check to actually execute.
    ``false`` is assumed if not specified.
 
+.. option:: error_behavior
+
+   Determines how a temporary error raised by this check is handled.
+
+   ``active``
+      Treat the error as detected activity, preventing the system from suspending until the check succeeds again.
+
+   ``ignore``
+      Log the error and treat the check as if no activity was detected.
+
+   Default: ``active``.
+
 Furthermore, each check might have custom options.
 
 Wake up check configuration

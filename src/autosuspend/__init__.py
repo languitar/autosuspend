@@ -19,7 +19,14 @@ import dbus
 from dbus.mainloop.glib import DBusGMainLoop
 from gi.repository import GLib
 
-from .checks import Activity, CheckType, ConfigurationError, TemporaryCheckError, Wakeup
+from .checks import (
+    Activity,
+    CheckType,
+    ConfigurationError,
+    ErrorBehavior,
+    TemporaryCheckError,
+    Wakeup,
+)
 from .config import GENERAL_PARAMETERS, ConfigSchema
 from .util import logger_by_class_instance
 from .util.systemd import LogindDBusException, has_inhibit_lock
@@ -121,6 +128,11 @@ def _safe_execute_activity(check: Activity, logger: logging.Logger) -> str | Non
     try:
         return check.check()
     except TemporaryCheckError:
+        if check.error_behavior is ErrorBehavior.IGNORE:
+            logger.warning(
+                "Check %s failed. Ignoring as configured...", check, exc_info=True
+            )
+            return None
         logger.warning("Check %s failed. Ignoring...", check, exc_info=True)
         return f"Check {check.name} failed temporarily"
 
@@ -451,6 +463,17 @@ def _determine_check_class_name(name: str, section: configparser.SectionProxy) -
     return section.get("class", name)
 
 
+def _determine_error_behavior(section: configparser.SectionProxy) -> ErrorBehavior:
+    raw = section.get("error_behavior", fallback=ErrorBehavior.ACTIVE.value)
+    try:
+        return ErrorBehavior(raw)
+    except ValueError as error:
+        raise ConfigurationError(
+            f"Invalid value for option 'error_behavior': {raw!r}. "
+            f"Allowed values: {[e.value for e in ErrorBehavior]}"
+        ) from error
+
+
 def _set_up_single_check(
     section: configparser.SectionProxy,
     prefix: str,
@@ -486,6 +509,8 @@ def _set_up_single_check(
         raise ConfigurationError(
             "Check %s is not a correct %s instance", check, target_class.__name__
         )
+    if isinstance(check, Activity):
+        check.error_behavior = _determine_error_behavior(section)
     _logger.debug("Created check instance %s with options %s", check, check.options())
 
     return check

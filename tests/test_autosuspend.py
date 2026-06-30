@@ -114,6 +114,80 @@ class TestSetUpChecks:
 
         mock_class.create.assert_called_once_with("Foo", parser["check.Foo"])
 
+    def test_error_behavior_defaults_to_active(self, mocker: MockerFixture) -> None:
+        mock_class = mocker.patch("autosuspend.checks.activity.Mpd")
+        check = mocker.MagicMock(spec=autosuspend.checks.Activity)
+        mock_class.create.return_value = check
+
+        parser = configparser.ConfigParser()
+        parser.read_string("""
+            [check.Foo]
+            class = Mpd
+            enabled = True
+            """)
+
+        autosuspend.set_up_checks(
+            parser, "check", "activity", autosuspend.Activity  # type: ignore
+        )
+
+        assert check.error_behavior == autosuspend.ErrorBehavior.ACTIVE
+
+    def test_error_behavior_can_be_set_to_ignore(self, mocker: MockerFixture) -> None:
+        mock_class = mocker.patch("autosuspend.checks.activity.Mpd")
+        check = mocker.MagicMock(spec=autosuspend.checks.Activity)
+        mock_class.create.return_value = check
+
+        parser = configparser.ConfigParser()
+        parser.read_string("""
+            [check.Foo]
+            class = Mpd
+            enabled = True
+            error_behavior = ignore
+            """)
+
+        autosuspend.set_up_checks(
+            parser, "check", "activity", autosuspend.Activity  # type: ignore
+        )
+
+        assert check.error_behavior == autosuspend.ErrorBehavior.IGNORE
+
+    def test_error_behavior_rejects_invalid_value(self, mocker: MockerFixture) -> None:
+        mock_class = mocker.patch("autosuspend.checks.activity.Mpd")
+        mock_class.create.return_value = mocker.MagicMock(
+            spec=autosuspend.checks.Activity
+        )
+
+        parser = configparser.ConfigParser()
+        parser.read_string("""
+            [check.Foo]
+            class = Mpd
+            enabled = True
+            error_behavior = bogus
+            """)
+
+        with pytest.raises(autosuspend.ConfigurationError):
+            autosuspend.set_up_checks(
+                parser, "check", "activity", autosuspend.Activity  # type: ignore
+            )
+
+    def test_error_behavior_not_set_for_wakeups(self, mocker: MockerFixture) -> None:
+        mock_class = mocker.patch("autosuspend.checks.wakeup.File")
+        check = mocker.MagicMock(spec=autosuspend.checks.Wakeup)
+        mock_class.create.return_value = check
+
+        parser = configparser.ConfigParser()
+        parser.read_string("""
+            [wakeup.Foo]
+            class = File
+            enabled = True
+            """)
+
+        autosuspend.set_up_checks(
+            parser, "wakeup", "wakeup", autosuspend.Wakeup  # type: ignore
+        )
+
+        assert not hasattr(check, "error_behavior")
+
     def test_external_class(self, mocker: MockerFixture) -> None:
         mock_class = mocker.patch("os.path.TestCheck", create=True)
         mock_class.create.return_value = mocker.MagicMock(
@@ -290,11 +364,26 @@ class TestExecuteChecks:
     def test_treat_temporary_errors_as_activity(self, mocker: MockerFixture) -> None:
         matching_check = mocker.MagicMock(spec=autosuspend.Activity)
         matching_check.name = "foo"
+        matching_check.error_behavior = autosuspend.ErrorBehavior.ACTIVE
         matching_check.check.side_effect = autosuspend.TemporaryCheckError()
 
         assert (
             autosuspend.execute_checks([matching_check], False, mocker.MagicMock())
             is True
+        )
+        matching_check.check.assert_called_once_with()
+
+    def test_ignore_temporary_errors_when_configured(
+        self, mocker: MockerFixture
+    ) -> None:
+        matching_check = mocker.MagicMock(spec=autosuspend.Activity)
+        matching_check.name = "foo"
+        matching_check.error_behavior = autosuspend.ErrorBehavior.IGNORE
+        matching_check.check.side_effect = autosuspend.TemporaryCheckError()
+
+        assert (
+            autosuspend.execute_checks([matching_check], False, mocker.MagicMock())
+            is False
         )
         matching_check.check.assert_called_once_with()
 
