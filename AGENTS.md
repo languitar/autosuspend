@@ -141,7 +141,7 @@ Example: `long-event.ics` has an end date that needs periodic updates to stay in
 ### Dependency testing
 
 The project tests against multiple combinations:
-- Python versions: 3.11, 3.12, 3.13, 3.14
+- Python versions: 3.11, 3.12, 3.13, 3.14, 3.15
 - psutil versions: 5.9 (minimum) and latest
 - python-dateutil versions: 2.8 (minimum) and latest
 - tzlocal versions: <3, >3,<5, and >4
